@@ -277,13 +277,28 @@ class Result:
 
 
 def find_mask(mask_dir: Path, stem: str) -> Optional[Path]:
-    """Locate the mask for an image stem; annotators vary the suffix freely."""
+    """Locate the mask for an image stem.
+
+    Two naming conventions in the wild:
+      DDR    image 007-0004.jpg -> label/MA/007-0004.tif      (same stem)
+      IDRiD  image IDRiD_55.jpg -> .../1. Microaneurysms/IDRiD_55_MA.tif
+                                                             (channel suffix)
+
+    The suffixed form is tried only after the exact one, and the underscore in
+    the glob enforces a boundary so IDRiD_5 cannot match IDRiD_55_MA.
+    """
     for suffix in (".tif", ".tiff", ".png", ".gif", ".bmp", ".jpg", ".jpeg"):
         candidate = mask_dir / f"{stem}{suffix}"
         if candidate.exists():
             return candidate
     matches = sorted(mask_dir.glob(f"{stem}.*"))
-    return matches[0] if matches else None
+    if matches:
+        return matches[0]
+    suffixed = sorted(
+        p for p in mask_dir.glob(f"{stem}_*")
+        if p.is_file() and p.suffix.lower() in IMAGE_SUFFIXES
+    )
+    return suffixed[0] if suffixed else None
 
 
 def process_one(rel: str, cfg: dict) -> Result:

@@ -40,6 +40,12 @@ Masks take the *image's* geometry — computed from the image, never from the ma
 since masks are mostly black and would crop to nothing — with nearest-neighbour
 interpolation, no CLAHE, written as lossless PNG under `<dataset>/masks/<channel>/`.
 
+Two mask-naming conventions are handled: DDR reuses the image stem
+(`007-0004.jpg` → `label/MA/007-0004.tif`), IDRiD appends a channel suffix
+(`IDRiD_55.jpg` → `1. Microaneurysms/IDRiD_55_MA.tif`). If the per-channel tallies
+in `cache_report.json` show `written: 0, absent: N`, the mask directories were found
+but no filename matched — check the naming before assuming the masks are missing.
+
 Resumable: existing non-empty outputs are skipped unless `--overwrite`. Writes are
 atomic, so an interrupted run cannot leave a truncated file that the next run would
 mistake for finished work. Per-image failures are recorded and skipped, never fatal.
