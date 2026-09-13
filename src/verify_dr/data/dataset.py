@@ -102,19 +102,35 @@ class GradingDataset(Dataset):
         return item
 
 
-def repath_to_cache(frame: pd.DataFrame, cache_root: Path) -> pd.DataFrame:
+def repath_to_cache(frame: pd.DataFrame, cache_root) -> pd.DataFrame:
     """Point image_path at `cache_root`, keeping the <dataset>/images/<file> tail.
 
     Manifests store absolute paths, and the cache is mounted somewhere different
     in every Kaggle session -- a Phase 2 manifest names the path the cache had
     during Phase 2. build_cache.py always writes <root>/<dataset>/images/<file>,
     so the last three components identify the image and only the root moves.
+
+    `cache_root` may be several roots. The cache is legitimately split across
+    published datasets: a full build plus a later top-up (IDRiD's masks ship as
+    their own dataset). Each dataset is resolved to the first root that actually
+    holds it, so a split cache works without merging it on disk.
     """
-    cache_root = Path(cache_root)
+    roots = [Path(r) for r in (cache_root if isinstance(cache_root, (list, tuple))
+                               else [cache_root])]
+
+    # Resolved once per dataset, not once per row: there are at most a handful of
+    # datasets and a stat() per row over 88k EyePACS images is pure waste.
+    chosen: Dict[str, Path] = {}
 
     def rewrite(value: str) -> str:
         parts = Path(value).parts
-        return str(cache_root.joinpath(*parts[-3:])) if len(parts) >= 3 else value
+        if len(parts) < 3:
+            return value
+        tail = Path(*parts[-3:])
+        dataset = parts[-3]
+        if dataset not in chosen:
+            chosen[dataset] = next((r for r in roots if (r / tail).exists()), roots[0])
+        return str(chosen[dataset] / tail)
 
     frame = frame.copy()
     frame["image_path"] = frame["image_path"].map(rewrite)
@@ -138,7 +154,8 @@ def load_manifest(path: Path, split: Optional[str] = None,
         hint = ("Is the cache mounted at the same location it was built at? "
                 "Pass --cache-root to repath the manifest."
                 if cache_root is None else
-                f"Checked against cache_root={cache_root}. Is that the right root?")
+                f"Checked against cache_root={cache_root}. Is that the right root? "
+                "If the cache is split across several datasets, pass each root.")
         raise FileNotFoundError(f"{path}: image paths do not exist, e.g. {missing[:3]}. {hint}")
     return frame.reset_index(drop=True)
 

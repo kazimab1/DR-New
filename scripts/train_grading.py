@@ -174,9 +174,12 @@ def parse_args(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
     p.add_argument("--manifest", required=True, type=Path)
     p.add_argument("--experiment", required=True, help="Id from docs/04_experiment_register.md.")
     p.add_argument("--results-dir", type=Path, default=Path("results/stage_b"))
-    p.add_argument("--cache-root", type=Path, default=None,
-                   help="Repath the manifest onto this cache root. Needed whenever the "
-                        "cache is mounted somewhere other than where Phase 2 saw it.")
+    p.add_argument("--cache-root", type=Path, nargs="+", default=None,
+                   help="Repath the manifest onto these cache roots. Needed whenever the "
+                        "cache is mounted somewhere other than where Phase 2 saw it. "
+                        "Pass several when the cache is split across published datasets "
+                        "(a full build plus a top-up); each dataset resolves to the root "
+                        "that holds it.")
     p.add_argument("--backbone", choices=BACKBONES, default="efficientnet_b0")
     p.add_argument("--head", choices=HEADS, default="ordinal_focal")
     p.add_argument("--sampler", choices=SAMPLERS, default="stratified_exposure")

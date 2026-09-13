@@ -158,6 +158,37 @@ class TestDataset(unittest.TestCase):
         self.assertEqual(out["image_path"][0],
                          "/kaggle/input/new/eyepacs/images/1_left.jpg")
 
+    def test_repath_resolves_each_dataset_to_the_root_that_holds_it(self):
+        """The cache is legitimately split: IDRiD's masks ship as their own
+        published dataset, so a manifest spanning datasets must not be forced
+        onto a single root."""
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root_a, root_b = Path(tmp) / "a", Path(tmp) / "b"
+            (root_a / "eyepacs" / "images").mkdir(parents=True)
+            (root_b / "idrid" / "images").mkdir(parents=True)
+            (root_a / "eyepacs" / "images" / "1_left.jpg").write_bytes(b"x")
+            (root_b / "idrid" / "images" / "IDRiD_01.jpg").write_bytes(b"x")
+
+            frame = pd.DataFrame({"image_path": [
+                "/gone/eyepacs/images/1_left.jpg",
+                "/gone/idrid/images/IDRiD_01.jpg",
+            ]})
+            out = repath_to_cache(frame, [root_a, root_b])
+            self.assertEqual(out["image_path"][0],
+                             str(root_a / "eyepacs/images/1_left.jpg"))
+            self.assertEqual(out["image_path"][1],
+                             str(root_b / "idrid/images/IDRiD_01.jpg"))
+
+    def test_repath_falls_back_to_the_first_root_when_nothing_matches(self):
+        """So the failure surfaces in load_manifest's existence check with a
+        readable path, rather than silently here."""
+        out = repath_to_cache(
+            pd.DataFrame({"image_path": ["/gone/ddr/images/x.jpg"]}),
+            [Path("/no/such/a"), Path("/no/such/b")])
+        self.assertEqual(out["image_path"][0], "/no/such/a/ddr/images/x.jpg")
+
     def test_sampler_never_draws_an_absent_grade(self):
         grades = np.array([0, 0, 0, 2, 2, 4])           # no grade 1 or 3
         sampler = make_sampler(grades, "class_balanced", seed=0)
