@@ -1,0 +1,36 @@
+# Shared defaults. Stage configs override only what they vary.
+defaults:
+  seed: 42
+  cache: verify-dr-cache-512
+  image_size: 512
+  num_workers: 4
+  amp: true
+
+paths:
+  manifests: manifests/
+  results: results/
+  checkpoints: checkpoints/
+
+training:
+  optimizer: adamw
+  lr: 3.0e-4
+  weight_decay: 1.0e-4
+  schedule: cosine
+  warmup_epochs: 2
+  epochs: 12
+  batch_size: 32
+  early_stopping: {metric: val_qwk, patience: 3}
+  checkpoint_every_epoch: true    # Kaggle sessions die; resume, never restart
+
+augmentation:
+  hflip: 0.5
+  rotation_deg: 15
+  brightness_contrast: 0.2
+  scale_jitter: 0.1
+  channel_shuffle: false          # lesion colour is diagnostic
+
+metrics:
+  primary: qwk
+  report: [qwk, accuracy, macro_f1, mae, ece, nll, brier, auroc_rdr, auroc_vtdr]
+  bootstrap_resamples: 2000
+  ece_bins: 15

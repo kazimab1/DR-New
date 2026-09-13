@@ -1,0 +1,39 @@
+# Stages D, E, F - calibration, faithfulness, triage. Inference only.
+extends: base.yaml
+
+D_calibration:
+  D1_internal: {methods: [uncalibrated, temperature_scaling], fit_on: internal_calibration_split}
+  D2_transfer:
+    apply: internal_temperature
+    to: [aptos, messidor2]
+    expect: failure
+    note: Grade-0 prevalence moves ~73% -> ~49%. The failure is the finding.
+  D3_prior_shift:
+    methods: [saerens_decock_em, oracle_target_prior]
+    uses: unlabelled_target_images_only     # does not break the external lock
+    decide_on: external_ece
+  D4_sample_size:
+    sweep: {n_target_images: [50, 200, 500, all]}
+    decide_on: ece_vs_n
+
+E_faithfulness:
+  E1_lesion_removal: {inpaint: {method: telea, radius: 5}, target: cited_lesion_regions}
+  E2_control:
+    target: [random_regions_equal_area, non_lesion_regions_equal_area]
+    mandatory: true
+    note: >
+      Without this control E1 shows the model reacts to inpainting, not that it uses
+      the lesions. Never skip.
+  E3_by_severity: {stratify_by: true_grade}
+
+F_triage:
+  arms: [none, confidence, ood_z, disagreement, combined]
+  primary_arm: disagreement
+  F1_internal: {test_set: eyepacs_official_test, decide_on: [coverage_accuracy_auc, acc_at_80, acc_at_90]}
+  F2_external:
+    test_sets: [aptos, messidor2]
+    decide_on: [coverage_accuracy_auc, acc_at_80, acc_at_90]
+    note: This is the thesis. In-domain-only wins are a curiosity.
+  F3_clinical: {decide_on: [rdr_sensitivity_at_coverage, rdr_specificity_at_coverage]}
+  F4_signal_form: {sweep: {disagreement: [binary, magnitude, magnitude_plus_unobservable]}}
+  F5_bucket_analysis: {report: [fraction_per_action, accuracy_per_action]}

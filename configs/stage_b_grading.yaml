@@ -1,0 +1,43 @@
+# Stage B - grading pathway selection. Validation only; no test set is touched.
+extends: base.yaml
+
+B1_resolution:
+  variant: eyepacs_balanced_1000
+  sweep: {image_size: [384, 512, 768]}
+  decide_on: [val_qwk, val_recall_grade_1]
+  note: >
+    Judge on grade-1 recall, not overall QWK. Grade 1 is microaneurysms only and an MA
+    is 10-20 px. A model that silently skips grade 1 can still post a decent QWK.
+
+B2_backbone:
+  variant: eyepacs_full
+  sweep: {backbone: [efficientnet_b0, resnet50]}
+  decide_on: val_qwk_per_gpu_hour
+
+B3_head:
+  variant: eyepacs_full
+  sweep:
+    head: [softmax_ce, ordinal_coral, ordinal_coral_focal]
+    focal_gamma: [2.0]
+  decide_on: [val_qwk, val_mae]
+
+B4_sampler:
+  variant: eyepacs_full
+  sweep: {sampler: [natural, stratified_exposure, class_balanced]}
+  decide_on: val_qwk
+  note: Validation stays at natural prevalence regardless of training sampler.
+
+B5_eye_pair_fusion:
+  variant: eyepacs_full
+  sweep: {eye_pair_fusion: [false, true]}
+  decide_on: val_qwk
+  paired_across_seeds: true
+
+B6_dataset_balance:      # ablation, not selection
+  sweep: {variant: [eyepacs_full, eyepacs_balanced_1000]}
+  decide_on: test_qwk_natural_prevalence
+
+B7_source_mix:           # H3 - external, single unblinding only
+  sweep: {variant: [eyepacs_full, eyepacs_ddr_full]}
+  decide_on: external_qwk
+  requires_preregistration: true

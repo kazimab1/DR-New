@@ -1,0 +1,14 @@
+checkpoints/
+*.pt
+*.pth
+cache512/
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+.DS_Store
+manifests/*.csv
+!manifests/.gitkeep
+results/**/*.csv
+results/**/*.json
+.venv/
+env/

@@ -1,0 +1,80 @@
+# VERIFY-DR — frozen configuration template
+# Copy to frozen_config.yaml at the Phase 5 freeze and fill in from B1-B5 results.
+# After committing, this file does not change. Deviations go in PREREGISTRATION.md.
+
+meta:
+  frozen_at: null            # YYYY-MM-DD
+  frozen_commit: null        # filled in after commit
+  seeds: [42, 43, 44]
+
+data:
+  cache: verify-dr-cache-512
+  image_size: null           # from B1
+  train_variants: [eyepacs_full, eyepacs_ddr_full]
+  split: official_eyepacs    # 35,126 train / 53,576 test
+  val_fraction: 0.10         # carved from train, patient-grouped
+  calibration_fraction: 0.05 # carved from train, patient-grouped
+  externals: [aptos, messidor2]   # LOCKED - evaluated once
+
+grading_model:
+  backbone: null             # from B2
+  pretrained: true
+  head: null                 # from B3
+  focal_gamma: null          # from B3
+  aux_heads: {rdr: 0.3, vtdr: 0.3}
+  eye_pair_fusion: null      # from B5
+  dropout: 0.3
+
+training:
+  optimizer: adamw
+  lr: 3.0e-4
+  weight_decay: 1.0e-4
+  schedule: cosine
+  warmup_epochs: 2
+  epochs: 12
+  early_stopping: {metric: val_qwk, patience: 3}
+  batch_size: 32
+  amp: true
+  sampler: null              # from B4
+
+augmentation:
+  hflip: 0.5
+  vflip: 0.0
+  rotation_deg: 15
+  brightness_contrast: 0.2
+  scale_jitter: 0.1
+  channel_shuffle: false     # lesion colour is diagnostic - never enable
+
+evidence_model:
+  arch: resnet18_unet
+  channels: [microaneurysm, haemorrhage, hard_exudate, soft_exudate]
+  train_sources: [ddr_seg, idrid_seg]
+  loss: {dice: 0.5, bce: 0.5}
+  threshold: 0.5
+  min_component_area_px: 3
+
+geometry:
+  arch: resnet18_coord
+  targets: [od_x, od_y, fovea_x, fovea_y]
+  train_source: idrid
+  acceptance_error_dd: 0.5   # C1 gate
+
+reasoner:
+  mode: partial_icdr
+  unobservable: [venous_beading, irma, neovascularisation]
+  abstain_upward: true
+
+calibration:
+  temperature_scaling: true
+  fit_on: internal_calibration_split
+  prior_shift: saerens_decock_em    # uses UNLABELLED target images only
+
+triage:
+  gating_arms: [none, confidence, ood_z, disagreement, combined]
+  primary_arm: disagreement
+  ood_threshold: null
+  actions: [ACCEPT, ADJACENT_GRADE_SET, DEFER, REACQUIRE]
+
+counterfactual:
+  inpaint: {method: telea, radius: 5}
+  control: random_regions_equal_area   # E2 - mandatory

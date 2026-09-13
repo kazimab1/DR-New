@@ -1,0 +1,37 @@
+# Stage C - evidence pathway. Independent of Stage B; no shared weights with M1.
+extends: base.yaml
+
+C1_geometry:
+  arch: resnet18_coord
+  train_source: idrid
+  targets: [od_x, od_y, fovea_x, fovea_y]
+  loss: smooth_l1
+  acceptance_error_dd: 0.5
+  note: Gates all quadrant reasoning. Below target, M3 falls back to a count-only rule.
+
+C2_segmentation:
+  arch: resnet18_unet
+  channels: [microaneurysm, haemorrhage, hard_exudate, soft_exudate]
+  sweep:
+    train_sources:
+      - [ddr_seg]
+      - [ddr_seg, idrid_seg]
+      - [ddr_seg, idrid_seg]   # with heavy augmentation
+  loss: {dice: 0.5, bce: 0.5}
+  decide_on: per_lesion_dice
+
+C3_cross_domain:
+  sweep:
+    - {train: ddr_seg,   test: idrid_seg}
+    - {train: idrid_seg, test: ddr_seg}
+  decide_on: dice_drop
+  note: >
+    If Dice collapses cross-domain, the disagreement signal degrades exactly where it
+    is most needed. That is a real limitation and must be reported.
+
+C4_evidence_only_grading:
+  input: predicted_lesions_only
+  decide_on: qwk_evidence_grade_vs_label
+  note: >
+    Load-bearing. Evidence must be informative but weaker than the grader. As good and
+    the grader is redundant; noise and disagreement means nothing.
