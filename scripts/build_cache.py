@@ -533,6 +533,24 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
 
     processed = counts["done"] + counts["skipped"]
     elapsed = time.time() - started
+
+    # Crop statistics are only observable for images this run actually decoded, so
+    # a resumed run that skips everything would otherwise overwrite the report with
+    # nulls and destroy the A0 evidence. Resuming across dead sessions is the normal
+    # Kaggle workflow, so accumulate across runs instead.
+    dataset_dir.mkdir(parents=True, exist_ok=True)
+    report_path = dataset_dir / "cache_report.json"
+    prior: Dict = {}
+    if report_path.exists() and not args.overwrite:
+        try:
+            prior = json.loads(report_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            prior = {}
+    prior_crop = prior.get("crop") or {}
+    detected = int(prior_crop.get("detected") or 0) + crop_ok
+    fallback = int(prior_crop.get("fallback_full_frame") or 0) + (counts["done"] - crop_ok)
+    measured = detected + fallback
+
     report = {
         "dataset": args.dataset,
         "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
@@ -544,13 +562,15 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             "clahe": args.clahe, "clahe_clip": args.clahe_clip,
             "clahe_tiles": args.clahe_tiles, "tol_scale": args.tol_scale,
         },
-        "counts": counts,
-        "crop": {
-            "detected": crop_ok,
-            "fallback_full_frame": counts["done"] - crop_ok,
+        "runs": int(prior.get("runs") or 0) + 1,
+        "counts": counts,                      # this run only
+        "cached": processed,                   # images now in the cache
+        "crop": {                              # cumulative across resumed runs
+            "detected": detected,
+            "fallback_full_frame": fallback,
+            "images_measured": measured,
             # A0 gate: this must stay under 0.005.
-            "fallback_rate": round((counts["done"] - crop_ok) / counts["done"], 5)
-            if counts["done"] else None,
+            "fallback_rate": round(fallback / measured, 5) if measured else None,
         },
         "output": {
             "total_bytes": total_bytes,
@@ -563,16 +583,15 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         "failures_truncated": counts["failed"] > len(failures),
     }
 
-    dataset_dir.mkdir(parents=True, exist_ok=True)
-    report_path = dataset_dir / "cache_report.json"
     report_path.write_text(json.dumps(report, indent=2), encoding="utf-8")
 
     print(f"\n{args.dataset}: done={counts['done']} skipped={counts['skipped']} "
           f"failed={counts['failed']}  in {elapsed / 60:.1f} min")
-    if counts["done"]:
-        rate = report["crop"]["fallback_rate"]
+    print(f"  cached: {processed}/{counts['found']} images  (run {report['runs']})")
+    rate = report["crop"]["fallback_rate"]
+    if rate is not None:
         flag = "" if rate <= 0.005 else "   <-- A0 THRESHOLD 0.005 EXCEEDED"
-        print(f"  crop fallback rate: {rate:.4f}{flag}")
+        print(f"  crop fallback rate: {rate:.4f} over {measured} measured{flag}")
     print(f"  cache size: {report['output']['total_mib']} MiB "
           f"(mean {report['output']['mean_bytes']:.0f} B/image)")
     for channel, stat in mask_stats.items():

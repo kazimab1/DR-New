@@ -1,27 +1,82 @@
 # notebooks/
 
-Kaggle notebooks, one per phase. Each attaches the datasets it needs, pulls this repo,
-and calls into `scripts/`.
+Kaggle notebooks, one per phase. Each attaches the datasets it needs, clones this
+repo, and calls into `scripts/`.
 
-| Notebook | Phase | GPU? | Purpose |
+**Keep notebooks thin.** Code lives in `scripts/` and `src/`, under version control.
+Notebook cells aren't diffable, and six weeks in you won't know which variant produced
+which number. A notebook should pull the repo, call a script, and show the output.
+
+## Status
+
+| Notebook | Phase | GPU? | Status |
 |---|---|---|---|
-| `00_verify_inputs.ipynb` | 0 | No | Attach all six datasets; answer the four verification questions in `docs/05_dataset_card.md` |
-| `01_build_cache.ipynb` | 1 | **No** | Build the 512 px cache; save as a private Kaggle dataset. CPU-only — no quota used. |
-| `02_manifests.ipynb` | 2 | No | Build manifests and splits; assert patient-disjointness |
-| `03_grading_sweeps.ipynb` | 3 | Yes | B1–B6 |
-| `04_evidence.ipynb` | 4 | Yes | C1–C4 |
-| `05_final_training.ipynb` | 6 | Yes | Frozen recipe × 3 seeds × 2 variants |
-| `06_unblinding.ipynb` | 6 | Yes | **The single external evaluation.** Run once. |
-| `07_calibration_triage.ipynb` | 7 | Yes | D, E, F |
-| `08_error_analysis.ipynb` | 8 | No | G1–G3; produces figure 1 |
+| `00_verify_inputs.ipynb` | 0 | No | **Ready** — answers the five verification questions |
+| `01_build_cache.ipynb` | 1 | **No** | **Ready** — builds the 512 px cache, runs A0 |
+| `02_manifests.ipynb` | 2 | No | Blocked on `prepare_manifest.py`, `build_variants.py` |
+| `03_grading_sweeps.ipynb` | 3 | Yes | Blocked on `train_grading.py` + M1 |
+| `04_evidence.ipynb` | 4 | Yes | Blocked on `train_evidence.py`, `train_geometry.py` + M2 |
+| `05_final_training.ipynb` | 6 | Yes | Blocked on the above |
+| `06_unblinding.ipynb` | 6 | Yes | Blocked on `evaluate.py` + checkpoints |
+| `07_calibration_triage.ipynb` | 7 | Yes | Blocked on M3 + M4 |
+| `08_error_analysis.ipynb` | 8 | No | Blocked on results |
 
-## Kaggle housekeeping
+Each remaining notebook gets written **in the same commit as the script it drives** —
+a notebook and its script are tested together or neither works.
 
-- **Checkpoint every epoch.** Sessions die at ~12 h. Resume; never restart to get a
-  "clean" number.
-- **Save checkpoints as a Kaggle dataset** — `/kaggle/working` does not survive.
-- **One experiment per run.** A crash then costs one result, not a batch.
-- **Write to `results/<stage>/<id>/` immediately**, not at the end.
+## Settings (right-hand panel)
+
+| Setting | Value | Why |
+|---|---|---|
+| **Accelerator** | None for phases 0/1/2/8; **GPU T4 ×2** for 3/4/6/7 | T4 has tensor cores, so AMP pays off. P100 doesn't. |
+| **Persistence** | **Files only** on the cache build | `build_cache.py` resumes, so `/kaggle/working` surviving lets a 10-hour build span several sittings with no rework. |
+| **Environment** | **Pin to original environment** | Kaggle updates its base image; over 20 weeks that will silently change a dependency. |
+| **Internet** | On only for `git clone` / pip | cv2, numpy, pandas and torch are preinstalled. |
+
+**CPU-only sessions do not consume the 30 GPU-h/week quota.** The cache build is
+6–10 hours — run it with the accelerator on None and it costs nothing. Run it with a
+GPU attached and you have burned a third of a week on JPEG decoding.
+
+## When to create a new notebook
+
+Whenever **any** of these is true:
+
+- The accelerator changes (CPU ↔ GPU)
+- It is a different phase
+- A run would approach the ~12 h session cap
+- It is the unblinding — `06_unblinding.ipynb` runs **once** and must be separately
+  auditable
+
+Within a phase, one experiment per *run*, not per notebook. A crash then costs one
+result rather than a batch.
+
+## Inputs per notebook
+
+| Notebook | Inputs |
+|---|---|
+| `00_verify_inputs` | All six — the one time you want them together |
+| `01_build_cache` | EyePACS, DDR, IDRiD (+ APTOS, Messidor-2 on a later pass) |
+| `02`–`08` | `verify-dr-cache-512`, plus checkpoints and results as they appear |
+
+After Phase 1 the raw datasets stop being inputs — everything downstream reads the
+cache. Publish it via *Save Version* → Output tab → **New Dataset**, named
+`verify-dr-cache-512`.
+
+## Getting the repo in
+
+The clone cell handles both cases. For a private repo, store a GitHub PAT under
+**Add-ons → Secrets** as `GH_TOKEN`; for a public repo it clones anonymously and the
+token lookup is skipped.
+
+## Running long jobs
+
+**Save Version → Save & Run All (Commit)**, not interactive. Interactive sessions die
+when your browser idles or disconnects; batch commits run unattended to the session
+cap.
+
+- Checkpoint every epoch. Resume, never restart to get a "clean" number.
+- Save checkpoints as a Kaggle dataset — `/kaggle/working` does not survive.
+- Write results to `results/<stage>/<id>/` immediately, not at the end.
 
 ## Before running `06_unblinding.ipynb`
 
@@ -29,4 +84,4 @@ and calls into `scripts/`.
 2. The freeze commit hash is recorded inside it
 3. Your supervisor has acknowledged it in writing
 
-This notebook consumes the locked external sets. There is no second attempt.
+That notebook consumes the locked external sets. There is no second attempt.
