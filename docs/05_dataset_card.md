@@ -11,7 +11,7 @@ Kaggle notebook.
 |---|---|---|---|
 | EyePACS | `tantai31124/eyepacs-original` (or the original competition) | Primary development | No |
 | DDR | `samriddhibagchi/ddr-dataset-credits-to-authors` | Merged dev + **lesion masks** + ungradable class | No |
-| IDRiD | a mirror carrying **Parts A + C** (see below) | Lesion masks + **OD/fovea coords** + grading | No |
+| IDRiD | **Indian Diabetic Retinopathy Image Dataset** (Parts A+B+C) | Lesion masks + OD masks + **OD/fovea coords** | No |
 | APTOS 2019 | `aptos2019-blindness-detection` (competition) | **External test #1** | **YES** |
 | Messidor-2 images | `mariaherrerot/messidor2preprocess` | **External test #2** | **YES** |
 | Messidor-2 grades | `google-brain/messidor2-dr-grades` | Adjudicated labels — join by image ID | **YES** |
@@ -94,11 +94,19 @@ Recorded from a real Kaggle session, so Phase 2 knows what it is parsing:
 |---|---|
 | DDR | `DDR-dataset/` nested inside the mount, then `DR_grading/{train,valid,test}` + `{train,valid,test}.txt`, `lesion_segmentation/{train,valid,test}/{image,label}`, `lesion_detection/` (XML boxes, unused) |
 | EyePACS | `EYEPACS_original_filed/{train,val,test}/` — the mirror ships **its own split**, which Q5 tests for patient disjointness |
-| IDRiD | `Imagenes/IDRiD_*.jpg` + `idrid_labels.csv` (Part B only) |
+| IDRiD (full) | `A.%20Segmentation/A. Segmentation/{1. Original Images, 2. All Segmentation Groundtruths}/{a. Training Set, b. Testing Set}/{1. Microaneurysms … 5. Optic Disc}`, plus `C.%20Localization/.../2. Groundtruths/*.csv` |
 | Messidor-2 | images under `messidor-2/messidor-2/preprocess/`, grades in a separate dataset |
 
 **DDR grading labels are `.txt`, not `.csv`** — lines of `<image> <grade>`. The manifest
-builder must handle that, not assume a CSV.
+builder must handle that, not assume a CSV. DDR lesion folders are `EX/HE/MA/SE`;
+IDRiD's are `1. Microaneurysms` … `5. Optic Disc`. One keyword matcher covers both.
+
+**Two layout hazards the notebooks handle:**
+
+- Kaggle may mount datasets under `competitions/` and `datasets/` wrappers rather than
+  as direct children of `/kaggle/input`, so discovery searches breadth-first to depth 3.
+- IDRiD directory names contain spaces **and** literal `%20`, so every path passed to
+  `build_cache.py` must be shell-quoted.
 
 ### Q3. Do the Messidor-2 grades join cleanly to the images?
 
@@ -120,12 +128,13 @@ this project needs:**
 | B — Grading | 516 images + severity CSV | nothing critical |
 | **C — Localization** | **optic-disc + fovea centre coordinates** | **C1, and therefore all of M3** |
 
-A mirror titled "IDRiD Diabetic Retinopathy – Grading" is **Part B only**. Without
-Part C there is no coordinate frame, so no quadrant assignment, so the haemorrhage arm
-of the 4-2-1 rule cannot be evaluated and M3 falls back to count-only rules.
+A mirror titled "IDRiD Diabetic Retinopathy – Grading" is **Part B only** and is not
+sufficient. Use the one titled **Indian Diabetic Retinopathy Image Dataset**, which
+carries all three parts (~1 GB).
 
-That is survivable — declare it in the limitations — but it costs the most defensible
-part of the reasoner. Prefer adding a Parts A + C mirror.
+Part A also ships **optic-disc masks** (channel 5), which give M2b a stronger geometry
+signal than centre coordinates alone — `build_cache.py` accepts `optic_disc` as a mask
+channel for this reason.
 
 **Answer:** _(fill in)_
 

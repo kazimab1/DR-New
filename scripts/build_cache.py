@@ -62,6 +62,9 @@ import numpy as np
 
 IMAGE_SUFFIXES = {".jpg", ".jpeg", ".png", ".tif", ".tiff", ".bmp", ".ppm"}
 LESION_CHANNELS = ("microaneurysm", "haemorrhage", "hard_exudate", "soft_exudate")
+# IDRiD Part A also ships optic-disc masks. Not a lesion, but caching it gives M2b
+# a stronger geometry signal than centre coordinates alone, so accept it as a channel.
+MASK_CHANNELS = LESION_CHANNELS + ("optic_disc",)
 MAX_RECORDED_FAILURES = 50
 
 # cv2 spawns its own thread pool per process, which fights the process pool.
@@ -369,9 +372,9 @@ def parse_masks(entries: Sequence[str]) -> Dict[str, str]:
             )
         channel, _, directory = entry.partition("=")
         channel, directory = channel.strip(), directory.strip()
-        if channel not in LESION_CHANNELS:
+        if channel not in MASK_CHANNELS:
             raise argparse.ArgumentTypeError(
-                f"unknown lesion channel {channel!r}; expected one of {', '.join(LESION_CHANNELS)}"
+                f"unknown mask channel {channel!r}; expected one of {', '.join(MASK_CHANNELS)}"
             )
         path = Path(directory)
         if not path.is_dir():
@@ -403,7 +406,7 @@ def parse_args(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
     parser.add_argument("--tol-scale", type=float, default=0.10,
                         help="Retinal-crop threshold as a fraction of mean intensity.")
     parser.add_argument("--mask", action="append", default=[], metavar="CHANNEL=DIR",
-                        help=f"Repeatable. Channels: {', '.join(LESION_CHANNELS)}.")
+                        help=f"Repeatable. Channels: {', '.join(MASK_CHANNELS)}.")
     parser.add_argument("--workers", type=int, default=os.cpu_count() or 4)
     parser.add_argument("--limit", type=int, default=0,
                         help="Process only the first N images (smoke tests).")
