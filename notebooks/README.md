@@ -88,6 +88,23 @@ The clone cell handles both cases. For a private repo, store a GitHub PAT under
 **Add-ons → Secrets** as `GH_TOKEN`; for a public repo it clones anonymously and the
 token lookup is skipped.
 
+## Re-run the clone cell after any repo change
+
+The clone cell prints the commit it checked out:
+
+```
+repo ready at /kaggle/working/repo
+checked out: 42034e0  Handle IDRiD Part A having no grades; ...
+```
+
+Updating a notebook cell does **not** update the scripts on disk. Running one cell in
+isolation after a fix leaves `/kaggle/working/repo` at the old commit, and the failure
+then surfaces far from its cause — usually as `exit 2`, argparse rejecting a flag the
+old script does not have. `02_manifests.ipynb` checks for the flags it needs and says
+so plainly if the checkout is behind.
+
+When in doubt, run from the clone cell down.
+
 ## Running long jobs
 
 **Save Version → Save & Run All (Commit)**, not interactive. Interactive sessions die
