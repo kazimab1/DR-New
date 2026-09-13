@@ -30,13 +30,13 @@ EyePACS, class-folder layout:
 DDR lesion-segmentation subset with its four annotated channels:
 
     python scripts/build_cache.py \
-        --source-root /kaggle/input/ddrdataset/lesion_segmentation/train/image \
+        --source-root /kaggle/input/ddr-dataset-credits-to-authors/lesion_segmentation/train/image \
         --dataset DDR \
         --output-root /kaggle/working/cache512 \
-        --mask microaneurysm=/kaggle/input/ddrdataset/lesion_segmentation/train/label/MA \
-        --mask haemorrhage=/kaggle/input/ddrdataset/lesion_segmentation/train/label/HE \
-        --mask hard_exudate=/kaggle/input/ddrdataset/lesion_segmentation/train/label/EX \
-        --mask soft_exudate=/kaggle/input/ddrdataset/lesion_segmentation/train/label/SE
+        --mask microaneurysm=/kaggle/input/ddr-dataset-credits-to-authors/lesion_segmentation/train/label/MA \
+        --mask haemorrhage=/kaggle/input/ddr-dataset-credits-to-authors/lesion_segmentation/train/label/HE \
+        --mask hard_exudate=/kaggle/input/ddr-dataset-credits-to-authors/lesion_segmentation/train/label/EX \
+        --mask soft_exudate=/kaggle/input/ddr-dataset-credits-to-authors/lesion_segmentation/train/label/SE
 
 Emits <output-root>/<dataset>/cache_report.json, which experiment A0 checks, and
 optionally a contact sheet for A0's visual audit of random crops.

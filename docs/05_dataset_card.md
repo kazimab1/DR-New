@@ -10,7 +10,7 @@ Kaggle notebook.
 | Dataset | Kaggle slug | Role | Locked? |
 |---|---|---|---|
 | EyePACS | `tantai31124/eyepacs-original` (or the original competition) | Primary development | No |
-| DDR | `mariaherrerot/ddrdataset` | Merged dev + **lesion masks** + ungradable class | No |
+| DDR | `samriddhibagchi/ddr-dataset-credits-to-authors` | Merged dev + **lesion masks** + ungradable class | No |
 | IDRiD | `mariaherrerot/idrid-dataset` or equivalent mirror | Lesion masks + **OD/fovea coords** + grading | No |
 | APTOS 2019 | `aptos2019-blindness-detection` (competition) | **External test #1** | **YES** |
 | Messidor-2 images | `mariaherrerot/messidor2preprocess` | **External test #2** | **YES** |
@@ -55,8 +55,8 @@ Two questions are load-bearing. Answer both in writing before proceeding.
 ### Q1. Does the DDR mirror contain lesion segmentation masks?
 
 ```bash
-find /kaggle/input/ddrdataset -maxdepth 3 -type d | head -40
-find /kaggle/input/ddrdataset -iname "*segmentation*" -maxdepth 3 | head
+find /kaggle/input/ddr-dataset-credits-to-authors -maxdepth 3 -type d | head -40
+find /kaggle/input/ddr-dataset-credits-to-authors -iname "*segmentation*" -maxdepth 3 | head
 ```
 
 You are looking for a `lesion_segmentation/` tree with per-lesion mask folders
@@ -65,6 +65,11 @@ images.
 
 > **If it is not there, stop.** The evidence pathway has no training data and there is
 > no version of this thesis without it. Find another mirror first.
+>
+> Mirrors of DDR vary: some carry only `DR_grading/`, some carry the full release.
+> `notebooks/00_verify_inputs.ipynb` Q1 discovers the layout rather than assuming it,
+> so run that before committing to this mirror. The canonical DDR segmentation subset
+> is 757 images split 383 train / 149 valid / 225 test.
 
 **Answer:** _(fill in)_
 
