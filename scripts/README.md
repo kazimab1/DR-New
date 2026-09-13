@@ -7,28 +7,59 @@ Run order: `build_cache.py` → `prepare_manifest.py` → `build_variants.py`.
 
 ---
 
-## `build_cache.py` — Phase 1
+## `build_cache.py` — Phase 1 ✅ implemented
 
 **The most important script in the project.** Turns variable-size JPEGs into a fixed
 512 px cache. Without it a training run takes ~4 h; with it, ~1.5 h.
 
 ```
---source-root   /kaggle/input/<dataset>
+--source-root   /kaggle/input/<dataset>     scanned recursively
 --dataset       EyePACS | DDR | IDRiD | APTOS | Messidor2
 --output-root   /kaggle/working/cache512
 --size          512
 --quality       90
+--fit           pad (default) | crop
+--clahe / --no-clahe          --clahe-clip 2.0   --clahe-tiles 8
+--mask          CHANNEL=DIR   repeatable; microaneurysm, haemorrhage,
+                              hard_exudate, soft_exudate
+--workers N   --limit N   --overwrite   --dry-run   --contact-sheet N   --seed
 ```
 
-Per image: retinal-field crop (threshold low intensity, bounding box of the retinal
-circle) → resize shortest side to 512 → centre-crop 512×512 → CLAHE on the LAB
-L channel (clipLimit 2.0, tiles 8×8) → save JPEG q90.
+Per image: retinal-field crop → square fit → resize to `--size` → CLAHE on the LAB
+L channel → JPEG at `--quality`. Output mirrors the source tree under
+`<output-root>/<dataset>/images/`, so class-folder layouts and filenames (and
+therefore EyePACS patient IDs) survive into Phase 2.
 
-Emits `cache_report.json`: per-dataset counts in and out, crop failures, mean output
-size. **A0 checks this.** Run CPU-only — it consumes no GPU quota.
+Emits `<output-root>/<dataset>/cache_report.json`: counts in and out, crop fallback
+rate, mean output size, per-channel mask tallies, recorded failures. **A0 checks
+this** — the gate is a fallback rate ≤ 0.005, and the script flags it in the console
+when exceeded. `--contact-sheet N` also writes a grid of N random crops for A0's
+visual audit. Run CPU-only; it consumes no GPU quota.
 
-Masks, where present, go through the identical geometric transform with
-nearest-neighbour interpolation and no CLAHE.
+Masks take the *image's* geometry — computed from the image, never from the mask,
+since masks are mostly black and would crop to nothing — with nearest-neighbour
+interpolation, no CLAHE, written as lossless PNG under `<dataset>/masks/<channel>/`.
+
+Resumable: existing non-empty outputs are skipped unless `--overwrite`. Writes are
+atomic, so an interrupted run cannot leave a truncated file that the next run would
+mistake for finished work. Per-image failures are recorded and skipped, never fatal.
+
+### Two deliberate deviations from the original contract
+
+**1. `--fit pad` is the default, not centre-crop.** Centre-cropping a wide retinal
+bounding box discards the nasal and temporal periphery — exactly the regions M3 needs
+for the quadrant-based 4-2-1 haemorrhage rule. Padding to square keeps the whole
+field at the same aspect ratio. `--fit crop` reproduces the original behaviour if you
+want to ablate it.
+
+**2. The crop threshold is measured, not fixed.** The first implementation used
+`max(7, mean × 0.1)`, which fundus JPEG compression noise defeats: the black surround
+routinely reaches 15–20/255, so ~58% of surround pixels cleared the threshold, the
+box expanded to the full frame, and the crop silently did nothing *while still
+reporting success*. The threshold is now set above the surround level measured from
+the corner patches, on a downsampled median-filtered copy. A box within 2% of the
+full frame is reported as a fallback rather than counted as a crop, so the A0 rate
+reflects reality. Side effect: ~3.8× faster, since thresholding happens at ≤512 px.
 
 ## `prepare_manifest.py` — Phase 2
 

@@ -37,9 +37,9 @@ This is the single most important engineering step in the project. Without it, o
 training run takes 4 hours; with it, 1.5. It is the difference between a feasible
 thesis and an infeasible one.
 
-1. Write `scripts/build_cache.py` (see `scripts/README.md` for the contract).
-2. For each source image: retinal-field crop → resize shortest side to 512 →
-   centre-crop 512×512 → save as quality-90 JPEG.
+1. `scripts/build_cache.py` is written — see `scripts/README.md` for its options.
+2. It crops the retinal field, pads to square (keeping the periphery the quadrant
+   rules need), resizes to 512, applies CLAHE, and writes quality-90 JPEG.
 3. Run it as a **CPU-only** Kaggle notebook (no GPU quota consumed). Expect 6–10 hours
    across sessions. Save output as a private Kaggle dataset `verify-dr-cache-512`.
 4. Run experiment **A0**: reconcile image counts per grade against the source

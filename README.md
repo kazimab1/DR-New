@@ -63,4 +63,5 @@ undone by re-running anything.
 
 ## Status
 
-Project scaffolding only. No experiments have been run.
+Phase 1 in progress. `scripts/build_cache.py` is implemented and tested; no
+experiments have been run.

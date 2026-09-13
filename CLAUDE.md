@@ -47,4 +47,5 @@ for QWK at the expense of the disagreement signal.
 
 ## Status
 
-Scaffolding only. No code implemented, no experiments run.
+Phase 1 in progress. `scripts/build_cache.py` is implemented and unit-tested
+against synthetic fundus data; no other code written and no experiments run.
