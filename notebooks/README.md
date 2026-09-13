@@ -57,6 +57,7 @@ result rather than a batch.
 | `00_verify_inputs` | All six — the one time you want them together |
 | `01_build_cache` | EyePACS, DDR, IDRiD (+ APTOS, Messidor-2 on a later pass) |
 | `02_manifests` | `verify-dr-cache-512` **and the raw datasets** — see below |
+| | A cache published as a `.zip` is extracted automatically on first use |
 | `03`–`08` | `verify-dr-cache-512` + `verify-dr-manifests`, plus checkpoints and results |
 
 **Phase 2 still needs the raw mounts.** Labels live there, not in the cache: DDR's
