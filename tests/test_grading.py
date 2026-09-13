@@ -20,7 +20,9 @@ import torch
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
-from verify_dr.data.dataset import make_sampler, repath_to_cache  # noqa: E402
+from verify_dr.data.dataset import (  # noqa: E402
+    cache_tail, make_sampler, repath_to_cache,
+)
 from verify_dr.evaluation.metrics import (  # noqa: E402
     auroc, expected_calibration_error, grading_metrics, macro_f1,
     quadratic_weighted_kappa,
@@ -157,6 +159,32 @@ class TestDataset(unittest.TestCase):
         out = repath_to_cache(frame, Path("/kaggle/input/new"))
         self.assertEqual(out["image_path"][0],
                          "/kaggle/input/new/eyepacs/images/1_left.jpg")
+
+    def test_repath_keeps_nesting_below_the_dataset_directory(self):
+        """build_cache.py writes image_out / rel, where rel is the source-relative
+        path, so nesting survives verbatim. EyePACS lands five levels below the
+        dataset directory as EYEPACS_original_images/train/2/16_left.jpg. A fixed
+        three-component tail truncates that to train/2/16_left.jpg and every path
+        then misses."""
+        deep = ("/kaggle/working/cache512/eyepacs/images/"
+                "EYEPACS_original_images/train/2/16_left.jpg")
+        out = repath_to_cache(
+            pd.DataFrame({"image_path": [deep], "dataset": ["eyepacs"]}),
+            Path("/kaggle/input/verify-dr-cache-512/cache512"))
+        self.assertEqual(
+            out["image_path"][0],
+            "/kaggle/input/verify-dr-cache-512/cache512/eyepacs/images/"
+            "EYEPACS_original_images/train/2/16_left.jpg")
+
+    def test_cache_tail_anchors_on_the_dataset_images_boundary(self):
+        self.assertEqual(
+            str(cache_tail("/a/b/cache512/eyepacs/images/NEST/train/2/x.jpg", "eyepacs")),
+            "eyepacs/images/NEST/train/2/x.jpg")
+        self.assertEqual(str(cache_tail("/a/cache512/aptos/images/x.jpg", "aptos")),
+                         "aptos/images/x.jpg")
+        self.assertEqual(str(cache_tail("/a/cache512/idrid/masks/MA/x.png", "idrid")),
+                         "idrid/masks/MA/x.png")
+        self.assertIsNone(cache_tail("/nothing/like/a/cache/path.jpg", "eyepacs"))
 
     def test_repath_resolves_each_dataset_to_the_root_that_holds_it(self):
         """The cache is legitimately split: IDRiD's masks ship as their own

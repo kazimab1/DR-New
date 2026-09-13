@@ -102,13 +102,39 @@ class GradingDataset(Dataset):
         return item
 
 
+CACHE_CHANNELS = ("images", "masks")
+
+
+def cache_tail(value: str, dataset: Optional[str] = None) -> Optional[Path]:
+    """The <dataset>/images/<rel> portion of a cached image path.
+
+    build_cache.py writes `image_out / rel`, where rel is the image's full path
+    relative to its source root -- so nesting is preserved verbatim. EyePACS
+    arrives as
+
+        <root>/eyepacs/images/EYEPACS_original.../train/2/16_left.jpg
+
+    five levels below the dataset directory, while APTOS and IDRiD sit flat at
+    one. Anchoring on the <dataset>/images boundary handles both; assuming a
+    fixed three-component tail silently truncates EyePACS to train/2/16_left.jpg
+    and every path then misses.
+    """
+    parts = Path(value).parts
+    for i in range(len(parts) - 2, -1, -1):        # last match wins
+        if parts[i + 1] not in CACHE_CHANNELS:
+            continue
+        if dataset and parts[i].lower() != str(dataset).lower():
+            continue
+        return Path(*parts[i:])
+    return None
+
+
 def repath_to_cache(frame: pd.DataFrame, cache_root) -> pd.DataFrame:
-    """Point image_path at `cache_root`, keeping the <dataset>/images/<file> tail.
+    """Point image_path at `cache_root`, keeping the <dataset>/images/... tail.
 
     Manifests store absolute paths, and the cache is mounted somewhere different
     in every Kaggle session -- a Phase 2 manifest names the path the cache had
-    during Phase 2. build_cache.py always writes <root>/<dataset>/images/<file>,
-    so the last three components identify the image and only the root moves.
+    during Phase 2.
 
     `cache_root` may be several roots. The cache is legitimately split across
     published datasets: a full build plus a later top-up (IDRiD's masks ship as
@@ -117,23 +143,28 @@ def repath_to_cache(frame: pd.DataFrame, cache_root) -> pd.DataFrame:
     """
     roots = [Path(r) for r in (cache_root if isinstance(cache_root, (list, tuple))
                                else [cache_root])]
+    datasets = frame["dataset"] if "dataset" in frame.columns else None
 
     # Resolved once per dataset, not once per row: there are at most a handful of
     # datasets and a stat() per row over 88k EyePACS images is pure waste.
     chosen: Dict[str, Path] = {}
 
-    def rewrite(value: str) -> str:
-        parts = Path(value).parts
-        if len(parts) < 3:
+    def rewrite(value: str, dataset: Optional[str]) -> str:
+        tail = cache_tail(value, dataset)
+        if tail is None:
             return value
-        tail = Path(*parts[-3:])
-        dataset = parts[-3]
-        if dataset not in chosen:
-            chosen[dataset] = next((r for r in roots if (r / tail).exists()), roots[0])
-        return str(chosen[dataset] / tail)
+        key = tail.parts[0]
+        if key not in chosen:
+            chosen[key] = next((r for r in roots if (r / tail).exists()), roots[0])
+        return str(chosen[key] / tail)
 
     frame = frame.copy()
-    frame["image_path"] = frame["image_path"].map(rewrite)
+    if datasets is None:
+        frame["image_path"] = frame["image_path"].map(lambda v: rewrite(v, None))
+    else:
+        frame["image_path"] = [
+            rewrite(v, d) for v, d in zip(frame["image_path"], datasets)
+        ]
     return frame
 
 
