@@ -198,12 +198,39 @@ whose `dataset` column disagrees with the flag it was passed under is rejected. 
 images-per-patient ratio below 1.5 on EyePACS warns loudly, since that means patient
 parsing failed upstream and the split would leak.
 
-## `train_grading.py` / `train_evidence.py` / `train_geometry.py` — Phases 3–4
+## `train_grading.py` — Phase 3 **(built)**
 
-Per `docs/03_model_architecture.md` §§ M1, M2a, M2b. Each takes a config from
-`configs/`, writes checkpoints and `metrics.json` to
-`results/<stage>/<experiment_id>/`, and checkpoints **every epoch** so a killed Kaggle
-session can resume rather than restart.
+Trains M1 per `docs/03_model_architecture.md` § M1 and drives experiments B1–B7.
+Reads a `build_variants.py` manifest, trains on `train`, selects on `val`, and never
+reads `test`.
+
+```
+python scripts/train_grading.py \
+    --manifest manifests/eyepacs_balanced_1000.csv \
+    --experiment B1_res512 --image-size 512 --epochs 10 --resume
+```
+
+Writes to `results/<stage>/<experiment_id>/`: `config.json`, `history.json` (per
+epoch), `best.pt` (best val QWK), `checkpoint.pt` (full training state), and
+`metrics.json` on completion.
+
+Three things worth knowing:
+
+- **`--cache-root` repaths the manifest.** Manifests store absolute paths, and the
+  cache is mounted somewhere different in every Kaggle session. Without it a Phase 2
+  manifest fails on a Phase 3 mount; the error says so and names the flag.
+- **`--resume` refuses an architecture change.** The backbone is globally pooled, so a
+  768 px checkpoint loads into a 384 px run without error and silently produces a
+  hybrid experiment. Resuming across a different backbone, head, image size or fusion
+  setting is a hard failure; changes that only affect the trajectory (lr, sampler,
+  epochs) print a `note:` line to be recorded as a deviation.
+- **Checkpoints are written every epoch**, so a killed Kaggle session costs one epoch
+  rather than the run.
+
+## `train_evidence.py` / `train_geometry.py` — Phase 4
+
+Per `docs/03_model_architecture.md` §§ M2a, M2b. Same contract as above: a config from
+`configs/`, results under `results/<stage>/<experiment_id>/`, checkpoint every epoch.
 
 ## `evaluate.py` — Phases 6–7
 

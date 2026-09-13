@@ -18,7 +18,7 @@ skeleton of the results chapter.
 
 | ID | Question | Varies | Decided by | Status | Result |
 |---|---|---|---|---|---|
-| B1 | What resolution is needed? | 384 / 512 / 768 px | Val QWK **and grade-1 recall** | TODO | |
+| B1 | What resolution is needed? | 384 / 512 / 768 px | Val QWK **and grade-1 F1** | TODO | |
 | B2 | Which encoder? | EfficientNet-B0 / ResNet50 | Val QWK per GPU-hour | TODO | |
 | B3 | Which head? | CE / ordinal / focal-ordinal | Val QWK + MAE | TODO | |
 | B4 | Which sampler? | Natural / stratified exposure / class-balanced | Val QWK at natural prevalence | TODO | |
@@ -26,9 +26,15 @@ skeleton of the results chapter.
 | B6 | Does balancing the dataset help? *(ablation)* | `eyepacs_full` vs `eyepacs_balanced_1000` | QWK on natural-prevalence test | TODO | |
 | B7 | Does DDR improve transfer? **(H3)** | `eyepacs_full` vs `eyepacs_ddr_full` | External QWK — single unblinding | TODO | |
 
-> **B1 warning.** Judge on grade-1 recall, not overall QWK. Grade 1 is microaneurysms
-> only; an MA is 10–20 px. A model that silently skips grade 1 can still post a
-> respectable QWK.
+> **B1 warning.** Judge on grade-1 **F1**, not overall QWK and not recall alone.
+> Grade 1 is microaneurysms only; an MA is 10–20 px. A model that silently skips
+> grade 1 still scores ~0.97 QWK on a realistic distribution, because grade 1 sits
+> one step from grade 0 and quadratic weights barely punish the error.
+>
+> Recall alone is not enough either: a model predicting grade 1 for *every* image
+> scores 1.000 grade-1 recall and is worthless. Check `distinct_predictions` first —
+> when it is 1 the run has collapsed and decides nothing. `03_grading_sweeps.ipynb`
+> applies both rules and prints the verdict.
 
 > **B7 protocol.** Needs external data. Legitimate only because the pre-registration
 > declares in advance that exactly these two variants get evaluated in the single

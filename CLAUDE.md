@@ -47,7 +47,26 @@ for QWK at the expense of the disagreement signal.
 
 ## Status
 
-Phases 1-2 complete in code, notebooks 00/01/01b/02 runnable. Phase 1 has been run
-on Kaggle; `verify-dr-cache-512` is published but its IDRiD masks are missing (a
-mask-naming bug, now fixed) and are being topped up via `01b_idrid_masks.ipynb`.
-Phase 2 has not been run. Next: Phase 3 model code (M1). No experiments run.
+Phases 1-2 have been run on Kaggle. `verify-dr-cache-512` is published, its IDRiD
+masks topped up via `01b_idrid_masks.ipynb`, and the Phase 2 manifests are built.
+
+Phase 3 code is complete and tested: `src/verify_dr/models/{grading,losses}.py`,
+`src/verify_dr/data/dataset.py`, `src/verify_dr/evaluation/metrics.py`,
+`scripts/train_grading.py`, `notebooks/03_grading_sweeps.ipynb`. Verified end to end
+on a synthetic fixture (val QWK 0 -> 1.0, all five per-class recalls 1.00), plus
+resume, the architecture guard and cache repathing. `python -m unittest discover -s
+tests` covers the load-bearing properties.
+
+**No real experiments have been run.** Next: B1 on Kaggle.
+
+### One thing to carry into Phase 3
+
+B1 is decided on **grade-1 F1**, not QWK and not grade-1 recall. Both of the obvious
+rules fail, and both failures are reproduced in `tests/test_grading.py`:
+
+- A model that never predicts grade 1 still scores **~0.97 QWK** — grade 1 is one
+  step from grade 0, and quadratic weights barely punish that error.
+- A model that predicts grade 1 for *every* image scores **1.000 grade-1 recall**.
+
+So check `distinct_predictions` first (1 means the run collapsed and decides
+nothing), then read grade-1 F1. `train_grading.py` and the notebook both apply this.

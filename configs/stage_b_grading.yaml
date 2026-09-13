@@ -4,10 +4,13 @@ extends: base.yaml
 B1_resolution:
   variant: eyepacs_balanced_1000
   sweep: {image_size: [384, 512, 768]}
-  decide_on: [val_qwk, val_recall_grade_1]
+  decide_on: [val_qwk, val_f1_grade_1]
   note: >
-    Judge on grade-1 recall, not overall QWK. Grade 1 is microaneurysms only and an MA
-    is 10-20 px. A model that silently skips grade 1 can still post a decent QWK.
+    Judge on grade-1 F1, not overall QWK and not recall alone. Grade 1 is
+    microaneurysms only and an MA is 10-20 px; a model that silently skips the class
+    still scores ~0.97 QWK, because grade 1 sits one step from grade 0 and quadratic
+    weights barely punish it. Recall alone fails the other way: predicting grade 1
+    for every image scores 1.000 recall. Check distinct_predictions first.
 
 B2_backbone:
   variant: eyepacs_full
@@ -17,7 +20,7 @@ B2_backbone:
 B3_head:
   variant: eyepacs_full
   sweep:
-    head: [softmax_ce, ordinal_coral, ordinal_coral_focal]
+    head: [softmax_ce, ordinal, ordinal_focal]   # ordinal* are CORAL-style
     focal_gamma: [2.0]
   decide_on: [val_qwk, val_mae]
 

@@ -91,10 +91,17 @@ Run experiments **B1 → B5** in order, one seed each, on validation only.
 Then **B6** as a reported ablation (does balancing the dataset help? — test on natural
 prevalence).
 
-**Watch B1 carefully.** Judge it on *grade-1 recall*, not overall QWK. Grade 1 is
+**Watch B1 carefully.** Judge it on *grade-1 F1*, not overall QWK. Grade 1 is
 microaneurysms only; an MA is 10–20 px at full resolution and vanishes under
-aggressive downsampling. If grade-1 recall is near zero at every resolution, your
-model has learned to skip the class and your QWK is hollow.
+aggressive downsampling. A model that skips the class entirely still scores about
+**0.97 QWK** on a realistic distribution — grade 1 sits one step from grade 0, and
+quadratic weights barely punish the error. That QWK is hollow.
+
+Use F1 rather than recall, and check for collapse first. Grade-1 *recall* on its own
+cannot decide this: a model that predicts grade 1 for **every** image scores 1.000
+recall on grade 1 and is worthless. `03_grading_sweeps.ipynb` reports recall,
+precision and F1 per grade, plus `distinct_predictions` — when that is 1 the run has
+collapsed onto a single grade and decides nothing, however its QWK reads.
 
 **Exit condition:** one recipe chosen, all five results in the register with
 validation numbers. **You have not touched a test set yet.**

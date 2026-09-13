@@ -15,7 +15,7 @@ which number. A notebook should pull the repo, call a script, and show the outpu
 | `01_build_cache.ipynb` | 1 | **No** | **Ready** — builds the 512 px cache, runs A0 |
 | `01b_idrid_masks.ipynb` | 1 | **No** | **Ready** — IDRiD Part A masks top-up, publishes a separate dataset |
 | `02_manifests.ipynb` | 2 | No | **Ready** — manifests, patient-grouped splits, variants |
-| `03_grading_sweeps.ipynb` | 3 | Yes | Blocked on `train_grading.py` + M1 |
+| `03_grading_sweeps.ipynb` | 3 | Yes | **Ready** — B1–B5 sweep, smoke test, B1 verdict |
 | `04_evidence.ipynb` | 4 | Yes | Blocked on `train_evidence.py`, `train_geometry.py` + M2 |
 | `05_final_training.ipynb` | 6 | Yes | Blocked on the above |
 | `06_unblinding.ipynb` | 6 | Yes | Blocked on `evaluate.py` + checkpoints |
