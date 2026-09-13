@@ -75,6 +75,7 @@ Converts each source's native labelling into the manifest contract in
 ```
 --dataset {EyePACS,DDR,IDRiD,APTOS,Messidor2}   --cache-root <cache>   --output FILE
 --folder-labels                 grade from a 0-4 class-folder component (EyePACS)
+--no-grades                     build from cached images with grade -1 (masks/geometry only)
 --labels FILE                   label file (.txt/.csv/.xlsx); repeatable, one per split
 --id-col / --grade-col          override column guessing
 --coords FILE                   IDRiD Part C centre table; repeatable (fovea and OD)
@@ -122,6 +123,20 @@ cache time, the geometry is recomputed here by calling `build_cache.retinal_bbox
 drift apart. `--size`, `--fit` and `--tol-scale` must therefore match the cache build.
 Each point also gets a `*_in_frame` flag, since a crop can legitimately push a centre
 outside the frame.
+
+### IDRiD Part A has no grades
+
+IDRiD's two parts use **different id formats for different images**: Part A
+(segmentation) is `IDRiD_01`–`IDRiD_81`, the Part B grading table lists
+`IDRiD_001`–`IDRiD_516`. They do not join. Once the cache holds Part A — which is
+what the mask top-up publishes — no grading row matches and the script exits 1 with a
+diagnostic naming both id formats.
+
+That is what `--no-grades` is for: a manifest built from the cached images with
+`grade = -1`, carrying masks and projected coordinates. IDRiD is this project's mask
+and geometry source for C1 and C2, not a grading dataset, so grades are not needed.
+`build_variants.py` drops anything outside 0–4, so such a manifest can never leak into
+a development variant.
 
 ### Matching is by filename stem
 

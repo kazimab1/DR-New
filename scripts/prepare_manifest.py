@@ -295,6 +295,10 @@ def parse_args(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
                         help="Label file (.txt/.csv/.xlsx). Repeatable, one per split.")
     parser.add_argument("--folder-labels", action="store_true",
                         help="Take the grade from a 0-4 class-folder component (EyePACS).")
+    parser.add_argument("--no-grades", action="store_true",
+                        help="Build from the cached images with grade -1 (unknown). For a "
+                             "mask/geometry-only manifest such as IDRiD Part A, whose images "
+                             "are not in the Part B grading table.")
     parser.add_argument("--id-col")
     parser.add_argument("--grade-col")
     parser.add_argument("--coords", action="append", default=[], type=Path,
@@ -316,8 +320,8 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     args = parse_args(argv)
     dataset = args.dataset
 
-    if not args.folder_labels and not args.labels:
-        print("error: pass --folder-labels or at least one --labels", file=sys.stderr)
+    if not (args.folder_labels or args.labels or args.no_grades):
+        print("error: pass --folder-labels, --labels, or --no-grades", file=sys.stderr)
         return 2
     if args.coords and not args.coords_source_dir:
         print("error: --coords requires --coords-source-dir", file=sys.stderr)
@@ -334,7 +338,13 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
           + (f"; mask channels: {', '.join(sorted(masks))}" if masks else "; no masks"))
 
     unmatched: List[str] = []
-    if args.folder_labels:
+    if args.no_grades:
+        # Grade -1 means "unknown". This manifest serves C1/C2, which need masks and
+        # geometry, not grades. build_variants.py drops anything outside 0-4, so such
+        # a manifest can never leak into a development variant.
+        rows = [{"stem": stem, "grade": -1, "source_split": ""} for stem in sorted(cache)]
+        print(f"  --no-grades: {len(rows)} rows with grade -1 (masks/geometry only)")
+    elif args.folder_labels:
         rows = rows_from_folders(cache, args.cache_root, dataset)
     else:
         missing = [p for p in args.labels if not p.exists()]
@@ -344,7 +354,17 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         rows, unmatched = rows_from_labels(args.labels, cache, args.id_col, args.grade_col)
 
     if not rows:
-        print("error: no rows produced -- check that label ids match cached filenames",
+        print("error: no label row matched a cached image.", file=sys.stderr)
+        if unmatched:
+            print(f"  {len(unmatched)} label ids, e.g. {unmatched[:5]}", file=sys.stderr)
+        print(f"  {len(cache)} cached stems, e.g. {sorted(cache)[:5]}", file=sys.stderr)
+        print("  The two use different id formats or refer to different image sets.",
+              file=sys.stderr)
+        print("  IDRiD is the usual case: Part A (segmentation) images are IDRiD_01-81",
+              file=sys.stderr)
+        print("  while the Part B grading table lists IDRiD_001-516 -- different images.",
+              file=sys.stderr)
+        print("  For a masks/geometry-only manifest, re-run with --no-grades.",
               file=sys.stderr)
         return 1
 
@@ -385,7 +405,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
 
         if grade == DDR_UNGRADABLE and dataset == "DDR":
             quality.append(record)             # ungradable: quality head, not grading
-        elif 0 <= grade <= 4:
+        elif 0 <= grade <= 4 or (args.no_grades and grade == -1):
             records.append(record)
             if not parsed:                     # only count what reaches the manifest
                 fallback += 1
@@ -403,7 +423,8 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     patients = frame["patient_id"].nunique()
     print(f"\n{dataset}: {len(frame)} rows, {patients} patients "
           f"({len(frame)/max(1, patients):.2f} images/patient)")
-    print("  grade distribution:")
+    print("  grade distribution:" if not args.no_grades
+          else "  grades: unknown (-1), masks/geometry only")
     for g in sorted(grades):
         print(f"    {g}: {grades[g]:7d}  ({100*grades[g]/len(frame):5.1f}%)")
     if quality:
