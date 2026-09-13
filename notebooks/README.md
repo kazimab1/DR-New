@@ -13,7 +13,7 @@ which number. A notebook should pull the repo, call a script, and show the outpu
 |---|---|---|---|
 | `00_verify_inputs.ipynb` | 0 | No | **Ready** — answers the five verification questions |
 | `01_build_cache.ipynb` | 1 | **No** | **Ready** — builds the 512 px cache, runs A0 |
-| `02_manifests.ipynb` | 2 | No | Blocked on `prepare_manifest.py`, `build_variants.py` |
+| `02_manifests.ipynb` | 2 | No | **Ready** — manifests, patient-grouped splits, variants |
 | `03_grading_sweeps.ipynb` | 3 | Yes | Blocked on `train_grading.py` + M1 |
 | `04_evidence.ipynb` | 4 | Yes | Blocked on `train_evidence.py`, `train_geometry.py` + M2 |
 | `05_final_training.ipynb` | 6 | Yes | Blocked on the above |
@@ -56,11 +56,18 @@ result rather than a batch.
 |---|---|
 | `00_verify_inputs` | All six — the one time you want them together |
 | `01_build_cache` | EyePACS, DDR, IDRiD (+ APTOS, Messidor-2 on a later pass) |
-| `02`–`08` | `verify-dr-cache-512`, plus checkpoints and results as they appear |
+| `02_manifests` | `verify-dr-cache-512` **and the raw datasets** — see below |
+| `03`–`08` | `verify-dr-cache-512` + `verify-dr-manifests`, plus checkpoints and results |
 
-After Phase 1 the raw datasets stop being inputs — everything downstream reads the
-cache. Publish it via *Save Version* → Output tab → **New Dataset**, named
-`verify-dr-cache-512`.
+**Phase 2 still needs the raw mounts.** Labels live there, not in the cache: DDR's
+`train/valid/test.txt`, IDRiD's Part B grading CSV and Part C coordinate tables,
+APTOS's `train.csv`, Messidor-2's grades. IDRiD coordinate re-projection also reads the
+original Part A images, because the published centres are in original pixel space and
+the geometry has to be recomputed against them.
+
+**From Phase 3 onward the cache and manifests are enough** and the raw datasets can be
+detached. Publish each via *Save Version* → Output tab → **New Dataset**, named
+`verify-dr-cache-512` and `verify-dr-manifests`.
 
 ## Notebooks do not share `/kaggle/working`
 
