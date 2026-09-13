@@ -62,6 +62,17 @@ After Phase 1 the raw datasets stop being inputs — everything downstream reads
 cache. Publish it via *Save Version* → Output tab → **New Dataset**, named
 `verify-dr-cache-512`.
 
+## Notebooks do not share `/kaggle/working`
+
+Each notebook gets its own working directory, so files one notebook writes are not
+visible to the next. `00_verify_inputs.ipynb` writes `verification_log.json` as a
+convenience, but **you do not need to download and re-upload it** —
+`01_build_cache.ipynb` re-discovers every path itself and uses the log only as an
+optional accelerator when it happens to be present.
+
+To carry real artefacts between notebooks (the cache, checkpoints), publish them as a
+Kaggle dataset and add that as an input.
+
 ## Getting the repo in
 
 The clone cell handles both cases. For a private repo, store a GitHub PAT under
