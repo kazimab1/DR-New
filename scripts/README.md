@@ -198,6 +198,22 @@ whose `dataset` column disagrees with the flag it was passed under is rejected. 
 images-per-patient ratio below 1.5 on EyePACS warns loudly, since that means patient
 parsing failed upstream and the split would leak.
 
+## `diagnose_cache.py` — any phase **(built)**
+
+Shows what is actually in the attached cache: every root, every dataset, image
+counts, mask channels, and a sample path.
+
+```
+python scripts/diagnose_cache.py
+```
+
+Reach for it whenever a notebook reports less data than you expect. Two things
+make an intact cache look broken: it is routinely split across two published
+datasets (the full build plus the IDRiD mask top-up), and counting only the
+direct children of `images/` reports **1** for a dataset whose images sit in
+subdirectories. This script handles both and names which root each dataset came
+from.
+
 ## `train_grading.py` — Phase 3 **(built)**
 
 Trains M1 per `docs/03_model_architecture.md` § M1 and drives experiments B1–B7.
