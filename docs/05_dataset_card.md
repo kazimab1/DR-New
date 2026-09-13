@@ -151,6 +151,7 @@ Every manifest, development or external:
 | `dataset` | Yes | `EyePACS` / `DDR` / `IDRiD` / `APTOS` / `Messidor2` |
 | `patient_id` | Yes | Dataset-prefixed, e.g. `EyePACS::16` |
 | `eye` | Where known | `left` / `right` — required for eye-pair fusion (B5) |
+| `source_split` | Informational | The split the mirror shipped. Reference only — see Rule 3 |
 | `split` | Yes | `train` / `val` / `calibration` / `test` |
 | `*_mask` | Optional | Four lesion channels, where annotated |
 

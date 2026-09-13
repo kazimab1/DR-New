@@ -47,5 +47,6 @@ for QWK at the expense of the disagreement signal.
 
 ## Status
 
-Phase 1 in progress. `scripts/build_cache.py` is implemented and unit-tested
-against synthetic fundus data; no other code written and no experiments run.
+Phase 1 complete, Phase 2 in progress. `scripts/build_cache.py` and
+`scripts/prepare_manifest.py` are implemented and tested against fixtures
+reproducing the real Kaggle layouts. `build_variants.py` is next. No experiments run.

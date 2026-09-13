@@ -1,6 +1,7 @@
 # scripts/ — build utilities
 
-Not yet implemented. Each script's contract is specified below so it can be written
+`build_cache.py` and `prepare_manifest.py` are implemented. The remaining contracts are
+specified below so they can be written without re-deriving the design.
 (by you or by Claude) without re-deriving the design.
 
 Run order: `build_cache.py` → `prepare_manifest.py` → `build_variants.py`.
@@ -61,33 +62,67 @@ the corner patches, on a downsampled median-filtered copy. A box within 2% of th
 full frame is reported as a fallback rather than counted as a crop, so the A0 rate
 reflects reality. Side effect: ~3.8× faster, since thresholding happens at ≤512 px.
 
-## `prepare_manifest.py` — Phase 2
+## `prepare_manifest.py` — Phase 2 ✅ implemented
 
 Converts each source's native labelling into the manifest contract in
-`docs/05_dataset_card.md` § Manifest contract.
+`docs/05_dataset_card.md` § Manifest contract, reading the 512 px cache.
 
 ```
---dataset EyePACS  --folder-root <cache>/eyepacs        # ImageFolder-style
---dataset DDR      --labels DR_grading.csv --image-dir <cache>/ddr
---dataset APTOS    --labels train.csv --id-col id_code --grade-col diagnosis
---dataset Messidor2 --labels messidor2_grades.csv       # join images + grades datasets
---dataset IDRiD    --labels <grading csv> --coords <od/fovea csv>
+--dataset {EyePACS,DDR,IDRiD,APTOS,Messidor2}   --cache-root <cache>   --output FILE
+--folder-labels                 grade from a 0-4 class-folder component (EyePACS)
+--labels FILE                   label file (.txt/.csv/.xlsx); repeatable, one per split
+--id-col / --grade-col          override column guessing
+--coords FILE                   IDRiD Part C centre table; repeatable (fovea and OD)
+--coords-source-dir DIR         original images the coordinates refer to
+--size / --fit / --tol-scale    must match build_cache.py
+--quality-output FILE           where DDR grade-5 ungradable rows go
+--dry-run
 ```
 
-**The one that bites — EyePACS patient IDs:**
+Emits `<output>.report.json` alongside the CSV: row and patient counts,
+images-per-patient, grade distribution, ungradable count, patient-ID fallbacks,
+unmatched labels in both directions, per-channel mask coverage.
+
+### It does not assign `split`
+
+Splitting is patient-grouped and belongs to `build_variants.py`, which owns the
+disjointness assertion. This script records **`source_split`** — whatever split the
+mirror itself shipped — for reference only. A mirror's split can put one patient's two
+eyes on opposite sides (Q5 in `00_verify_inputs.ipynb` tests exactly this), so adopting
+it would leak.
+
+### Patient IDs — the one that bites
 
 ```python
-m = re.match(r"^(\d+)_(left|right)$", Path(p).stem)
+m = re.match(r"^(\d+)_(left|right)$", Path(p).stem)   # EyePACS
 patient_id = f"EyePACS::{m.group(1)}"
 eye = m.group(2)
 ```
 
-Every dataset prefixes its patient IDs (`EyePACS::`, `DDR::`, …) so merged manifests
-cannot collide. Where no patient ID exists, fall back to the image stem **and print a
-warning** — the fallback treats each image as its own patient, which leaks for any
-dataset with two eyes per person.
+Messidor-2 pairs eyes per examination (`20051020_43808_0100_PP` → `Messidor2::20051020_43808`).
+DDR, IDRiD and APTOS have no patient identifiers, so each image becomes its own
+patient and the script **warns loudly** — that fallback leaks for any dataset with two
+eyes per person. Every dataset prefixes its IDs (`EyePACS::`, `DDR::`, …) so merged
+manifests cannot collide.
 
-DDR grade-5 rows are routed to `quality_manifest.csv`, not the grading manifest.
+Sanity check: EyePACS and Messidor-2 should report ~2.0 images per patient. A value
+near 1.0 means the pairing failed and the split will leak.
+
+### IDRiD coordinates are re-projected, not copied
+
+Part C publishes optic-disc and fovea centres in **original pixel coordinates**, which
+the cache's crop, square fit and resize invalidate. Rather than storing a transform at
+cache time, the geometry is recomputed here by calling `build_cache.retinal_bbox` and
+`build_cache.map_point` — the same functions that produced the cache, so the two cannot
+drift apart. `--size`, `--fit` and `--tol-scale` must therefore match the cache build.
+Each point also gets a `*_in_frame` flag, since a crop can legitimately push a centre
+outside the frame.
+
+### Matching is by filename stem
+
+Label files reference `.png` where the cache holds `.jpg` (Messidor-2 does exactly
+this), so rows are joined on stem. Unmatched entries are reported in both directions
+rather than silently dropped.
 
 ## `build_variants.py` — Phase 2
 

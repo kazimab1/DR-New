@@ -224,6 +224,32 @@ def fit_square(
     return out[top:top + size, left:left + size]
 
 
+def map_point(x, y, bbox, size, mode):
+    """Map a point from source pixels into the cached image's frame.
+
+    IDRiD Part C gives optic-disc and fovea centres in original coordinates, so
+    the same crop/fit/resize that produced the cache has to be applied to them.
+    Kept beside fit_square deliberately: if one changes the other must too.
+    """
+    x0, y0, x1, y1 = bbox
+    width, height = x1 - x0, y1 - y0
+    px, py = x - x0, y - y0
+
+    if mode == "pad":
+        side = max(height, width)
+        px += (side - width) // 2
+        py += (side - height) // 2
+        scale = size / side
+        return px * scale, py * scale
+
+    scale = size / min(height, width)
+    new_w = max(size, int(round(width * scale)))
+    new_h = max(size, int(round(height * scale)))
+    px *= new_w / width
+    py *= new_h / height
+    return px - (new_w - size) // 2, py - (new_h - size) // 2
+
+
 _clahe = None
 
 
