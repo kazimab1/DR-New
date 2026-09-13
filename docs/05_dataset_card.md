@@ -11,7 +11,7 @@ Kaggle notebook.
 |---|---|---|---|
 | EyePACS | `tantai31124/eyepacs-original` (or the original competition) | Primary development | No |
 | DDR | `samriddhibagchi/ddr-dataset-credits-to-authors` | Merged dev + **lesion masks** + ungradable class | No |
-| IDRiD | `mariaherrerot/idrid-dataset` or equivalent mirror | Lesion masks + **OD/fovea coords** + grading | No |
+| IDRiD | a mirror carrying **Parts A + C** (see below) | Lesion masks + **OD/fovea coords** + grading | No |
 | APTOS 2019 | `aptos2019-blindness-detection` (competition) | **External test #1** | **YES** |
 | Messidor-2 images | `mariaherrerot/messidor2preprocess` | **External test #2** | **YES** |
 | Messidor-2 grades | `google-brain/messidor2-dr-grades` | Adjudicated labels — join by image ID | **YES** |
@@ -86,6 +86,20 @@ processing across all sources, or report the confound explicitly.
 
 **Answer:** _(fill in)_
 
+### Q3b. Observed source layouts
+
+Recorded from a real Kaggle session, so Phase 2 knows what it is parsing:
+
+| Source | Layout |
+|---|---|
+| DDR | `DDR-dataset/` nested inside the mount, then `DR_grading/{train,valid,test}` + `{train,valid,test}.txt`, `lesion_segmentation/{train,valid,test}/{image,label}`, `lesion_detection/` (XML boxes, unused) |
+| EyePACS | `EYEPACS_original_filed/{train,val,test}/` — the mirror ships **its own split**, which Q5 tests for patient disjointness |
+| IDRiD | `Imagenes/IDRiD_*.jpg` + `idrid_labels.csv` (Part B only) |
+| Messidor-2 | images under `messidor-2/messidor-2/preprocess/`, grades in a separate dataset |
+
+**DDR grading labels are `.txt`, not `.csv`** — lines of `<image> <grade>`. The manifest
+builder must handle that, not assume a CSV.
+
 ### Q3. Do the Messidor-2 grades join cleanly to the images?
 
 Images and adjudicated grades are **two separate Kaggle datasets**. Confirm the ID
@@ -96,6 +110,22 @@ join covers every image and record how many fail to match.
 ### Q4. Does IDRiD include the OD/fovea coordinate CSVs?
 
 C1 — and therefore all quadrant reasoning — depends on them.
+
+**IDRiD is published in three parts, and a grading-only mirror has neither piece
+this project needs:**
+
+| Part | Contents | Needed for |
+|---|---|---|
+| A — Segmentation | MA/HE/EX/SE pixel masks + optic-disc masks | C2 (extra mask training data) |
+| B — Grading | 516 images + severity CSV | nothing critical |
+| **C — Localization** | **optic-disc + fovea centre coordinates** | **C1, and therefore all of M3** |
+
+A mirror titled "IDRiD Diabetic Retinopathy – Grading" is **Part B only**. Without
+Part C there is no coordinate frame, so no quadrant assignment, so the haemorrhage arm
+of the 4-2-1 rule cannot be evaluated and M3 falls back to count-only rules.
+
+That is survivable — declare it in the limitations — but it costs the most defensible
+part of the reasoner. Prefer adding a Parts A + C mirror.
 
 **Answer:** _(fill in)_
 
