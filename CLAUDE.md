@@ -47,7 +47,7 @@ for QWK at the expense of the disagreement signal.
 
 ## Status
 
-Phases 1-2 complete in code. `build_cache.py`, `prepare_manifest.py` and
-`build_variants.py` are implemented and tested against fixtures reproducing the real
-Kaggle layouts. Next: the `02_manifests.ipynb` notebook, then Phase 3 model code.
-No experiments run.
+Phases 1-2 complete in code, notebooks 00/01/01b/02 runnable. Phase 1 has been run
+on Kaggle; `verify-dr-cache-512` is published but its IDRiD masks are missing (a
+mask-naming bug, now fixed) and are being topped up via `01b_idrid_masks.ipynb`.
+Phase 2 has not been run. Next: Phase 3 model code (M1). No experiments run.

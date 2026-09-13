@@ -322,6 +322,12 @@ def process_one(rel: str, cfg: dict) -> Result:
         if image_ready and masks_ready:
             result.status = "skipped"
             result.out_bytes = dst.stat().st_size
+            # Report what is on disk, not what this run happened to write. A
+            # resumed run writes nothing, and a report saying written=0 would
+            # read as "no masks" when they are all present.
+            for channel, path in mask_targets.items():
+                if path.exists() and path.stat().st_size > 0:
+                    result.masks[channel] = "present"
             return result
 
     try:
@@ -523,7 +529,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     crop_ok = 0
     total_bytes = 0
     failures: List[Dict[str, str]] = []
-    mask_stats = {c: {"written": 0, "absent": 0, "failed": 0} for c in masks}
+    mask_stats = {c: {"written": 0, "present": 0, "absent": 0, "failed": 0} for c in masks}
     started = time.time()
     interrupted = False
 
@@ -543,6 +549,9 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
                     mask_stats[channel]["failed"] += 1
         elif res.status == "skipped":
             total_bytes += res.out_bytes
+            for channel, state in res.masks.items():
+                if state == "present":
+                    mask_stats[channel]["present"] += 1
         elif res.status == "failed" and len(failures) < MAX_RECORDED_FAILURES:
             failures.append({"path": res.rel, "error": res.error})
 
@@ -639,8 +648,9 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     print(f"  cache size: {report['output']['total_mib']} MiB "
           f"(mean {report['output']['mean_bytes']:.0f} B/image)")
     for channel, stat in mask_stats.items():
-        print(f"  mask {channel}: written={stat['written']} "
-              f"absent={stat['absent']} failed={stat['failed']}")
+        on_disk = stat["written"] + stat["present"]
+        print(f"  mask {channel}: on_disk={on_disk} (written={stat['written']} "
+              f"already={stat['present']}) absent={stat['absent']} failed={stat['failed']}")
     if failures:
         print(f"  first failures ({len(failures)} of {counts['failed']} recorded):")
         for item in failures[:5]:

@@ -13,6 +13,7 @@ which number. A notebook should pull the repo, call a script, and show the outpu
 |---|---|---|---|
 | `00_verify_inputs.ipynb` | 0 | No | **Ready** — answers the five verification questions |
 | `01_build_cache.ipynb` | 1 | **No** | **Ready** — builds the 512 px cache, runs A0 |
+| `01b_idrid_masks.ipynb` | 1 | **No** | **Ready** — IDRiD Part A masks top-up, publishes a separate dataset |
 | `02_manifests.ipynb` | 2 | No | **Ready** — manifests, patient-grouped splits, variants |
 | `03_grading_sweeps.ipynb` | 3 | Yes | Blocked on `train_grading.py` + M1 |
 | `04_evidence.ipynb` | 4 | Yes | Blocked on `train_evidence.py`, `train_geometry.py` + M2 |
