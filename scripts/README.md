@@ -2,7 +2,6 @@
 
 `build_cache.py` and `prepare_manifest.py` are implemented. The remaining contracts are
 specified below so they can be written without re-deriving the design.
-(by you or by Claude) without re-deriving the design.
 
 Run order: `build_cache.py` → `prepare_manifest.py` → `build_variants.py`.
 
