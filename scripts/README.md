@@ -1,6 +1,6 @@
 # scripts/ — build utilities
 
-`build_cache.py` and `prepare_manifest.py` are implemented. The remaining contracts are
+All three Phase 1-2 build scripts are implemented. The remaining contracts are
 specified below so they can be written without re-deriving the design.
 
 Run order: `build_cache.py` → `prepare_manifest.py` → `build_variants.py`.
@@ -123,28 +123,59 @@ Label files reference `.png` where the cache holds `.jpg` (Messidor-2 does exact
 this), so rows are joined on stem. Unmatched entries are reported in both directions
 rather than silently dropped.
 
-## `build_variants.py` — Phase 2
+## `build_variants.py` — Phase 2 ✅ implemented
 
-Builds the three development variants plus the locked externals.
+Assembles the development variants and the locked externals from the per-dataset
+manifests.
 
 ```
-eyepacs_full           all unique EyePACS, official split
-eyepacs_balanced_1000  up to 1,000 unique images per grade  (training ablation only)
-eyepacs_ddr_full       EyePACS + DDR merged
-aptos_external         LOCKED
-messidor2_external     LOCKED
+--eyepacs FILE  [--ddr FILE] [--aptos FILE] [--messidor2 FILE]
+--output-dir DIR   --seed 42
+--val-frac 0.10   --calibration-frac 0.05   --test-frac 0.20
+--balanced-n 1000
+--eyepacs-split {regroup,source}
+--dry-run
 ```
 
-Split policy: use the **official** EyePACS competition split as the headline
-(35,126 train / 53,576 test — already patient-disjoint). Carve validation (10%) and
-calibration (5%) out of *train only*, patient-grouped.
+Outputs `eyepacs_full.csv`, `eyepacs_balanced_<N>.csv`, `eyepacs_ddr_full.csv`,
+`aptos_external.csv`, `messidor2_external.csv` and `dataset_plan.json`.
 
-**Must assert patient-disjointness across all splits and fail loudly.** Do not
-disable this assertion — see `docs/02_research_protocol.md` Rule 3.
+### The three development variants share their held-out rows
+
+Validation, calibration and test rows are **byte-identical** across `eyepacs_full`,
+the balanced variant and the merged variant. Only training rows differ. That is what
+makes B6 (does balancing help?) and B7/H3 (does DDR improve transfer?) controlled
+comparisons rather than unrelated experiments — the script asserts it and refuses to
+write if it does not hold.
+
+Consequently: **balancing touches train only** (Rule 4 — a balanced test set makes
+specificity and PPV meaningless), and **DDR is added to train only**.
+
+### Splitting
+
+Patients, never images. A patient's stratification label is their **worst** grade
+across both eyes, so rare grades stay represented everywhere. Patient-disjointness is
+asserted for every variant and the script exits non-zero if it fails (Rule 3).
+
+| Mode | Behaviour |
+|---|---|
+| `regroup` (default) | Ignore the mirror's split, build a fresh patient-grouped one. Always safe. |
+| `source` | Honour `source_split`. Verified for patient-disjointness first; **refuses to run** if the mirror's split leaks. |
+
+**Rule 6 consequence.** A regrouped EyePACS test set is *not* the official competition
+split, so its QWK is not comparable to the Kaggle leaderboard. The script says so on
+exit and records `leaderboard_comparable: false` in `dataset_plan.json`, so the thesis
+can state which protocol produced each number. Use `--eyepacs-split source` only when
+the mirror genuinely ships the official split.
+
+### Other guarantees
 
 Balanced sampling is without replacement; shortfalls on rare grades are recorded in
-`manifests/dataset_plan.json`, never fabricated. Validation, calibration and test rows
-are never duplicated.
+`dataset_plan.json` and never fabricated by duplication. Externals get `locked=True`
+and `split=test` on every row, for `evaluate.py`'s guard rail (Rule 1). A manifest
+whose `dataset` column disagrees with the flag it was passed under is rejected. An
+images-per-patient ratio below 1.5 on EyePACS warns loudly, since that means patient
+parsing failed upstream and the split would leak.
 
 ## `train_grading.py` / `train_evidence.py` / `train_geometry.py` — Phases 3–4
 
