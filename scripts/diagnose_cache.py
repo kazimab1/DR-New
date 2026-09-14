@@ -31,11 +31,87 @@ def find_roots(bases: Sequence[Path]) -> List[Path]:
     ))
 
 
+A0_MAX_FALLBACK = 0.005
+
+
+def a0_report(roots: Sequence[Path]) -> None:
+    """Read every cache_report.json and apply experiment A0's gate.
+
+    A0 asks whether the 512 px cache preserved the data. The evidence has been
+    sitting in the published cache since Phase 1; this reads it out so the answer
+    lands in the register instead of being assumed.
+    """
+    import json
+
+    print("\n" + "=" * 72)
+    print("A0 - did the 512 px cache preserve the data?")
+    print("=" * 72)
+
+    verdicts = []
+    for root in roots:
+        for report_path in sorted(root.glob("*/cache_report.json")):
+            try:
+                r = json.loads(report_path.read_text())
+            except (OSError, ValueError) as exc:
+                print(f"\n  {report_path.parent.name}: unreadable ({exc})")
+                continue
+
+            name = r.get("dataset", report_path.parent.name)
+            crop = r.get("crop") or {}
+            rate = crop.get("fallback_rate")
+            counts = r.get("counts") or {}
+            failed = counts.get("failed", 0)
+
+            print(f"\n  {name}")
+            print(f"    cached            {r.get('cached', '?')} of {counts.get('found', '?')} found"
+                  f"   (over {r.get('runs', '?')} run(s))")
+            print(f"    crop detected     {crop.get('detected', '?')}")
+            print(f"    crop fell back    {crop.get('fallback_full_frame', '?')} "
+                  f"of {crop.get('images_measured', '?')} measured")
+            if rate is None:
+                print("    fallback rate     not recorded -- cannot judge A0 for this dataset")
+                verdicts.append((name, None))
+            else:
+                ok = rate <= A0_MAX_FALLBACK
+                print(f"    fallback rate     {rate:.5f}   gate {A0_MAX_FALLBACK}   "
+                      f"{'PASS' if ok else 'FAIL'}")
+                verdicts.append((name, ok))
+            if failed:
+                print(f"    failures          {failed}  <- investigate before the freeze")
+            if r.get("interrupted"):
+                print("    interrupted       True  <- this run did not finish cleanly")
+            masks = r.get("masks") or {}
+            if masks:
+                print(f"    mask channels     {', '.join(sorted(masks))}")
+            print(f"    size              {(r.get('output') or {}).get('total_mib', '?')} MiB")
+
+    judged = [ok for _, ok in verdicts if ok is not None]
+    print("\n  " + "-" * 68)
+    if not verdicts:
+        print("  No cache_report.json found. A0 cannot be closed.")
+    elif all(judged) and len(judged) == len(verdicts):
+        print(f"  Crop gate PASSES for all {len(judged)} datasets.")
+        print("  Still outstanding for A0: per-grade counts reconciled against the")
+        print("  manifests, and the 100-crop visual audit (contact_sheet.jpg in each")
+        print("  dataset directory -- open it and look before signing A0 off).")
+    else:
+        bad = [n for n, ok in verdicts if ok is False]
+        unknown = [n for n, ok in verdicts if ok is None]
+        if bad:
+            print(f"  Crop gate FAILS for: {', '.join(bad)}")
+        if unknown:
+            print(f"  No rate recorded for: {', '.join(unknown)}")
+        print("  A0 cannot be signed off as it stands.")
+
+
 def main(argv: Optional[Sequence[str]] = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--base", type=Path, nargs="+",
                         default=[Path("/kaggle/input"), Path("/kaggle/working")])
+    parser.add_argument("--reports", action="store_true",
+                        help="Print each cache_report.json and apply the A0 gate "
+                             "(crop fallback rate must stay at or under 0.005).")
     args = parser.parse_args(argv)
 
     roots = find_roots(args.base)
@@ -74,6 +150,9 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             else:
                 print("               *** NO IMAGES ***")
                 empty.append(f"{root.name}/{d.name}")
+
+    if args.reports:
+        a0_report(roots)
 
     print("\nMasks are a Phase 4 concern: M1 grades whole images and reads images and")
     print("grades only. Zero mask channels blocks nothing in Phase 3.")

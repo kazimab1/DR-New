@@ -207,6 +207,11 @@ counts, mask channels, and a sample path.
 python scripts/diagnose_cache.py
 ```
 
+Pass `--reports` to also read every `cache_report.json` and apply experiment A0's
+gate — the crop fallback rate must stay at or under **0.005**. The evidence has been
+in the published cache since Phase 1; this reads it out so A0 lands in the register
+rather than being assumed.
+
 Reach for it whenever a notebook reports less data than you expect. Two things
 make an intact cache look broken: it is routinely split across two published
 datasets (the full build plus the IDRiD mask top-up), and counting only the
