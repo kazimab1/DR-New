@@ -248,10 +248,36 @@ Three things worth knowing:
 - **Checkpoints are written every epoch**, so a killed Kaggle session costs one epoch
   rather than the run.
 
-## `train_evidence.py` / `train_geometry.py` — Phase 4
+## `train_geometry.py` — Phase 4, experiment C1 **(built)**
 
-Per `docs/03_model_architecture.md` §§ M2a, M2b. Same contract as above: a config from
-`configs/`, results under `results/<stage>/<experiment_id>/`, checkpoint every epoch.
+Trains M2b, the optic-disc / fovea regressor, per `docs/03_model_architecture.md` § M2b.
+
+```
+python scripts/train_geometry.py --manifest manifests/idrid.csv \
+    --experiment C1_geometry --cache-root /kaggle/input/.../cache512
+```
+
+Reads the IDRiD manifest's `od_x` / `od_y` / `fovea_x` / `fovea_y`, which
+`prepare_manifest.py` re-projected into cache coordinates, and serves them normalised
+to [0, 1].
+
+- **The gate is applied, not just reported.** C1 passes at a mean landmark error below
+  **0.5 disc diameters**; the script says which way it landed and what it means for M3.
+- **Disc diameter is derived from the disc-to-fovea distance** (÷ 2.5, the standard
+  clinical relation) because IDRiD publishes no diameter. Per image, so camera
+  magnification cancels.
+- **It reports a constant-predictor baseline.** Fundus framing is stereotyped, so
+  predicting the training mean scores better than intuition suggests; a model that
+  fails to beat it has learned the average layout, not this image's landmarks.
+- Augmentation is a horizontal flip and photometric jitter only. Rotation and scale are
+  omitted deliberately — a coordinate-transform error there corrupts targets silently
+  and is indistinguishable from a model that did not learn.
+
+## `train_evidence.py` — Phase 4, experiments C2–C4
+
+Per `docs/03_model_architecture.md` § M2a. Not yet built. It loads the encoder
+`train_geometry.py` fitted and trains the UNet decoder on DDR-seg + IDRiD-seg with
+`0.5·Dice + 0.5·BCE`.
 
 ## `evaluate.py` — Phases 6–7
 
