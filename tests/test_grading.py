@@ -223,6 +223,27 @@ class TestDataset(unittest.TestCase):
         drawn = {int(grades[i]) for i in sampler}
         self.assertFalse(drawn & {1, 3})
 
+    def test_the_two_weighted_samplers_coincide_at_default_epoch_length(self):
+        """Pins the trap that voided B4's third arm.
+
+        Both weight by inverse grade frequency and differ only in draws per
+        epoch, which default to the same value -- so at default settings they are
+        one sampler under two names. Asserting it keeps the equivalence a known
+        property rather than a surprise in a results table.
+        """
+        grades = np.concatenate([np.zeros(300), np.ones(30), np.full(60, 2),
+                                 np.full(10, 3), np.full(8, 4)]).astype(int)
+        a = list(make_sampler(grades, "stratified_exposure", None, seed=42))
+        b = list(make_sampler(grades, "class_balanced", None, seed=42))
+        self.assertEqual(a, b)
+
+    def test_epoch_samples_is_what_actually_separates_them(self):
+        grades = np.array([0] * 100 + [1] * 10)
+        few = list(make_sampler(grades, "stratified_exposure", None, seed=42))
+        many = list(make_sampler(grades, "stratified_exposure", 500, seed=42))
+        self.assertEqual(len(few), len(grades))
+        self.assertEqual(len(many), 500)
+
     def test_natural_sampler_is_plain_shuffling(self):
         self.assertIsNone(make_sampler(np.array([0, 1, 2]), "natural"))
 

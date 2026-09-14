@@ -196,10 +196,21 @@ def make_sampler(
 ) -> Optional[WeightedRandomSampler]:
     """Sampler over training rows. None means plain shuffling.
 
-    stratified_exposure draws a fixed number of samples per epoch with every
-    grade equally likely, so rare grades are seen often without discarding the
-    common ones. class_balanced weights by inverse frequency over the natural
-    epoch length. Neither changes the data -- only how often each row is drawn.
+    Both weighted strategies draw with probability inversely proportional to
+    grade frequency, so every grade is equally likely per draw. They differ only
+    in how many draws make an epoch:
+
+        class_balanced       always len(grades) draws
+        stratified_exposure  epoch_samples draws, defaulting to len(grades)
+
+    **So with epoch_samples unset the two are the same sampler**, and given the
+    same seed they emit the same index sequence. That is not a bug, but it is a
+    trap: B4 was originally run as a three-way sweep and its third arm turned out
+    to be a duplicate of the second. Pass --epoch-samples to make
+    stratified_exposure genuinely different, or expect identical results. The
+    warning below fires whenever the two coincide.
+
+    Neither strategy changes the data -- only how often each row is drawn.
     """
     if strategy == "natural":
         return None
@@ -213,6 +224,9 @@ def make_sampler(
     num_samples = len(grades)
     if strategy == "stratified_exposure":
         num_samples = epoch_samples or len(grades)
+        if not epoch_samples:
+            print("  note: stratified_exposure without --epoch-samples is identical to "
+                  "class_balanced;\n        pass --epoch-samples to make them differ.")
 
     generator = torch.Generator().manual_seed(seed)
     return WeightedRandomSampler(

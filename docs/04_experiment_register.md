@@ -28,8 +28,8 @@ skeleton of the results chapter.
 | B1 | What resolution is needed? | 384 / 512 / 768 px | Val QWK **and grade-1 F1** | **DONE** | **512 px** — no trend above noise; 768 upsamples |
 | B2 | Which encoder? | EfficientNet-B0 / ResNet50 | Val QWK per GPU-hour | **DONE** | **EfficientNet-B0** — QWK tied, 0.70× the cost |
 | B3 | Which head? | CE / ordinal / focal-ordinal | Val QWK + MAE | **DONE** | **focal-ordinal** — focal earns its place; CE ruled out |
-| B4 | Which sampler? | Natural / stratified exposure / class-balanced | Val QWK at natural prevalence | TODO | |
-| B5 | Does eye-pair fusion help? | Single vs left+right fusion | Val QWK, paired across seeds | TODO | |
+| B4 | Which sampler? | Natural / stratified exposure / class-balanced | Val QWK at natural prevalence | **DONE (2 arms)** | **weighted** — the third arm was a duplicate |
+| B5 | Does eye-pair fusion help? | Single vs left+right fusion | Val QWK, paired across seeds | **DONE** | **no fusion** — best grader, but confounds the thesis signal |
 | B6 | Does balancing the dataset help? *(ablation)* | `eyepacs_full` vs `eyepacs_balanced_1000` | QWK on natural-prevalence test | TODO | |
 | B7 | Does DDR improve transfer? **(H3)** | `eyepacs_full` vs `eyepacs_ddr_full` | External QWK — single unblinding | TODO | |
 
@@ -179,6 +179,93 @@ of 0.180: plain `ordinal` moved it *down* to 0.122, and `softmax_ce` reached 0.1
 by trading 0.053 QWK — and by a different mechanism (precision 0.141 / recall 0.182,
 against ResNet50's precision 0.115 / recall 0.413). B4's `class_balanced` is the
 remaining test.
+
+### B4 — sampler — **DECIDED: weighted (`stratified_exposure`)**
+
+| Sampler | QWK | macro-F1 | grade-1 F1 | g1 recall | MAE | GPU-min |
+|---|---|---|---|---|---|---|
+| `natural` | 0.640 | 0.372 | 0.125 | 0.263 | 0.479 | 10.9 |
+| **`stratified_exposure`** | **0.679** | **0.459** | 0.142 | 0.271 | **0.415** | 18.1 |
+| `class_balanced` | 0.679 | 0.459 | 0.142 | 0.271 | 0.415 | 18.8 |
+
+> ### The third arm was a duplicate. B4 ran as a two-way, not a three-way.
+>
+> `class_balanced` returned metrics **identical to the B1 512 baseline on every
+> figure** — QWK, macro-F1, grade-1 F1, grade-1 recall, MAE and distinct predictions,
+> all to the last recorded digit. That is not coincidence: in `make_sampler` both
+> weighted strategies weight by inverse grade frequency, and differ only in draws per
+> epoch, which default to `len(grades)` for both. With `epoch_samples` unset they are
+> one sampler under two names and, given the same seed, emit the same index sequence.
+> Verified directly: the two index lists compare equal.
+>
+> Nothing downstream is invalidated — B1–B3 all used `stratified_exposure`, which is a
+> real sampler — but B4 tested two options, not three. `make_sampler` now warns when
+> the two coincide, and `tests/test_grading.py` pins the equivalence so it cannot
+> resurface silently.
+
+**On the comparison that did run, weighted beats natural clearly:** macro-F1 +0.087
+(6.0× its floor), MAE −0.064 (2.8×), QWK +0.039 (1.4×).
+
+**But weighting does not help grade 1.** Grade-1 F1 +0.017 (0.9× floor) and recall
++0.008 (0.4×) are both inside noise. Read alongside B3, the division of labour is
+clean: **focal weighting is what moves grade 1** (+83% recall), **the sampler is what
+moves overall class balance** (+6 floors of macro-F1). They are not substitutes.
+
+### B5 — eye-pair fusion — **DECIDED: no fusion**
+
+| Configuration | QWK | macro-F1 | grade-1 F1 | g1 recall | MAE | GPU-min | Phase 6 |
+|---|---|---|---|---|---|---|---|
+| **single image** | 0.679 | 0.459 | 0.142 | 0.271 | 0.415 | **18.1** | **20.9 h** |
+| fusion | **0.713** | **0.484** | 0.152 | **0.317** | **0.392** | 39.5 | 45.5 h |
+
+**Fusion produces the best grader in Stage B** — top QWK, macro-F1, grade-1 recall and
+MAE. QWK +0.034 (1.2× floor), macro-F1 +0.025 (1.7×), grade-1 recall +0.046 (2.1×).
+It is rejected anyway, on three grounds.
+
+1. **It confounds the signal the thesis rests on.** With fusion, M1's grade for image X
+   is a function of X *and* its fellow eye; M2's evidence is a function of X alone. When
+   they disagree, that can mean "the fellow eye carried disease M2 cannot see" rather
+   than "the grade contradicts the evidence in this image". DR is frequently asymmetric,
+   so this is not a corner case — it systematically inflates disagreement in exactly the
+   cases the referral rule would flag, and those flags would not be errors. `CLAUDE.md`:
+   *never optimise for QWK at the expense of the disagreement signal.*
+2. **The budget cannot absorb it.** 21.1 img/s against 46.0 puts Phase 6 at **45.5
+   GPU-h** against 20.9 — over the ~20 h budget and over a full 30 h/week quota.
+3. **The evidence is thin for the criterion.** B5 was specified as *paired across
+   seeds*; one seed per arm was run, and ΔQWK is 1.2× its floor. Grade-1 F1 (+0.010,
+   0.5×) and MAE (1.0×) are inside noise.
+
+> If the thesis were about grading accuracy, fusion would win. It is not, and buying
+> 0.034 QWK by contaminating the referral signal is the specific trade `CLAUDE.md`
+> forbids.
+
+### Stage B closed — the frozen recipe
+
+**512 px · EfficientNet-B0 · focal-ordinal head · stratified exposure · no fusion.**
+
+Which is exactly the `B1_res512` configuration, and exactly the default specified in
+`docs/03_model_architecture.md`. **Every ablation either lost or tied.** Eight runs,
+~2.8 GPU-hours, and the designed recipe survived all of them — a legitimate and
+reportable outcome, not a null result to bury.
+
+What actually mattered, ranked by effect size against each metric's own floor:
+
+| Lever | Biggest effect | × floor | Verdict |
+|---|---|---|---|
+| Head: focal on/off | grade-1 recall +0.123 | 5.6× | **Real and decisive** |
+| Sampler: weighted vs natural | macro-F1 +0.087 | 6.0× | **Real and decisive** |
+| Fusion on/off | grade-1 recall +0.046 | 2.1× | Real, rejected on confound + cost |
+| Encoder: B0 vs ResNet50 | grade-1 F1 +0.038 | 2.0× | Real, rejected on cost |
+| Resolution 384/512/768 | grade-1 F1 spread 0.019 | 1.0× | Noise |
+
+**The B2 prediction resolves against reopening.** No configuration except ResNet50
+reached grade-1 F1 0.180 — the closest were `softmax_ce` at 0.159 (costing 0.053 QWK)
+and fusion at 0.152 (costing 2.18× compute). Note the designated test, `class_balanced`,
+was the duplicate arm and so never ran as a distinct condition; what *was* tested is
+full inverse-frequency weighting, which every run except `B4_natural` used, and it
+yields 0.142. B2 is **not** reopened: ResNet50's advantage is recall-led, costs 9 extra
+Phase 6 GPU-hours, and grading accuracy is not the contribution. Recorded here so the
+reasoning is auditable rather than assumed.
 
 > **B7 protocol.** Needs external data. Legitimate only because the pre-registration
 > declares in advance that exactly these two variants get evaluated in the single
