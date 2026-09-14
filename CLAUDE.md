@@ -57,7 +57,9 @@ on a synthetic fixture (val QWK 0 -> 1.0, all five per-class recalls 1.00), plus
 resume, the architecture guard and cache repathing. `python -m unittest discover -s
 tests` covers the load-bearing properties.
 
-**No real experiments have been run.** Next: B1 on Kaggle.
+**First real result in.** B1 at 512 px: QWK 0.679, macro-F1 0.459, grade-1 F1 0.142
+(recall 0.271, precision 0.096), all five grades predicted, 18.1 GPU-min. Logged in
+`docs/04_experiment_register.md`. Next: B1 at 384 and 768 to complete the comparison.
 
 ### One thing to carry into Phase 3
 

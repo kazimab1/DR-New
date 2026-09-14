@@ -18,7 +18,7 @@ skeleton of the results chapter.
 
 | ID | Question | Varies | Decided by | Status | Result |
 |---|---|---|---|---|---|
-| B1 | What resolution is needed? | 384 / 512 / 768 px | Val QWK **and grade-1 F1** | TODO | |
+| B1 | What resolution is needed? | 384 / 512 / 768 px | Val QWK **and grade-1 F1** | **1 of 3 run** | 512: QWK 0.679, g1-F1 0.142 |
 | B2 | Which encoder? | EfficientNet-B0 / ResNet50 | Val QWK per GPU-hour | TODO | |
 | B3 | Which head? | CE / ordinal / focal-ordinal | Val QWK + MAE | TODO | |
 | B4 | Which sampler? | Natural / stratified exposure / class-balanced | Val QWK at natural prevalence | TODO | |
@@ -35,6 +35,26 @@ skeleton of the results chapter.
 > scores 1.000 grade-1 recall and is worthless. Check `distinct_predictions` first —
 > when it is 1 the run has collapsed and decides nothing. `03_grading_sweeps.ipynb`
 > applies both rules and prints the verdict.
+
+### B1 — resolution (in progress)
+
+Validation only, `eyepacs_balanced_1000`, EfficientNet-B0, focal-ordinal head,
+stratified exposure, no fusion, seed 42.
+
+| Resolution | QWK | macro-F1 | **grade-1 F1** | g1 recall | g1 precision | distinct preds | MAE | GPU-min |
+|---|---|---|---|---|---|---|---|---|
+| 384 | | | | | | | | |
+| **512** | 0.679 | 0.459 | **0.142** | 0.271 | 0.096 | 5 / 5 | 0.415 | 18.1 |
+| 768 | | | | | | | | |
+
+**512 reading.** Nothing is collapsed — all five grades are predicted, and QWK 0.679
+with MAE 0.415 is a sane starting point. But grade 1 is barely learned: recall 0.271
+catches roughly a quarter of true grade-1 eyes, and precision 0.096 means about ten
+images are called grade 1 for every one that is. Grade-1 F1 0.142 sits in the *weak
+but not collapsed* band, which is the band B1 exists to resolve.
+
+**This decides nothing on its own.** One resolution is one point; B1 is a comparison.
+Run 384 and 768 before choosing.
 
 > **B7 protocol.** Needs external data. Legitimate only because the pre-registration
 > declares in advance that exactly these two variants get evaluated in the single
