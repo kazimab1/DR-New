@@ -57,9 +57,11 @@ on a synthetic fixture (val QWK 0 -> 1.0, all five per-class recalls 1.00), plus
 resume, the architecture guard and cache repathing. `python -m unittest discover -s
 tests` covers the load-bearing properties.
 
-**First real result in.** B1 at 512 px: QWK 0.679, macro-F1 0.459, grade-1 F1 0.142
-(recall 0.271, precision 0.096), all five grades predicted, 18.1 GPU-min. Logged in
-`docs/04_experiment_register.md`. Next: B1 at 384 and 768 to complete the comparison.
+**B1 is 2 of 3 run.** 512: QWK 0.679, grade-1 F1 0.142. 768: QWK 0.704, grade-1 F1
+0.161 — better on everything that moved, at 1.9x the compute, and the gain is entirely
+in grade-1 *precision* (recall is identical at 0.271). Phase 6 would cost ~21 GPU-h at
+512 and ~40 GPU-h at 768, against a ~20 h budget and a 30 h/week quota. **384 is still
+needed** to tell a real trend from a plateau. See `docs/04_experiment_register.md`.
 
 ### One thing to carry into Phase 3
 

@@ -43,18 +43,41 @@ stratified exposure, no fusion, seed 42.
 
 | Resolution | QWK | macro-F1 | **grade-1 F1** | g1 recall | g1 precision | distinct preds | MAE | GPU-min |
 |---|---|---|---|---|---|---|---|---|
-| 384 | | | | | | | | |
+| 384 | *not run* | | | | | | | |
 | **512** | 0.679 | 0.459 | **0.142** | 0.271 | 0.096 | 5 / 5 | 0.415 | 18.1 |
-| 768 | | | | | | | | |
+| **768** | 0.704 | 0.459 | **0.161** | 0.271 | 0.115 | 5 / 5 | 0.395 | 34.3 |
 
-**512 reading.** Nothing is collapsed — all five grades are predicted, and QWK 0.679
-with MAE 0.415 is a sane starting point. But grade 1 is barely learned: recall 0.271
-catches roughly a quarter of true grade-1 eyes, and precision 0.096 means about ten
-images are called grade 1 for every one that is. Grade-1 F1 0.142 sits in the *weak
-but not collapsed* band, which is the band B1 exists to resolve.
+Nothing is collapsed at either resolution — all five grades are predicted — so both
+runs are readable. 768 is better on every metric that moved: QWK +0.025, grade-1 F1
++0.019, MAE −0.020. macro-F1 is unchanged (0.4590 vs 0.4591).
 
-**This decides nothing on its own.** One resolution is one point; B1 is a comparison.
-Run 384 and 768 before choosing.
+**The improvement is entirely in precision.** Grade-1 recall is identical to three
+decimal places at both resolutions (0.271); precision rises 0.096 → 0.115. More pixels
+are not helping the model *find* more microaneurysms — they are helping it stop calling
+non-MAs grade 1. That is worth noting, because the stated motivation for high
+resolution was that an MA is 10–20 px and vanishes under downsampling. On this evidence
+that mechanism is not what is improving.
+
+**Cost.** Measured throughput is 46.0 img/s at 512 and 24.3 img/s at 768. Projecting
+Phase 6 (frozen recipe × 3 seeds × 2 variants = 6 runs on `eyepacs_full`, ~57.7k train
+rows, 10 epochs):
+
+| Resolution | One Phase 6 run | Phase 6 total | vs ~20 GPU-h budget |
+|---|---|---|---|
+| 512 | 3.5 h | **20.9 h** | at budget |
+| 768 | 6.6 h | **39.6 h** | 2× over, and over a full 30 GPU-h/week quota |
+
+Both B2–B5 and Phase 6 inherit whichever resolution is chosen, so 768 roughly doubles
+the cost of everything downstream.
+
+**Single seed per point.** ΔQWK 0.025 and Δgrade-1 F1 0.019 are not separable from
+seed noise on one run each. Nothing here justifies 2× the compute for the rest of the
+project on grading accuracy, which is explicitly *not* this thesis's contribution.
+
+**Status: 384 still needed.** It is the cheap end (~10 GPU-min) and it is what
+distinguishes a real resolution trend from a plateau. If 384 ≈ 512, the 768 gain is
+likely noise and 512 is the choice. If 384 is clearly worse, resolution is binding and
+768 has to be argued for against the budget.
 
 > **B7 protocol.** Needs external data. Legitimate only because the pre-registration
 > declares in advance that exactly these two variants get evaluated in the single
