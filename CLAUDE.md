@@ -85,25 +85,34 @@ B4's `class_balanced` is the remaining test.
 Next: **B4** (sampler), 2 runs at 512 / B0 / `ordinal_focal` — `natural` and
 `class_balanced`; `stratified_exposure` is the B1 512 run.
 
-### A0 — crops verified, counts still open
+### A0 — CLOSED: pass, with two recorded limitations
 
-The EyePACS crop-fallback rate of **0.99919** against a 0.005 gate turned out to be
-benign: the source mirror ships pre-cropped images, so `retinal_bbox` correctly reports
-"nothing to crop". Confirmed from the contact sheets — 160 crops across EyePACS and
-APTOS, retinal width/frame width median **1.000**, zero tiles below 0.75, so the retina
-fills the full 512 px and no Stage B result was measured on under-resolved images.
+**Crops.** The EyePACS fallback rate of 0.99919 against a 0.005 gate was benign — the
+mirror ships pre-cropped images, so `retinal_bbox` correctly reports "nothing to crop".
+Visual audit over **260 crops** (EyePACS 100, APTOS 60, DDR 60, IDRiD 40): retinal
+width/frame median **1.000**, zero tiles below 0.75, lit fractions 0.70-0.79 against
+pi/4 = 0.785 for an inscribed disc. The 0.005 threshold assumes raw uncropped originals
+and is the wrong test for these mirrors.
 
-The 0.005 threshold assumes raw uncropped originals and is the wrong test for these
-mirrors; `diagnose_cache.py` now reports the rate as evidence rather than a flat FAIL.
+**Counts.** APTOS, Messidor-2 and DDR reconcile **exactly, every grade** (DDR's 12 522
+is the published 13 673 less 1 151 ungradable). EyePACS is **693 short (0.78%)** of the
+official 88 702 — upstream of us, since `cache_report.json` shows found = cached =
+88 009 with failed = 0. The loss is **non-random by grade** (chi-square 105.6, 4 df;
+grade 4 lost at 3x grade 0's rate), most likely because mirrors drop unreadable files
+and severe DR correlates with media opacity. Prevalence impact is negligible: rDR
+19.34% -> 19.23%. **State it in the thesis limitations.**
 
-Visual audit now covers **4 of 5 datasets, 260 crops**: EyePACS, APTOS, DDR and IDRiD
-all show retinal width/frame median **1.000** with zero tiles below 0.75, and lit
-fractions of 0.70-0.79 against pi/4 = 0.785 for an inscribed disc. Lesions are legible,
-which is what Phase 4's masks need. One DDR source image has a white background
-(dark corners, white sides) -- 1 in 260, recorded, not worth fixing.
+**Structure.** 1.989 images/patient, split fractions exact, held-out rows identical
+across variants, no balancing shortfall.
 
-**Still open before the freeze:** the 693-image shortfall (88 009 found vs the official
-88 702), and the Messidor-2 visual audit.
+**Outstanding:** Messidor-2 visual audit (locked until unblinding; counts already exact).
+
+### Phase 6 budget — corrected
+
+Earlier projections assumed 57 656 training rows. The real figure is **59 842**, so at
+46.0 img/s the frozen recipe needs **21.7 GPU-h**, not 20.9 — slightly over the ~20 h
+budget. ResNet50 would be 31.1 h and fusion 47.3 h. Decisions unchanged; trim epochs or
+seeds at the freeze and record it in the pre-registration.
 
 ### One thing to carry into Phase 3
 

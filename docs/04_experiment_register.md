@@ -11,7 +11,7 @@ skeleton of the results chapter.
 
 | ID | Question | Varies | Decided by | Status | Result |
 |---|---|---|---|---|---|
-| A0 | Did the 512 px cache preserve the data? | — | Counts reconcile per grade; crop failures < 0.5%; 100-crop visual audit | **Crops verified** | eyepacs + aptos pass visually; counts still unreconciled |
+| A0 | Did the 512 px cache preserve the data? | — | Counts reconcile per grade; crop failures < 0.5%; 100-crop visual audit | **PASS, with limitations** | 3 of 4 exact per grade; EyePACS 0.78% short upstream |
 | A1 | Does the pipeline run end to end? | — | Smoke test completes; 1-epoch pilot gives non-trivial QWK | **DONE** | Smoke test passes; B1 512 reached val QWK 0.679 |
 
 ### A0 — crop **RESOLVED: benign**. The gate is the wrong test for this source.
@@ -120,12 +120,78 @@ retina only when the surround is dark, so on that one tile it over-reports. Ever
 tile in all four sheets has a dark surround (corner median ≤ 20), where the measure is
 exact.
 
-**Still open under A0, before the Phase 5 freeze:**
+### Count reconciliation — **3 of 4 datasets exact to the image**
 
-1. **Counts.** 88 009 EyePACS images found against the official 88 702 — a shortfall of
-   **693** with no explanation yet. A0 requires per-grade reconciliation against the
-   manifests; not yet done. This is now the only substantive gap.
-2. **Messidor-2 visual audit.** The remaining locked external.
+From `dataset_plan.json` (seed 42, generated 13 Sep 2026), against published figures:
+
+| Dataset | Published | In cache | Diff | Verdict |
+|---|---|---|---|---|
+| APTOS 2019 train | 3 662 | 3 662 | 0 | **exact, every grade** |
+| Messidor-2 adjudicated | 1 744 | 1 744 | 0 | **exact, every grade** |
+| DDR minus ungradable | 12 522 | 12 522 | 0 | **exact, every grade** |
+| EyePACS train+test | 88 702 | 88 009 | **−693** | 0.78% short |
+
+DDR landing on 12 522 is the published 13 673 less the 1 151 ungradable grade-5 images —
+confirming the grade-5 exclusion behaved exactly as intended. APTOS and Messidor-2 match
+their published per-grade distributions image for image.
+
+**The EyePACS shortfall is upstream, not ours.** `cache_report.json` records
+`found: 88 009`, `cached: 88 009`, `failed: 0` — the pipeline processed every image the
+mirror contained and lost none. The 693 were never in `tantai31124/eyepacs-original`.
+
+**The loss is not grade-independent, and that needs saying in the thesis.**
+
+| Grade | Published | In cache | Lost |
+|---|---|---|---|
+| 0 | 65 343 | 64 909 | 0.66% |
+| 1 | 6 205 | 6 177 | 0.45% |
+| 2 | 13 153 | 12 994 | 1.21% |
+| 3 | 2 087 | 2 053 | 1.63% |
+| 4 | 1 914 | 1 876 | **1.99%** |
+
+χ² against proportional loss is **105.6 on 4 df** — decisively non-random. Grade 4 is
+lost at three times grade 0's rate. The likely mechanism is benign and worth stating:
+mirrors drop unreadable files, and severe DR correlates with media opacity — cataract,
+vitreous haemorrhage — which makes those eyes harder to image. The effect is a mild
+selection against the hardest-to-photograph severe cases, so the cohort is, if anything,
+marginally easier than the true population.
+
+**The magnitude is negligible.** Grade-0 prevalence moves 73.67% → 73.75% (+0.09 pp) and
+rDR 19.34% → 19.23% (−0.11 pp). No reported rate is materially affected.
+
+### Structure checks — all pass
+
+| Check | Value | Expected |
+|---|---|---|
+| Images per patient | **1.989** | ≈2.0 — confirms EyePACS patient parsing |
+| Test fraction | 20.01% | 20% |
+| Val fraction of pool | 10.00% | 10% |
+| Calibration fraction of pool | 4.99% | 5% |
+| Splits sum to total | yes | — |
+| Held-out rows identical across all three variants | yes | Rule: variants differ in train only |
+| Balanced variant shortfall | **none** — 1 000 available in every grade | — |
+
+### A0 — **CLOSED: PASS, with two recorded limitations**
+
+1. **EyePACS is 0.78% short of the official release, non-randomly by grade.** Upstream
+   of this project, negligible in prevalence, and to be stated in the thesis limitations.
+2. **Messidor-2 has not had its visual audit.** It is locked until unblinding and its
+   counts reconcile exactly; the audit should still happen before Phase 6.
+
+### Correction to the Phase 6 projection
+
+Earlier projections used an estimated training-set size of 57 656. `dataset_plan.json`
+gives the real figure: **59 842**. Corrected, at the measured 46.0 img/s:
+
+| Configuration | Phase 6 total | vs ~20 h budget |
+|---|---|---|
+| **Frozen recipe (B0, 512, no fusion)** | **21.7 GPU-h** | slightly over |
+| ResNet50 instead | 31.1 GPU-h | 1.6× over |
+| With fusion | 47.3 GPU-h | 2.4× over, beyond a week's quota |
+
+The frozen recipe is ~1.7 h over the stated budget rather than the 0.9 h quoted before.
+The decisions do not change — but the Phase 6 budget needs trimming (epochs or seeds)
+at the freeze, and that is a pre-registration decision, not a mid-run discovery.
 
 ## Stage B — Grading pathway (selection; validation only)
 
