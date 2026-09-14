@@ -85,17 +85,19 @@ B4's `class_balanced` is the remaining test.
 Next: **B4** (sampler), 2 runs at 512 / B0 / `ordinal_focal` — `natural` and
 `class_balanced`; `stratified_exposure` is the B1 512 run.
 
-### OPEN: A0 crop gate fails for EyePACS
+### A0 — crops verified, counts still open
 
-`cache_report.json` reports **crop fallback_rate 0.99919** against a 0.005 gate — the
-retinal crop "succeeded" on 71 of 88 009 images. Either the source mirror is already
-cropped (benign, and `build_cache.py` documents that case as the right answer) or the
-crop is failing on raw wide originals, in which case `fit: pad` leaves the retina at an
-effective ~340 px inside each 512 px frame and every Stage B number is measured on
-under-resolved images. Evidence leans benign; **`contact_sheet.jpg` decides it.** Also
-unreconciled: 88 009 images found against the official 88 702.
+The EyePACS crop-fallback rate of **0.99919** against a 0.005 gate turned out to be
+benign: the source mirror ships pre-cropped images, so `retinal_bbox` correctly reports
+"nothing to crop". Confirmed from the contact sheets — 160 crops across EyePACS and
+APTOS, retinal width/frame width median **1.000**, zero tiles below 0.75, so the retina
+fills the full 512 px and no Stage B result was measured on under-resolved images.
 
-Do not pass the Phase 5 freeze with this open. See `docs/04_experiment_register.md`.
+The 0.005 threshold assumes raw uncropped originals and is the wrong test for these
+mirrors; `diagnose_cache.py` now reports the rate as evidence rather than a flat FAIL.
+
+**Still open before the freeze:** the 693-image shortfall (88 009 found vs the official
+88 702) and the visual audit for ddr, idrid and messidor2.
 
 ### One thing to carry into Phase 3
 

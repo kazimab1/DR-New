@@ -74,7 +74,14 @@ def a0_report(roots: Sequence[Path]) -> None:
             else:
                 ok = rate <= A0_MAX_FALLBACK
                 print(f"    fallback rate     {rate:.5f}   gate {A0_MAX_FALLBACK}   "
-                      f"{'PASS' if ok else 'FAIL'}")
+                      f"{'within gate' if ok else 'ABOVE GATE'}")
+                if not ok:
+                    print("                      ^ ambiguous on its own. A high rate means")
+                    print("                        either a broken crop OR a source whose")
+                    print("                        images are already cropped, where the")
+                    print("                        fallback is the correct answer. Only the")
+                    print("                        contact sheet separates them -- verified")
+                    print("                        benign for eyepacs and aptos, Sep 2026.")
                 verdicts.append((name, ok))
             if failed:
                 print(f"    failures          {failed}  <- investigate before the freeze")
@@ -98,7 +105,8 @@ def a0_report(roots: Sequence[Path]) -> None:
         bad = [n for n, ok in verdicts if ok is False]
         unknown = [n for n, ok in verdicts if ok is None]
         if bad:
-            print(f"  Crop gate FAILS for: {', '.join(bad)}")
+            print(f"  Above the crop gate: {', '.join(bad)}")
+            print("  Check each one's contact_sheet.jpg before concluding anything.")
         if unknown:
             print(f"  No rate recorded for: {', '.join(unknown)}")
         print("  A0 cannot be signed off as it stands.")

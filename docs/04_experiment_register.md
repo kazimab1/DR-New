@@ -11,10 +11,10 @@ skeleton of the results chapter.
 
 | ID | Question | Varies | Decided by | Status | Result |
 |---|---|---|---|---|---|
-| A0 | Did the 512 px cache preserve the data? | — | Counts reconcile per grade; crop failures < 0.5%; 100-crop visual audit | **OPEN — evidence not recorded** | |
+| A0 | Did the 512 px cache preserve the data? | — | Counts reconcile per grade; crop failures < 0.5%; 100-crop visual audit | **Crops verified** | eyepacs + aptos pass visually; counts still unreconciled |
 | A1 | Does the pipeline run end to end? | — | Smoke test completes; 1-epoch pilot gives non-trivial QWK | **DONE** | Smoke test passes; B1 512 reached val QWK 0.679 |
 
-### A0 — EyePACS crop gate **FAILS as written**. Cause not yet established.
+### A0 — crop **RESOLVED: benign**. The gate is the wrong test for this source.
 
 `verify-dr-cache-512/cache512/eyepacs/cache_report.json`, read 14 Sep 2026:
 
@@ -62,9 +62,44 @@ look, which is exactly why A0 requires a visual audit and not just a rate.
 official EyePACS release — a shortfall of 693. A0 requires counts to reconcile per
 grade; that has not been done, and this gap needs an explanation before the freeze.
 
-**Status: open, and it is the highest-priority open item in the project.** It cannot be
-carried past the Phase 5 freeze, and if reading 2 turns out to hold, Phase 1 and all of
-Stage B have to be re-run.
+### Resolution — 14 Sep 2026, from the contact sheets
+
+**Reading 1 holds. The cache is sound and Stage B stands.**
+
+`contact_sheet.jpg` was fetched and inspected for both EyePACS (100 crops) and APTOS
+(60 crops). Every tile is a fundus disc filling its frame with only a thin margin; optic
+disc and macula are visible in nearly all, vessels are sharp down to fine branches, and
+there is not one wide black-barred frame or disc-adrift-in-black among 160 crops.
+
+Measured off the sheets rather than judged by eye, retinal width as a fraction of frame
+width:
+
+| Dataset | median | mean | 10th pct | tiles below 0.75 | implied retinal diameter |
+|---|---|---|---|---|---|
+| EyePACS | **1.000** | 0.990 | 0.999 | **0 of 100** | **512 px** |
+| APTOS | **1.000** | 1.000 | 1.000 | **0 of 60** | **512 px** |
+
+Reading 2 predicted ≈0.67 width and ≈340 px. The lit fraction of the frame is 0.74
+(EyePACS) and 0.70 (APTOS) against π/4 = 0.785 for a disc inscribed in a square — the
+small shortfall is the flat top-and-bottom truncation typical of fundus cameras.
+**Reading 2 is ruled out.** The retina fills the frame, so no Stage B result was measured
+on under-resolved images and B1's resolution finding stands.
+
+**What this says about the gate, for the write-up.** A crop-fallback rate near 1.0 is not
+evidence of a broken crop when the source ships pre-cropped — `retinal_bbox` returns
+`full, False` for a box within 2% of the frame, which is the correct answer there and is
+what these mirrors produce. The 0.005 threshold in A0 was written assuming raw
+uncropped originals and is simply the wrong test for `tantai31124/eyepacs-original` and
+the APTOS mirror. `diagnose_cache.py` now says so rather than reporting a flat FAIL. The
+rate is kept as recorded evidence, not as a pass/fail gate.
+
+**Still open under A0, before the Phase 5 freeze:**
+
+1. **Counts.** 88 009 EyePACS images found against the official 88 702 — a shortfall of
+   **693** with no explanation yet. A0 requires per-grade reconciliation against the
+   manifests; not yet done.
+2. **Visual audit for ddr, idrid and messidor2.** Not yet seen. DDR and IDRiD carry the
+   lesion masks M2 trains on in Phase 4, so their crops matter as much as EyePACS's.
 
 ## Stage B — Grading pathway (selection; validation only)
 
