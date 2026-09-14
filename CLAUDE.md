@@ -57,11 +57,12 @@ on a synthetic fixture (val QWK 0 -> 1.0, all five per-class recalls 1.00), plus
 resume, the architecture guard and cache repathing. `python -m unittest discover -s
 tests` covers the load-bearing properties.
 
-**B1 is 2 of 3 run.** 512: QWK 0.679, grade-1 F1 0.142. 768: QWK 0.704, grade-1 F1
-0.161 — better on everything that moved, at 1.9x the compute, and the gain is entirely
-in grade-1 *precision* (recall is identical at 0.271). Phase 6 would cost ~21 GPU-h at
-512 and ~40 GPU-h at 768, against a ~20 h budget and a 30 h/week quota. **384 is still
-needed** to tell a real trend from a plateau. See `docs/04_experiment_register.md`.
+**B1 is DONE — 512 px chosen.** Grade-1 F1 across 384/512/768 is 0.151 / 0.142 /
+0.161: non-monotone, worst in the middle, spread 0.019 on one seed each. That is noise,
+not a resolution trend. 768 also *upsamples* the 512 px cache, so it cannot be seeing
+lesions that downsampling destroyed, and it would put Phase 6 at ~40 GPU-h against a
+~20 h budget. 512 is the cache's native size, the fastest measured, and neither
+discards nor invents pixels. Next: **B2** (backbone) at 512.
 
 ### One thing to carry into Phase 3
 

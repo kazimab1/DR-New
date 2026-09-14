@@ -18,7 +18,7 @@ skeleton of the results chapter.
 
 | ID | Question | Varies | Decided by | Status | Result |
 |---|---|---|---|---|---|
-| B1 | What resolution is needed? | 384 / 512 / 768 px | Val QWK **and grade-1 F1** | **1 of 3 run** | 512: QWK 0.679, g1-F1 0.142 |
+| B1 | What resolution is needed? | 384 / 512 / 768 px | Val QWK **and grade-1 F1** | **DONE** | **512 px** — no trend above noise; 768 upsamples |
 | B2 | Which encoder? | EfficientNet-B0 / ResNet50 | Val QWK per GPU-hour | TODO | |
 | B3 | Which head? | CE / ordinal / focal-ordinal | Val QWK + MAE | TODO | |
 | B4 | Which sampler? | Natural / stratified exposure / class-balanced | Val QWK at natural prevalence | TODO | |
@@ -36,48 +36,50 @@ skeleton of the results chapter.
 > when it is 1 the run has collapsed and decides nothing. `03_grading_sweeps.ipynb`
 > applies both rules and prints the verdict.
 
-### B1 — resolution (in progress)
+### B1 — resolution — **DECIDED: 512 px**
 
 Validation only, `eyepacs_balanced_1000`, EfficientNet-B0, focal-ordinal head,
-stratified exposure, no fusion, seed 42.
+stratified exposure, no fusion, seed 42, 10 epochs.
 
-| Resolution | QWK | macro-F1 | **grade-1 F1** | g1 recall | g1 precision | distinct preds | MAE | GPU-min |
-|---|---|---|---|---|---|---|---|---|
-| 384 | *not run* | | | | | | | |
-| **512** | 0.679 | 0.459 | **0.142** | 0.271 | 0.096 | 5 / 5 | 0.415 | 18.1 |
-| **768** | 0.704 | 0.459 | **0.161** | 0.271 | 0.115 | 5 / 5 | 0.395 | 34.3 |
+| Resolution | QWK | macro-F1 | **grade-1 F1** | g1 recall | g1 precision | distinct preds | MAE | GPU-min | img/s |
+|---|---|---|---|---|---|---|---|---|---|
+| 384 | 0.676 | 0.445 | 0.151 | 0.293 | 0.102 | 5 / 5 | 0.418 | 19.4 | 43.0 |
+| **512** | 0.679 | 0.459 | 0.142 | 0.271 | 0.096 | 5 / 5 | 0.415 | 18.1 | 46.0 |
+| 768 | 0.704 | 0.459 | **0.161** | 0.271 | 0.115 | 5 / 5 | 0.395 | 34.3 | 24.3 |
 
-Nothing is collapsed at either resolution — all five grades are predicted — so both
-runs are readable. 768 is better on every metric that moved: QWK +0.025, grade-1 F1
-+0.019, MAE −0.020. macro-F1 is unchanged (0.4590 vs 0.4591).
+No run collapsed — all five grades predicted at every resolution — so all three are
+readable.
 
-**The improvement is entirely in precision.** Grade-1 recall is identical to three
-decimal places at both resolutions (0.271); precision rises 0.096 → 0.115. More pixels
-are not helping the model *find* more microaneurysms — they are helping it stop calling
-non-MAs grade 1. That is worth noting, because the stated motivation for high
-resolution was that an MA is 10–20 px and vanishes under downsampling. On this evidence
-that mechanism is not what is improving.
+**Grade-1 F1 is not monotone in resolution: 0.151 → 0.142 → 0.161.** The worst point
+is 512, in the middle. If resolution drove microaneurysm detection the ordering would
+be monotone; it is not, and the entire spread is 0.019. On one seed per point that is
+noise, not a trend. Grade-1 recall tells the same story: 0.293 at 384, then 0.271 at
+both 512 and 768 — the *lowest* resolution has the best recall.
 
-**Cost.** Measured throughput is 46.0 img/s at 512 and 24.3 img/s at 768. Projecting
-Phase 6 (frozen recipe × 3 seeds × 2 variants = 6 runs on `eyepacs_full`, ~57.7k train
-rows, 10 epochs):
+**768 upsamples.** The cache is 512 px (`build_cache.py --size`, default 512) and the
+transform is `Resize((image_size, image_size))`, so the 768 run interpolates 512 px
+data up to 768. It adds no information. Whatever produced its +0.025 QWK, it cannot be
+"seeing microaneurysms that downsampling destroyed" — there are no extra pixels to see.
+This is consistent with its recall being unchanged and only its precision improving.
 
-| Resolution | One Phase 6 run | Phase 6 total | vs ~20 GPU-h budget |
-|---|---|---|---|
-| 512 | 3.5 h | **20.9 h** | at budget |
-| 768 | 6.6 h | **39.6 h** | 2× over, and over a full 30 GPU-h/week quota |
+**384 is not cheaper.** 43.0 img/s against 46.0 at 512. Below 512 the job is bound by
+JPEG-decoding the 512 px cache files, not by the GPU, so shrinking the target costs
+decode work anyway and saves nothing.
 
-Both B2–B5 and Phase 6 inherit whichever resolution is chosen, so 768 roughly doubles
-the cost of everything downstream.
+**Decision: 512 px.** It is the cache's native resolution, so it is the only setting
+that neither discards real pixels nor invents fake ones; it is the fastest measured;
+and the evidence for 768 does not survive the non-monotonicity. 768 would also roughly
+double everything downstream — Phase 6 projects to 39.6 GPU-h at 768 against 20.9 h at
+512, over both the ~20 h budget and the 30 h/week quota — for a gain on grading
+accuracy, which is explicitly not this thesis's contribution.
 
-**Single seed per point.** ΔQWK 0.025 and Δgrade-1 F1 0.019 are not separable from
-seed noise on one run each. Nothing here justifies 2× the compute for the rest of the
-project on grading accuracy, which is explicitly *not* this thesis's contribution.
-
-**Status: 384 still needed.** It is the cheap end (~10 GPU-min) and it is what
-distinguishes a real resolution trend from a plateau. If 384 ≈ 512, the 768 gain is
-likely noise and 512 is the choice. If 384 is clearly worse, resolution is binding and
-768 has to be argued for against the budget.
+> **Limitation to state in the thesis.** B1 as specified sweeps 384/512/768, but every
+> run reads the same 512 px cache, so the sweep cannot test the claim that motivated
+> it — that an MA is 10–20 px at native resolution and vanishes under downsampling.
+> Testing that honestly needs a cache rebuilt at 768 from the originals (another full
+> Phase 1 pass, ~2.25× the storage). Not done; the grading pathway is a component here,
+> not the contribution. Report B1 as choosing an operating point under a fixed 512 px
+> cache, not as a resolution-sensitivity study.
 
 > **B7 protocol.** Needs external data. Legitimate only because the pre-registration
 > declares in advance that exactly these two variants get evaluated in the single
