@@ -16,6 +16,7 @@ which number. A notebook should pull the repo, call a script, and show the outpu
 | `01b_idrid_masks.ipynb` | 1 | **No** | **Ready** — IDRiD Part A masks top-up, publishes a separate dataset |
 | `02_manifests.ipynb` | 2 | No | **Ready** — manifests, patient-grouped splits, variants |
 | `03_grading_sweeps.ipynb` | 3 | Yes | **Ready** — B1–B5 sweep, smoke test, B1 verdict |
+| `03b_stage_b_batch.ipynb` | 3 | Yes | **Ready** — runs B4 and B5 back to back, one session |
 | `04_evidence.ipynb` | 4 | Yes | Blocked on `train_evidence.py`, `train_geometry.py` + M2 |
 | `05_final_training.ipynb` | 6 | Yes | Blocked on the above |
 | `06_unblinding.ipynb` | 6 | Yes | Blocked on `evaluate.py` + checkpoints |
