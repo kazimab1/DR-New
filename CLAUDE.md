@@ -57,12 +57,19 @@ on a synthetic fixture (val QWK 0 -> 1.0, all five per-class recalls 1.00), plus
 resume, the architecture guard and cache repathing. `python -m unittest discover -s
 tests` covers the load-bearing properties.
 
-**B1 is DONE — 512 px chosen.** Grade-1 F1 across 384/512/768 is 0.151 / 0.142 /
-0.161: non-monotone, worst in the middle, spread 0.019 on one seed each. That is noise,
-not a resolution trend. 768 also *upsamples* the 512 px cache, so it cannot be seeing
-lesions that downsampling destroyed, and it would put Phase 6 at ~40 GPU-h against a
-~20 h budget. 512 is the cache's native size, the fastest measured, and neither
-discards nor invents pixels. Next: **B2** (backbone) at 512.
+**B1 DONE — 512 px.** Grade-1 F1 across 384/512/768 is 0.151 / 0.142 / 0.161:
+non-monotone, spread 0.019 on one seed each. Noise, not a trend. 768 also *upsamples*
+the 512 px cache. 512 is native, fastest, and keeps Phase 6 at ~21 GPU-h.
+
+**B2 DONE — EfficientNet-B0.** QWK tied with ResNet50 (0.679 vs 0.676) at 0.70× the
+cost, and better MAE. ResNet50 does reach grade-1 F1 0.180 vs 0.142 — twice B1's whole
+noise band — but via a more liberal grade-1 operating point, not better grading. The
+loss and sampler control that, so **B3/B4 carry a recorded prediction**: if B0 reaches
+grade-1 F1 ~0.18 there, B2 is settled; if nothing moves grade 1, reopen B2 as a
+deviation.
+
+Next: **B3** (head) at 512 with B0. Two runs — `softmax_ce` and plain `ordinal`;
+`ordinal_focal` is already the B1 512 run.
 
 ### One thing to carry into Phase 3
 

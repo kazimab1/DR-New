@@ -19,7 +19,7 @@ skeleton of the results chapter.
 | ID | Question | Varies | Decided by | Status | Result |
 |---|---|---|---|---|---|
 | B1 | What resolution is needed? | 384 / 512 / 768 px | Val QWK **and grade-1 F1** | **DONE** | **512 px** — no trend above noise; 768 upsamples |
-| B2 | Which encoder? | EfficientNet-B0 / ResNet50 | Val QWK per GPU-hour | TODO | |
+| B2 | Which encoder? | EfficientNet-B0 / ResNet50 | Val QWK per GPU-hour | **DONE** | **EfficientNet-B0** — QWK tied, 0.70× the cost |
 | B3 | Which head? | CE / ordinal / focal-ordinal | Val QWK + MAE | TODO | |
 | B4 | Which sampler? | Natural / stratified exposure / class-balanced | Val QWK at natural prevalence | TODO | |
 | B5 | Does eye-pair fusion help? | Single vs left+right fusion | Val QWK, paired across seeds | TODO | |
@@ -80,6 +80,41 @@ accuracy, which is explicitly not this thesis's contribution.
 > Phase 1 pass, ~2.25× the storage). Not done; the grading pathway is a component here,
 > not the contribution. Report B1 as choosing an operating point under a fixed 512 px
 > cache, not as a resolution-sensitivity study.
+
+### B2 — encoder — **DECIDED: EfficientNet-B0**
+
+Same settings as B1 at 512 px; only the encoder varies. The B0 arm *is* the B1 512 run.
+
+| Encoder | QWK | macro-F1 | grade-1 F1 | g1 recall | g1 precision | MAE | GPU-min | img/s | Phase 6 projection |
+|---|---|---|---|---|---|---|---|---|---|
+| **EfficientNet-B0** | 0.679 | 0.459 | 0.142 | 0.271 | 0.096 | **0.415** | **18.1** | **46.0** | **20.9 h** |
+| ResNet50 | 0.676 | 0.464 | **0.180** | **0.413** | 0.115 | 0.469 | 26.0 | 32.1 | 30.0 h |
+
+**On the stated criterion this is not close.** QWK differs by −0.0024 and macro-F1 by
++0.0052 — both inside the noise band B1 established. ResNet50 delivers that tie at
+1.44× the wall-clock, so on val QWK per GPU-hour B0 wins outright.
+
+**But grade 1 is the first Stage B signal above noise.** ResNet50 reaches grade-1 F1
+0.180 against 0.142, a gap of 0.038 — *twice* the entire 0.019 spread B1 produced
+across all three resolutions — driven by recall 0.413 against 0.271 (+52%), with
+precision also up (0.115 against 0.096).
+
+**This is an operating point, not a quality level.** QWK and macro-F1 are tied and MAE
+is *worse* under ResNet50 (0.469 against 0.415): it is not grading better, it is
+predicting grade 1 more liberally. That also explains the QWK/MAE split — a more spread
+prediction distribution raises QWK's expected-agreement denominator, so QWK holds while
+raw distance error grows. What governs that distribution is the loss and the sampler,
+which are exactly what **B3** and **B4** vary, at no extra compute.
+
+> **Prediction recorded before running B3/B4.** If `class_balanced` or non-focal
+> ordinal moves B0's grade-1 F1 to ≈0.18, then B0 matches ResNet50's grade-1 behaviour
+> at 0.70× the cost and B2 is settled. If nothing in B3–B4 shifts grade 1, the encoder
+> is contributing something the sampler cannot, and B2 should be reopened as a recorded
+> deviation. Stating this now so the follow-up is a test rather than a rationalisation.
+
+**Decision: EfficientNet-B0.** It wins the pre-stated criterion, has the better MAE, and
+keeps Phase 6 at 20.9 GPU-h rather than 30.0 — the latter being over the ~20 h budget
+and at the ceiling of the 30 h/week quota.
 
 > **B7 protocol.** Needs external data. Legitimate only because the pre-registration
 > declares in advance that exactly these two variants get evaluated in the single
