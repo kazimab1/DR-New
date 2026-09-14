@@ -11,8 +11,15 @@ skeleton of the results chapter.
 
 | ID | Question | Varies | Decided by | Status | Result |
 |---|---|---|---|---|---|
-| A0 | Did the 512 px cache preserve the data? | — | Counts reconcile per grade; crop failures < 0.5%; 100-crop visual audit | TODO | |
-| A1 | Does the pipeline run end to end? | — | Smoke test completes; 1-epoch pilot gives non-trivial QWK | TODO | |
+| A0 | Did the 512 px cache preserve the data? | — | Counts reconcile per grade; crop failures < 0.5%; 100-crop visual audit | **OPEN — evidence not recorded** | |
+| A1 | Does the pipeline run end to end? | — | Smoke test completes; 1-epoch pilot gives non-trivial QWK | **DONE** | Smoke test passes; B1 512 reached val QWK 0.679 |
+
+> **A0 is the one unclosed item behind every Stage B number.** The evidence exists —
+> `cache_report.json` in each dataset directory of `verify-dr-cache-512` carries the
+> per-dataset counts and crop-fallback rate, and `contact_sheet.jpg` is the 100-crop
+> visual audit — but none of it has been read into this register. Until it is, nobody
+> has checked that the crop preserved the retinal field, and every result downstream
+> rests on that. It blocks nothing today; it must be closed before the Phase 5 freeze.
 
 ## Stage B — Grading pathway (selection; validation only)
 
