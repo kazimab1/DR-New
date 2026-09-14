@@ -68,8 +68,22 @@ loss and sampler control that, so **B3/B4 carry a recorded prediction**: if B0 r
 grade-1 F1 ~0.18 there, B2 is settled; if nothing moves grade 1, reopen B2 as a
 deviation.
 
-Next: **B3** (head) at 512 with B0. Two runs — `softmax_ce` and plain `ordinal`;
-`ordinal_focal` is already the B1 512 run.
+**B3 DONE — focal-ordinal.** First Stage B lever that matters: QWK spans 0.053 across
+heads, nearly 2x B1's whole resolution spread. `softmax_ce` ruled out (QWK 0.053 below
+`ordinal`, 1.9x the noise floor, and it discards the CORAL structure Phase 7 needs).
+`ordinal` vs `ordinal_focal` isolates gamma exactly: focal costs 0.021 QWK (0.8x floor,
+inside noise) and buys +83% grade-1 recall and +0.061 macro-F1 (5.6x and 4.2x their
+floors). **Focal weighting demonstrably does its stated job — a reportable finding.**
+
+**Noise floors are per-metric**, from B1's observed spread: QWK 0.0276, macro-F1 0.0144,
+grade-1 F1 0.0190, grade-1 recall 0.0220, MAE 0.0230. The earlier "+-0.02 QWK" was a
+conversational round number; use these.
+
+**B2's prediction is still open** — no head reached ResNet50's grade-1 F1 of 0.180.
+B4's `class_balanced` is the remaining test.
+
+Next: **B4** (sampler), 2 runs at 512 / B0 / `ordinal_focal` — `natural` and
+`class_balanced`; `stratified_exposure` is the B1 512 run.
 
 ### One thing to carry into Phase 3
 

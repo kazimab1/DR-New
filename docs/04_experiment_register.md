@@ -27,7 +27,7 @@ skeleton of the results chapter.
 |---|---|---|---|---|---|
 | B1 | What resolution is needed? | 384 / 512 / 768 px | Val QWK **and grade-1 F1** | **DONE** | **512 px** — no trend above noise; 768 upsamples |
 | B2 | Which encoder? | EfficientNet-B0 / ResNet50 | Val QWK per GPU-hour | **DONE** | **EfficientNet-B0** — QWK tied, 0.70× the cost |
-| B3 | Which head? | CE / ordinal / focal-ordinal | Val QWK + MAE | TODO | |
+| B3 | Which head? | CE / ordinal / focal-ordinal | Val QWK + MAE | **DONE** | **focal-ordinal** — focal earns its place; CE ruled out |
 | B4 | Which sampler? | Natural / stratified exposure / class-balanced | Val QWK at natural prevalence | TODO | |
 | B5 | Does eye-pair fusion help? | Single vs left+right fusion | Val QWK, paired across seeds | TODO | |
 | B6 | Does balancing the dataset help? *(ablation)* | `eyepacs_full` vs `eyepacs_balanced_1000` | QWK on natural-prevalence test | TODO | |
@@ -122,6 +122,63 @@ which are exactly what **B3** and **B4** vary, at no extra compute.
 **Decision: EfficientNet-B0.** It wins the pre-stated criterion, has the better MAE, and
 keeps Phase 6 at 20.9 GPU-h rather than 30.0 — the latter being over the ~20 h budget
 and at the ceiling of the 30 h/week quota.
+
+### B3 — output head — **DECIDED: focal-ordinal**
+
+512 px, EfficientNet-B0, stratified exposure, no fusion. `ordinal_focal` is the B1 512 run.
+
+| Head | QWK | macro-F1 | grade-1 F1 | g1 recall | g1 precision | MAE | GPU-min |
+|---|---|---|---|---|---|---|---|
+| `softmax_ce` | 0.647 | **0.488** | **0.159** | 0.182 | **0.141** | 0.416 | 18.9 |
+| `ordinal` (γ=0) | **0.700** | 0.398 | 0.122 | 0.148 | 0.104 | **0.389** | 16.3 |
+| **`ordinal_focal` (γ=2)** | 0.679 | 0.459 | 0.142 | **0.271** | 0.096 | 0.415 | 18.1 |
+
+**This is the first Stage B experiment where the choice actually matters.** QWK spans
+0.053 across the three heads — nearly twice the 0.028 that B1 produced across every
+resolution. The head is a real lever; resolution and encoder were not.
+
+**A correction to how the noise band has been quoted.** "±0.02 QWK" was a round number
+used conversationally. B1's actual spread, which we judged non-separable from seed
+noise on one seed per point, gives an empirical floor *per metric*: QWK 0.0276,
+macro-F1 0.0144, grade-1 F1 0.0190, grade-1 recall 0.0220, MAE 0.0230. Effects are
+judged against the floor for their own metric from here on.
+
+**`softmax_ce` is ruled out on the stated criterion.** Its QWK deficit against
+`ordinal` is 0.053 — 1.9× the QWK floor, so a real effect, not noise. It has the best
+macro-F1 and the best grade-1 F1, but dropping the ordinal head to get them also
+discards the CORAL monotonicity guarantee that Phase 7 calibration and the rDR/VTDR
+heads are built on. Not worth it.
+
+**`ordinal` versus `ordinal_focal` isolates focal weighting exactly** — same head, same
+architecture, only γ differs. Measured against each metric's own floor:
+
+| Metric | focal − ordinal | B1 floor | × floor | Favours |
+|---|---|---|---|---|
+| QWK | −0.0211 | 0.0276 | 0.8× | ordinal — **inside noise** |
+| MAE | +0.0260 | 0.0230 | 1.1× | ordinal — marginal |
+| grade-1 F1 | +0.0200 | 0.0190 | 1.1× | focal — marginal |
+| macro-F1 | **+0.0611** | 0.0144 | **4.2×** | focal — decisive |
+| grade-1 recall | **+0.1230** | 0.0220 | **5.6×** | focal — decisive |
+
+The stated criterion (QWK + MAE) mildly favours plain `ordinal`, but by margins of
+0.8× and 1.1× their floors — it does not separate the two. The rare-class metrics
+favour focal at 4.2× and 5.6×. On weight of evidence focal wins, and the criterion is
+applied rather than overridden: it simply fails to discriminate here.
+
+> **Reportable finding: focal weighting does its stated job.** `docs/03_model_architecture.md`
+> justifies γ=2 as handling EyePACS's ~36:1 imbalance without discarding data. Turning it
+> off costs **83% of grade-1 recall** (0.271 → 0.148) and 0.061 macro-F1, for a QWK change
+> inside the noise floor. That is a clean, isolated confirmation of a design choice, and it
+> belongs in the write-up.
+
+**Decision: `ordinal_focal`.** No new baseline is needed — the B1 512 run remains the
+reference configuration for B4 and B5.
+
+**B2's recorded prediction is still open.** Neither head reached ResNet50's grade-1 F1
+of 0.180: plain `ordinal` moved it *down* to 0.122, and `softmax_ce` reached 0.159 only
+by trading 0.053 QWK — and by a different mechanism (precision 0.141 / recall 0.182,
+against ResNet50's precision 0.115 / recall 0.413). B4's `class_balanced` is the
+remaining test.
 
 > **B7 protocol.** Needs external data. Legitimate only because the pre-registration
 > declares in advance that exactly these two variants get evaluated in the single
