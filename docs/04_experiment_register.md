@@ -93,13 +93,39 @@ uncropped originals and is simply the wrong test for `tantai31124/eyepacs-origin
 the APTOS mirror. `diagnose_cache.py` now says so rather than reporting a flat FAIL. The
 rate is kept as recorded evidence, not as a pass/fail gate.
 
+### Visual audit — 4 of 5 datasets, 260 crops, all pass
+
+| Dataset | crops | retinal width / frame (median) | below 0.75 | lit fraction | verdict |
+|---|---|---|---|---|---|
+| EyePACS | 100 | 1.000 | 0 | 0.741 | pass |
+| APTOS | 60 | 1.000 | 0 | 0.702 | pass |
+| DDR | 60 | 1.000 | 0 | 0.788 | pass |
+| IDRiD | 40 | 1.000 | 0 | 0.730 | pass |
+| Messidor-2 | — | — | — | — | **not yet audited** |
+
+Lit fraction against π/4 = 0.785 for a disc inscribed in a square: DDR lands on it
+almost exactly, and the others fall slightly under because of the flat top-and-bottom
+truncation fundus cameras produce. Optic disc and macula are visible in nearly every
+crop, vessels resolve to fine branches, and lesions are legible — hard exudates as
+bright yellow clusters, haemorrhages as dark blots — which is what matters for the
+Phase 4 masks. IDRiD is notably uniform, as expected from a single-camera single-site
+collection.
+
+**One anomaly, recorded and not worth fixing.** DDR row 6 column 8 has dark corners
+(median 4) but pure white sides (median 255): that source image carries a white
+background, so `retinal_bbox` reads the surround as lit and returns the full frame,
+then `fit_square` pads top and bottom with black. One image in 260. It also marks a
+limit of the width measure used above — it measures the *lit* region, which equals the
+retina only when the surround is dark, so on that one tile it over-reports. Every other
+tile in all four sheets has a dark surround (corner median ≤ 20), where the measure is
+exact.
+
 **Still open under A0, before the Phase 5 freeze:**
 
 1. **Counts.** 88 009 EyePACS images found against the official 88 702 — a shortfall of
    **693** with no explanation yet. A0 requires per-grade reconciliation against the
-   manifests; not yet done.
-2. **Visual audit for ddr, idrid and messidor2.** Not yet seen. DDR and IDRiD carry the
-   lesion masks M2 trains on in Phase 4, so their crops matter as much as EyePACS's.
+   manifests; not yet done. This is now the only substantive gap.
+2. **Messidor-2 visual audit.** The remaining locked external.
 
 ## Stage B — Grading pathway (selection; validation only)
 

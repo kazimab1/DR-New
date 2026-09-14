@@ -96,8 +96,14 @@ fills the full 512 px and no Stage B result was measured on under-resolved image
 The 0.005 threshold assumes raw uncropped originals and is the wrong test for these
 mirrors; `diagnose_cache.py` now reports the rate as evidence rather than a flat FAIL.
 
+Visual audit now covers **4 of 5 datasets, 260 crops**: EyePACS, APTOS, DDR and IDRiD
+all show retinal width/frame median **1.000** with zero tiles below 0.75, and lit
+fractions of 0.70-0.79 against pi/4 = 0.785 for an inscribed disc. Lesions are legible,
+which is what Phase 4's masks need. One DDR source image has a white background
+(dark corners, white sides) -- 1 in 260, recorded, not worth fixing.
+
 **Still open before the freeze:** the 693-image shortfall (88 009 found vs the official
-88 702) and the visual audit for ddr, idrid and messidor2.
+88 702), and the Messidor-2 visual audit.
 
 ### One thing to carry into Phase 3
 
