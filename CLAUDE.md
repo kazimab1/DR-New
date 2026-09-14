@@ -85,6 +85,18 @@ B4's `class_balanced` is the remaining test.
 Next: **B4** (sampler), 2 runs at 512 / B0 / `ordinal_focal` — `natural` and
 `class_balanced`; `stratified_exposure` is the B1 512 run.
 
+### OPEN: A0 crop gate fails for EyePACS
+
+`cache_report.json` reports **crop fallback_rate 0.99919** against a 0.005 gate — the
+retinal crop "succeeded" on 71 of 88 009 images. Either the source mirror is already
+cropped (benign, and `build_cache.py` documents that case as the right answer) or the
+crop is failing on raw wide originals, in which case `fit: pad` leaves the retina at an
+effective ~340 px inside each 512 px frame and every Stage B number is measured on
+under-resolved images. Evidence leans benign; **`contact_sheet.jpg` decides it.** Also
+unreconciled: 88 009 images found against the official 88 702.
+
+Do not pass the Phase 5 freeze with this open. See `docs/04_experiment_register.md`.
+
 ### One thing to carry into Phase 3
 
 B1 is decided on **grade-1 F1**, not QWK and not grade-1 recall. Both of the obvious

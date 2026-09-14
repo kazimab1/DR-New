@@ -14,12 +14,57 @@ skeleton of the results chapter.
 | A0 | Did the 512 px cache preserve the data? | — | Counts reconcile per grade; crop failures < 0.5%; 100-crop visual audit | **OPEN — evidence not recorded** | |
 | A1 | Does the pipeline run end to end? | — | Smoke test completes; 1-epoch pilot gives non-trivial QWK | **DONE** | Smoke test passes; B1 512 reached val QWK 0.679 |
 
-> **A0 is the one unclosed item behind every Stage B number.** The evidence exists —
-> `cache_report.json` in each dataset directory of `verify-dr-cache-512` carries the
-> per-dataset counts and crop-fallback rate, and `contact_sheet.jpg` is the 100-crop
-> visual audit — but none of it has been read into this register. Until it is, nobody
-> has checked that the crop preserved the retinal field, and every result downstream
-> rests on that. It blocks nothing today; it must be closed before the Phase 5 freeze.
+### A0 — EyePACS crop gate **FAILS as written**. Cause not yet established.
+
+`verify-dr-cache-512/cache512/eyepacs/cache_report.json`, read 14 Sep 2026:
+
+| Field | Value |
+|---|---|
+| source_root | `/kaggle/input/datasets/tantai31124/eyepacs-original` |
+| params | size 512, fit **pad**, quality 90, CLAHE on (clip 2.0, 8 tiles) |
+| counts | found 88 009 · done 87 809 · skipped 200 · **failed 0** |
+| runs / interrupted | 2 / false |
+| crop detected | **71** |
+| crop fell back to full frame | **87 938** of 88 009 measured |
+| **crop fallback_rate** | **0.99919** — gate is **0.005** |
+| output | 4287.7 MiB, mean 51 086 B/image |
+
+The retinal-field crop reported success on 71 images out of 88 009. **On the gate as
+written, A0 fails for EyePACS by a factor of 200.**
+
+**Two readings, opposite consequences, and the number alone cannot separate them.**
+
+1. *Benign.* The mirror ships images already cropped to the retinal field, so there is
+   nothing left to crop and `retinal_bbox` says so correctly. `build_cache.py` documents
+   exactly this: corner patches "in an already cropped one … are retina, which drives
+   the threshold high, collapses the mask, and trips the area guard below — **the right
+   answer there**". The fallback is also returned when the detected box is within 2% of
+   the full frame, which is precisely what an already-cropped image produces. Under this
+   reading the cache is sound and the 0.005 gate is simply the wrong test for this
+   source.
+2. *Serious.* The crop is failing on raw, uncropped originals. EyePACS originals are
+   typically wide (≈3888×2592) with the fundus centred between black bars. With
+   `fit: pad`, a failed crop pads that wide frame to square and resizes to 512 — leaving
+   the retina occupying roughly two-thirds of the width, an **effective retinal
+   resolution nearer 340 px than 512**. Every Stage B number would then have been
+   measured on under-resolved images, and B1's "resolution does not matter" finding would
+   have been measured over a range where the retina never filled the frame.
+
+**The evidence leans to reading 1.** If the corners held black surround, the threshold
+would sit at ~10–15/255, the fundus would light up cleanly, and the box would come back
+far smaller than the frame — detection, not fallback. Getting the opposite on 99.9% of
+images implies the corners are *not* dark, which is what a pre-cropped image looks like.
+Mean output size of 51 KB per 512² JPEG at q90 also reads as mostly-retina rather than
+a third flat black. **None of this is proof.** `contact_sheet.jpg` settles it in one
+look, which is exactly why A0 requires a visual audit and not just a rate.
+
+**Also unreconciled:** the mirror reports 88 009 images found, against the 88 702 of the
+official EyePACS release — a shortfall of 693. A0 requires counts to reconcile per
+grade; that has not been done, and this gap needs an explanation before the freeze.
+
+**Status: open, and it is the highest-priority open item in the project.** It cannot be
+carried past the Phase 5 freeze, and if reading 2 turns out to hold, Phase 1 and all of
+Stage B have to be re-run.
 
 ## Stage B — Grading pathway (selection; validation only)
 
