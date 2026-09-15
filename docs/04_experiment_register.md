@@ -447,14 +447,84 @@ reasoning is auditable rather than assumed.
 
 | ID | Question | Varies | Decided by | Status | Result |
 |---|---|---|---|---|---|
-| C1 | Can we locate disc and fovea well enough? | — | Euclidean error on IDRiD test, in disc diameters (**target < 0.5 DD**) | TODO | |
-| C2 | How well do the 4 lesion channels segment? | DDR-seg / +IDRiD / +augmentation | Per-lesion Dice, IoU | TODO | |
-| C3 | Does the segmenter transfer? | DDR→IDRiD and reverse | Dice drop across domains | TODO | |
-| C4 | How informative is evidence alone? | Reasoner over predicted lesions, no grader | QWK of evidence-grade vs label | TODO | |
+| C1 | Can we locate disc and fovea well enough? | — | Euclidean error on IDRiD test, in disc diameters (**target < 0.5 DD**), against the constant-predictor baseline | CODE READY | |
+| C2 | How well do the 4 lesion channels segment? | DDR-seg / +IDRiD / +augmentation | Per-lesion Dice, IoU, **over images where the lesion is annotated** | CODE READY | |
+| C3 | Does the segmenter transfer? | DDR→IDRiD and reverse | Dice drop across domains | CODE READY | |
+| C4 | How informative is evidence alone? | Reasoner over predicted lesions, no grader | QWK of evidence-grade vs label | BLOCKED — needs M3 | |
 
 > **C4 is load-bearing.** The evidence path must be *informative but weaker* than the
 > grader. As good ⇒ the grader is redundant. Noise ⇒ disagreement means nothing.
 > Report it honestly either way — the thesis needs it interpretable, not good.
+>
+> It is **not in `notebooks/04_phase4.ipynb`**, because it runs the reasoner and
+> Phase 4 does not build one. It belongs with M3.
+
+### What the code does, and why
+
+**Read C2's Dice over images where the lesion is annotated**, which is the figure
+`dice_present` reports and the notebook prints. Most fundus images carry no soft
+exudates, so averaging over every image folds in a long run of empty-target /
+empty-prediction pairs scoring 1.0 by convention — a headline that rises without the
+model having segmented anything. `dice_all` sits beside it so the gap is visible
+rather than assumed.
+
+**Two failure modes are instrumented rather than trusted:**
+
+- `false_positive_images` — images with no such lesion where the model predicted one.
+  Over-segmentation is the failure that matters here: a model that finds lesions
+  everywhere agrees with every grade, and disagreement carries no information.
+- `mean_pred_px` beside `mean_truth_px` — a plausible Dice with predicted area an
+  order of magnitude off means the overlap is coincidental.
+
+**C1's baseline is as important as its gate.** Fundus framing is stereotyped, so a
+constant predictor scores better than intuition suggests. A model that barely beats it
+has learned the average layout, not this image's landmarks, and the gate would then be
+passing for the wrong reason. `train_geometry.py` reports the margin; the notebook
+warns when it is ≤ 0.
+
+**C1 and C2 are independent.** `docs/03_model_architecture.md` has M2a and M2b sharing
+an encoder, so C2 loads C1's via `--encoder-from` when a checkpoint exists. Their
+supervision is disjoint, so they are fitted in sequence rather than jointly. When C1 is
+blocked, C2 starts from ImageNet weights — **a deviation to record, not a blocker.**
+
+### C1 was blocked on first run — cause found and fixed
+
+The first C1 attempt had **no training targets**, and every run before it still
+reported success. Two independent faults:
+
+1. **Phase 1 cached the wrong IDRiD part.** IDRiD ships Part A (81 images with lesion
+   masks, `IDRiD_01`–`81`) and Part B (516 graded images, `IDRiD_001`–`516`) as
+   *different image sets*; the Part C centre tables cover Part B. `IDRiD_01` is not
+   `IDRiD_001`, so a Part A-only cache joins to neither.
+2. **`02_manifests.ipynb` resolved `--coords-source-dir` by path keyword**, requiring
+   `"segmentation"` in it — which pins it to Part A. Every coordinate row missed,
+   `project_coords` returned nothing, and the notebook's `--no-grades` fallback then
+   wrote a perfectly valid manifest with an empty geometry column.
+
+Fixes, all verified against a fixture reproducing the real directory layout:
+
+| Where | Change |
+|---|---|
+| `notebooks/01c_idrid_grading.ipynb` | new — caches Part B beside Part A's masks, carrying the existing cache forward so republishing cannot delete the masks. Gates on *images named by the Part C tables*, the number that decides whether C1 can run. |
+| `notebooks/02_manifests.ipynb` | resolves the coordinate source by **matching the tables' own IDs**, scoring each candidate directory and its parent (Part B splits Training/Testing into siblings). Prints the match counts. |
+| `scripts/prepare_manifest.py` | `--coords` given but nothing projected is now **exit 1 with no manifest written**, naming the Part A/Part B confusion and the fix. |
+
+On the fixture the old discovery resolved **0 of 50** coordinate rows and the new one
+**50 of 50**; `prepare_manifest.py` then reported `coordinates projected for 50 images`
+and C1 trained end to end. The fixture's coordinates are random, so C1 correctly
+*fails* its gate there at 3.726 DD and beats the constant baseline by only +0.059 DD —
+which is the "learned the average layout" case the baseline exists to expose.
+
+> **The general lesson, worth a line in the thesis' methods.** Every one of these
+> silent failures had the same shape: a pipeline stage that could not do its job still
+> produced a well-formed artefact. The countermeasure that keeps working is to gate on
+> *the quantity the next stage actually consumes* — images carrying coordinates, not
+> images cached — and to make a zero there fatal rather than merely printed.
+
+**Verified end to end** on a synthetic fixture (75 images, MA 67 / HE 51 / EX 43 /
+SE 14, SE deliberately sparse): mean Dice 0.24 → 0.68 over 12 epochs, rising on every
+channel with enough images to support a figure. That establishes the code trains — it
+says nothing about real lesions, and the fixture's numbers must never reach the thesis.
 
 ## Stage D — Calibration (H2)
 

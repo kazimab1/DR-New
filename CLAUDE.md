@@ -49,6 +49,8 @@ for QWK at the expense of the disagreement signal.
 
 Phases 1-2 have been run on Kaggle. `verify-dr-cache-512` is published, its IDRiD
 masks topped up via `01b_idrid_masks.ipynb`, and the Phase 2 manifests are built.
+IDRiD needs one more top-up — `01c_idrid_grading.ipynb`, Part B — before C1 can run;
+see Phase 4 below.
 
 Phase 3 code is complete and tested: `src/verify_dr/models/{grading,losses}.py`,
 `src/verify_dr/data/dataset.py`, `src/verify_dr/evaluation/metrics.py`,
@@ -82,8 +84,33 @@ conversational round number; use these.
 **B2's prediction is still open** — no head reached ResNet50's grade-1 F1 of 0.180.
 B4's `class_balanced` is the remaining test.
 
-Next: **B4** (sampler), 2 runs at 512 / B0 / `ordinal_focal` — `natural` and
-`class_balanced`; `stratified_exposure` is the B1 512 run.
+Stage B is closed: the designed default recipe survived every ablation.
+
+## Phase 4 — Stage C (code complete, C1 unblocked)
+
+`src/verify_dr/{models/evidence.py,models/seg_losses.py,data/segmentation.py,
+data/geometry.py,evaluation/{geometry_metrics,segmentation_metrics}.py}`,
+`scripts/{train_geometry,train_evidence}.py`, `notebooks/04_phase4.ipynb`.
+56 tests pass, including the static AST test that M2 never imports `grading.py`
+(rule 4). C2 verified end to end on a synthetic fixture: mean Dice 0.24 -> 0.68.
+
+**C1 was blocked, and the cause was ours.** IDRiD Part A (`IDRiD_01`-`81`, masks) and
+Part B (`IDRiD_001`-`516`, grades + Part C centres) are *different image sets*. The
+cache held Part A only, and `02_manifests.ipynb` resolved `--coords-source-dir` by
+looking for `"segmentation"` in the path — pinning it to Part A. Every coordinate row
+missed, and the `--no-grades` fallback then wrote a valid manifest with an empty
+geometry column, so nothing looked wrong. Fixed three ways: `01c_idrid_grading.ipynb`
+caches Part B, Phase 2 resolves the directory by matching the tables' own IDs, and
+`prepare_manifest.py` exits 1 rather than writing a manifest when `--coords` projects
+nothing. Verified on a fixture: 0/50 rows before, 50/50 after, C1 then trains.
+
+**C4 is not in the Phase 4 notebook** — it needs M3, which Phase 4 does not build.
+
+**Read C2's Dice as `dice_present`**, over images where the lesion is annotated.
+Averaging over every image folds in empty-target/empty-prediction pairs scoring 1.0 by
+convention and inflates the headline without anything having been segmented.
+
+Next: run `01c` -> re-run `02` -> re-run `04`.
 
 ### A0 — CLOSED: pass, with two recorded limitations
 

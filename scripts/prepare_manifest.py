@@ -378,6 +378,27 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         ).items():
             coords.setdefault(stem, {}).update(values)
 
+    # Asking for coordinates and projecting none is a failure, not a quiet zero.
+    # It is how C1 came to have no training targets while every run still looked
+    # successful: IDRiD Part A (IDRiD_01-81, the mask set) and Part B (IDRiD_001-516,
+    # the graded set the Part C centres cover) are different images, so a
+    # --coords-source-dir pointing at the wrong part matches nothing at all.
+    if args.coords and not coords:
+        print("\nerror: --coords was given but no coordinate row matched an image in "
+              f"{args.coords_source_dir}.", file=sys.stderr)
+        print("  IDRiD ships two image sets, and their names look alike:",
+              file=sys.stderr)
+        print("    Part A  IDRiD_01-81    .../A. Segmentation/1. Original Images/",
+              file=sys.stderr)
+        print("    Part B  IDRiD_001-516  .../B. Disease Grading/1. Original Images/",
+              file=sys.stderr)
+        print("  The Part C centre tables cover Part B. Point --coords-source-dir at "
+              "Part B's\n  originals (the parent, so Training and Testing are both "
+              "covered).", file=sys.stderr)
+        print("  Writing this manifest anyway would leave C1 with no targets, so it "
+              "is not written.", file=sys.stderr)
+        return 1
+
     # ---- assemble -----------------------------------------------------------
     records, quality, dropped, fallback = [], [], [], 0
     seen = set()
