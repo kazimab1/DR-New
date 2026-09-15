@@ -58,7 +58,7 @@ def lr_lambda(epoch: int, warmup: int, total: int) -> float:
 @torch.no_grad()
 def evaluate(model, loader, criterion, device, amp: bool, image_size: int) -> Dict[str, object]:
     model.eval()
-    preds, truths, losses = [], [], []
+    preds, truths, losses, indices = [], [], [], []
     for batch in loader:
         image = batch["image"].to(device, non_blocking=True)
         target = batch["target"].to(device, non_blocking=True)
@@ -67,10 +67,64 @@ def evaluate(model, loader, criterion, device, amp: bool, image_size: int) -> Di
             losses.append(float(criterion(out, target).detach()))
         preds.append(out.float().cpu().numpy())
         truths.append(target.float().cpu().numpy())
+        indices.append(batch["index"].cpu().numpy())
 
     metrics = geometry_metrics(np.concatenate(preds), np.concatenate(truths), image_size)
     metrics["loss"] = float(np.mean(losses))
+    # Kept for the per-image dump. C1's mean error is dominated by a heavy tail
+    # -- the OD mean ran 2.3x its median on the first real run -- and an
+    # aggregate cannot say whether that is many images slightly off or a few
+    # catastrophically wrong. Those need different fixes, so record which.
+    metrics["_preds"] = np.concatenate(preds)
+    metrics["_truths"] = np.concatenate(truths)
+    metrics["_indices"] = np.concatenate(indices)
     return metrics
+
+
+def write_val_errors(path, dataset, arrays, image_size: int, disc_px: float) -> None:
+    """Per-image errors for the best epoch, so the tail can be inspected.
+
+    C1's gate is a mean over both landmarks, and a mean says nothing about
+    whether a miss is many images slightly off or a few placed somewhere else
+    entirely. Those have different causes and different fixes, so every
+    validation image gets a row: its predicted and true coordinates in pixels,
+    its error per landmark, and that error in disc diameters.
+    """
+    import csv
+
+    preds, truths = arrays["_preds"], arrays["_truths"]
+    indices = arrays["_indices"]
+    frame = dataset.frame
+
+    rows = []
+    for row, (pred, truth, index) in enumerate(zip(preds, truths, indices)):
+        pred_px, truth_px = pred * image_size, truth * image_size
+        od_err = float(np.hypot(*(pred_px[0:2] - truth_px[0:2])))
+        fov_err = float(np.hypot(*(pred_px[2:4] - truth_px[2:4])))
+        record = {
+            "image": Path(str(frame.at[int(index), "image_path"])).stem,
+            "od_error_px": round(od_err, 1),
+            "fovea_error_px": round(fov_err, 1),
+            "od_error_dd": round(od_err / disc_px, 3) if disc_px else "",
+            "fovea_error_dd": round(fov_err / disc_px, 3) if disc_px else "",
+            "od_pred_x": round(float(pred_px[0]), 1), "od_pred_y": round(float(pred_px[1]), 1),
+            "od_true_x": round(float(truth_px[0]), 1), "od_true_y": round(float(truth_px[1]), 1),
+            "fovea_pred_x": round(float(pred_px[2]), 1), "fovea_pred_y": round(float(pred_px[3]), 1),
+            "fovea_true_x": round(float(truth_px[2]), 1), "fovea_true_y": round(float(truth_px[3]), 1),
+        }
+        # Is the disc predicted on the wrong side of the fovea? In a fundus image
+        # the disc sits nasal to the macula, so a sign flip here is a laterality
+        # error rather than an imprecise one, and would be the single biggest
+        # clue the tail has one systematic cause.
+        record["side_flipped"] = int(
+            np.sign(truth_px[0] - truth_px[2]) != np.sign(pred_px[0] - pred_px[2]))
+        rows.append(record)
+
+    rows.sort(key=lambda r: -r["od_error_px"])
+    with open(path, "w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=list(rows[0]))
+        writer.writeheader()
+        writer.writerows(rows)
 
 
 def train_one_epoch(model, loader, criterion, optimiser, scaler, device, amp: bool) -> float:
@@ -237,6 +291,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         val = evaluate(model, val_loader, criterion, device, args.amp, args.image_size)
         scheduler.step()
 
+        arrays = {k: val.pop(k) for k in ("_preds", "_truths", "_indices")}
         history.append({"epoch": epoch, "train_loss": train_loss, "val": val,
                         "seconds": round(time.time() - epoch_start, 1)})
         print(f"  epoch {epoch:3d}  train {train_loss:.5f}  "
@@ -248,6 +303,8 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             best_dd, best_epoch = val["mean_error_dd"], epoch
             torch.save({"model": model.state_dict(), "config": asdict(config),
                         "epoch": epoch, "val": val}, out_dir / "best.pt")
+            write_val_errors(out_dir / "val_errors.csv", val_set, arrays,
+                             args.image_size, val["mean_disc_diameter_px"])
 
         torch.save({"model": model.state_dict(), "optimiser": optimiser.state_dict(),
                     "scheduler": scheduler.state_dict(), "scaler": scaler.state_dict(),
@@ -271,6 +328,32 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         "train_images": len(train_set), "val_images": len(val_set),
     }
     (out_dir / "metrics.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")
+
+    # Median beside mean. The gate is the mean, as pre-specified -- this is a
+    # diagnostic, not a second criterion, and must never be swapped in because
+    # it reads better.
+    if best and best.get("mean_disc_diameter_px"):
+        disc = best["mean_disc_diameter_px"]
+        med = (best["od_error_px_median"] + best["fovea_error_px_median"]) / 2 / disc
+        print(f"\n  median error {med:.3f} DD   (gate is on the MEAN: "
+              f"{best_dd:.3f} DD)")
+        if med < 0.5 <= best_dd:
+            print("  The median passes and the mean does not, so the miss is a heavy")
+            print("  tail: most images are located well and a minority are far out.")
+            print("  See val_errors.csv, sorted worst OD error first. The gate still")
+            print("  FAILS -- the criterion was fixed before the run.")
+
+    errors_csv = out_dir / "val_errors.csv"
+    if errors_csv.exists():
+        import csv as _csv
+        with open(errors_csv, encoding="utf-8") as handle:
+            rows = list(_csv.DictReader(handle))
+        flipped = sum(int(r["side_flipped"]) for r in rows)
+        print(f"  disc predicted on the wrong side of the fovea: {flipped}/{len(rows)}")
+        if flipped:
+            worst = [r for r in rows if int(r["side_flipped"])][:3]
+            print("    e.g. " + ", ".join(f"{r['image']} ({r['od_error_px']}px)"
+                                          for r in worst))
 
     print(f"\n  best epoch {best_epoch}: {best_dd:.3f} disc diameters")
     if best:

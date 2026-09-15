@@ -447,7 +447,7 @@ reasoning is auditable rather than assumed.
 
 | ID | Question | Varies | Decided by | Status | Result |
 |---|---|---|---|---|---|
-| C1 | Can we locate disc and fovea well enough? | — | Euclidean error on IDRiD test, in disc diameters (**target < 0.5 DD**), against the constant-predictor baseline | CODE READY | |
+| C1 | Can we locate disc and fovea well enough? | — | Euclidean error on IDRiD test, in disc diameters (**target < 0.5 DD**), against the constant-predictor baseline | **DONE** | **FAIL, 0.686 DD** — fovea fine (0.289), disc is the miss (1.082) |
 | C2 | How well do the 4 lesion channels segment? | DDR-seg / +IDRiD / +augmentation | Per-lesion Dice, IoU, **over images where the lesion is annotated** | CODE READY | |
 | C3 | Does the segmenter transfer? | DDR→IDRiD and reverse | Dice drop across domains | CODE READY | |
 | C4 | How informative is evidence alone? | Reasoner over predicted lesions, no grader | QWK of evidence-grade vs label | BLOCKED — needs M3 | |
@@ -486,6 +486,58 @@ warns when it is ≤ 0.
 an encoder, so C2 loads C1's via `--encoder-from` when a checkpoint exists. Their
 supervision is disjoint, so they are fitted in sequence rather than jointly. When C1 is
 blocked, C2 starts from ImageNet weights — **a deviation to record, not a blocker.**
+
+### C1 — RUN, and it FAILS the gate: 0.686 DD against 0.5
+
+413 IDRiD Part B images, 330 train / 83 val, 512 px, 17 epochs (early stopped
+from best epoch 6), 1.3 GPU-minutes.
+
+| | mean px | median px | mean DD | median DD |
+|---|---|---|---|---|
+| Optic disc | 62.0 | 26.6 | **1.082** | 0.354 |
+| Fovea | 21.0 | 18.5 | **0.289** | 0.246 |
+| **Both** | | | **0.686** | 0.300 |
+
+Constant-predictor baseline: 1.440 DD. Within 0.5 DD: 74.7% of landmarks,
+against 11.4% for the baseline. Mean disc diameter 75.4 px at 512.
+
+**The gate fails, and that is the recorded result.** The criterion was fixed
+before the run and it is a mean over both landmarks.
+
+**Three things the aggregate hides, all of which matter for what M3 can do:**
+
+1. **The fovea passes comfortably** at 0.289 DD; the disc alone misses at
+   1.082. They are separate outputs of one head, and the failure is not shared.
+2. **The disc error is heavy-tailed** — mean 62.0 px against median 26.6 px, a
+   ratio of 2.3. On the median image the disc lands at 0.354 DD, inside the
+   gate. A minority of images are far enough out to carry the mean past it.
+   "Most images slightly off" and "a few placed elsewhere entirely" have
+   different causes and different fixes, and the aggregate cannot tell them
+   apart.
+3. **It is not the baseline-matching failure** the gate exists to catch: it
+   beats the constant predictor by 0.754 DD and lifts within-0.5 from 11.4% to
+   74.7%. The model has learnt something real about where landmarks are.
+
+Also visible in the history: train loss falls from 0.084 to 0.014 while val
+loss sits at ~0.030 from epoch 6 on. With 330 training images this overfits
+early, and early stopping halted while the *fovea* error was still improving
+(36.4 → 18.1 px) because the disc term dominates the stopping metric.
+
+**Diagnostics added, not a changed gate.** `train_geometry.py` now writes
+`val_errors.csv` — every validation image with its predicted and true
+coordinates, per-landmark error in pixels and disc diameters, sorted worst
+disc error first — and reports the median beside the mean plus a `side_flipped`
+count. The disc sits nasal to the macula, so a disc predicted on the wrong side
+of the fovea is a laterality error rather than an imprecise one, and would mean
+the tail has one systematic cause. **The median is a diagnostic. The gate stays
+the mean, and C1 stays FAILED, whatever `val_errors.csv` shows.**
+
+> **What this costs M3, pending the diagnosis.** The 4-2-1 rule needs quadrants,
+> and quadrants need both landmarks. The fovea is reliable; the disc is not, on
+> a minority of images. If the tail turns out to be laterality, it is fixable
+> and quadrant reasoning survives. If the disc is simply imprecise everywhere in
+> the tail, M3 falls back to count-only rules — which
+> `docs/00_START_HERE.md` names as the designed fallback, not a failure to hide.
 
 ### C1 was blocked on first run — cause found and fixed
 
