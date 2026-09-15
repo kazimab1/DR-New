@@ -317,6 +317,22 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             break
 
     best = next((h["val"] for h in history if h["epoch"] == best_epoch), None)
+
+    # The per-image dump is written when a new best appears, and a resumed run can
+    # legitimately finish without one -- it restarts past the early-stop point and
+    # exits on the patience check. Re-derive it from best.pt so the diagnostic
+    # exists whether the run was fresh or resumed.
+    errors_csv = out_dir / "val_errors.csv"
+    best_pt = out_dir / "best.pt"
+    if best and best_pt.exists() and not errors_csv.exists():
+        print("  re-deriving val_errors.csv from best.pt", flush=True)
+        state = torch.load(best_pt, map_location=device, weights_only=False)
+        model.load_state_dict(state["model"])
+        final = evaluate(model, val_loader, criterion, device, args.amp, args.image_size)
+        arrays = {k: final.pop(k) for k in ("_preds", "_truths", "_indices")}
+        write_val_errors(errors_csv, val_set, arrays, args.image_size,
+                         best["mean_disc_diameter_px"])
+
     summary = {
         "experiment": args.experiment,
         "finished_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
