@@ -42,7 +42,7 @@ from torch.utils.data import DataLoader
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 from verify_dr.data.segmentation import (  # noqa: E402
-    LESION_NAMES, MASK_DIRS, SegmentationDataset, channel_presence,
+    LESION_NAMES, SHORT_LABELS, SegmentationDataset, channel_presence,
     load_segmentation_manifest,
 )
 from verify_dr.evaluation.segmentation_metrics import (  # noqa: E402
@@ -318,14 +318,14 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         history.append({"epoch": epoch, "train": stats, "val": val,
                         "seconds": round(time.time() - epoch_start, 1)})
         per = val["per_lesion"]
-        # MASK_DIRS, not the first two letters of LESION_NAMES: haemorrhage and
+        # SHORT_LABELS, not the first two letters of LESION_NAMES: haemorrhage and
         # hard_exudate both truncate to "HA", so two different channels would print
         # under one label and a collapsed channel could hide behind a healthy one.
         print(f"  epoch {epoch:3d}  train {stats['loss']:.4f}  val {val['loss']:.4f}  "
               f"Dice {val['mean_dice_present']:.4f}  ["
               + " ".join(f"{abbr} {per[n]['dice_present']:.3f}"
                          if per[n]['dice_present'] == per[n]['dice_present'] else f"{abbr} --"
-                         for abbr, n in zip(MASK_DIRS, LESION_NAMES))
+                         for abbr, n in zip(SHORT_LABELS, LESION_NAMES))
               + f"]  ({history[-1]['seconds']:.0f}s)", flush=True)
 
         if val["mean_dice_present"] > best_dice:

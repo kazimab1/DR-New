@@ -25,7 +25,9 @@ import torch.nn.functional as F
 
 LESION_CHANNELS = ("microaneurysm", "haemorrhage", "hard_exudate", "soft_exudate")
 # Mask directory names as build_cache.py writes them, in channel order.
-MASK_DIRS = ("MA", "HE", "EX", "SE")
+# Names mirror build_cache.py's LESION_CHANNELS; only the count matters here,
+# but keeping one vocabulary stops the two files drifting apart.
+MASK_DIRS = ("microaneurysm", "haemorrhage", "hard_exudate", "soft_exudate")
 
 
 # ------------------------------------------------------------------- encoder

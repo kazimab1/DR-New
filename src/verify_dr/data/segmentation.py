@@ -25,8 +25,20 @@ IMAGENET_MEAN = (0.485, 0.456, 0.406)
 IMAGENET_STD = (0.229, 0.224, 0.225)
 
 #: Channel order, fixed. docs/03_model_architecture.md section M2a.
-MASK_DIRS = ("MA", "HE", "EX", "SE")
-LESION_NAMES = ("microaneurysm", "haemorrhage", "hard_exudate", "soft_exudate")
+#:
+#: These are the directory names **build_cache.py actually writes** -- its
+#: LESION_CHANNELS -- not the MA/HE/EX/SE that DDR uses in its own raw tree.
+#: build_cache normalises both DDR's abbreviations and IDRiD's "1. Microaneurysms"
+#: to one vocabulary, and the cache is what this code reads. An earlier version
+#: used the DDR spelling here, so mask_path looked in masks/MA/ while every mask
+#: sat in masks/microaneurysm/, and C2 reported "no masks on disk" against a cache
+#: that had all of them. tests/test_evidence.py pins these against build_cache.
+MASK_DIRS = ("microaneurysm", "haemorrhage", "hard_exudate", "soft_exudate")
+LESION_NAMES = MASK_DIRS
+
+#: Log abbreviations only. Distinct by construction -- "haemorrhage" and
+#: "hard_exudate" both truncate to "HA", which hid a collapsed channel once.
+SHORT_LABELS = ("MA", "HE", "EX", "SE")
 
 
 def mask_path(image_path: Path, channel: str) -> Path:

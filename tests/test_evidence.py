@@ -219,8 +219,8 @@ if __name__ == "__main__":
 class TestMaskPaths(unittest.TestCase):
     def test_mask_sits_beside_images_under_the_dataset_directory(self):
         img = Path("/cache/ddr/images/ddr_0001.jpg")
-        self.assertEqual(mask_path(img, "MA"),
-                         Path("/cache/ddr/masks/MA/ddr_0001.png"))
+        self.assertEqual(mask_path(img, MASK_DIRS[0]),
+                         Path(f"/cache/ddr/masks/{MASK_DIRS[0]}/ddr_0001.png"))
 
     def test_nesting_below_images_does_not_move_the_mask(self):
         """EyePACS nests under images/; build_cache.py still writes masks flat
@@ -247,7 +247,10 @@ class TestSegmentationAugmentation(unittest.TestCase):
 
         mask = Image.new("L", (size, size), 0)
         mask.paste(255, (2, 10, 8, 16))                 # the same pixels
-        mask.save(root / "masks" / "MA" / "ddr_0000.png")
+        # MASK_DIRS[0], not a literal: the fixture restating the channel name is
+        # what let this suite pass while mask_path looked in a directory the cache
+        # does not have.
+        mask.save(root / "masks" / MASK_DIRS[0] / "ddr_0000.png")
 
         frame = pd.DataFrame([{"image_path": str(root / "images" / "ddr_0000.jpg"),
                                "dataset": "ddr", "patient_id": "p0"}])
@@ -520,3 +523,41 @@ class TestIDRiDTables(unittest.TestCase):
         found, not_coords, _u = find_coord_tables(self.root)
         self.assertEqual(found, {}, "a grading table is not a coordinate table")
         self.assertTrue(any("grades.csv" in p.name for p, _w in not_coords))
+
+
+class TestChannelVocabulary(unittest.TestCase):
+    """The mask directory names must be the ones build_cache.py writes.
+
+    They were not: segmentation.py used DDR's source spelling (MA/HE/EX/SE) while
+    the cache holds build_cache's LESION_CHANNELS (microaneurysm/...). mask_path
+    then looked in directories that do not exist, and C2 reported "no masks on
+    disk" against a cache holding every one of them. Nothing failed loudly --
+    an absent mask is a legal all-zero target, so every image simply looked
+    lesion-free.
+    """
+
+    def _build_cache_channels(self):
+        # Imported by path: scripts/ is not a package, and build_cache pulls in
+        # cv2 at call time rather than import time, so this stays cheap.
+        import ast
+        src = Path(__file__).resolve().parent.parent / "scripts" / "build_cache.py"
+        tree = ast.parse(src.read_text())
+        for node in tree.body:
+            if isinstance(node, ast.Assign) and any(
+                    getattr(t, "id", None) == "LESION_CHANNELS" for t in node.targets):
+                return tuple(ast.literal_eval(node.value))
+        self.fail("build_cache.py no longer defines LESION_CHANNELS")
+
+    def test_mask_dirs_match_what_build_cache_writes(self):
+        from verify_dr.data.segmentation import MASK_DIRS
+        self.assertEqual(MASK_DIRS, self._build_cache_channels())
+
+    def test_model_and_data_agree_on_channels(self):
+        from verify_dr.data.segmentation import MASK_DIRS
+        from verify_dr.models.evidence import MASK_DIRS as MODEL_DIRS
+        self.assertEqual(MASK_DIRS, MODEL_DIRS)
+
+    def test_short_labels_are_distinct_and_aligned(self):
+        from verify_dr.data.segmentation import LESION_NAMES, SHORT_LABELS
+        self.assertEqual(len(SHORT_LABELS), len(LESION_NAMES))
+        self.assertEqual(len(set(SHORT_LABELS)), len(SHORT_LABELS))
