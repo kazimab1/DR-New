@@ -19,6 +19,11 @@ from PIL import Image
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
 from verify_dr.data.geometry import GeometryDataset, patient_split  # noqa: E402
+from verify_dr.data.segmentation import (  # noqa: E402
+    MASK_DIRS, SegmentationDataset, channel_presence, mask_path,
+)
+from verify_dr.evaluation.segmentation_metrics import segmentation_metrics  # noqa: E402
+from verify_dr.models.seg_losses import SegmentationLoss, dice_loss  # noqa: E402
 from verify_dr.evaluation.geometry_metrics import (  # noqa: E402
     C1_GATE_DD, DISC_TO_FOVEA_IN_DIAMETERS, disc_diameters, geometry_metrics,
 )
@@ -209,3 +214,186 @@ class TestPatientSplit(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestMaskPaths(unittest.TestCase):
+    def test_mask_sits_beside_images_under_the_dataset_directory(self):
+        img = Path("/cache/ddr/images/ddr_0001.jpg")
+        self.assertEqual(mask_path(img, "MA"),
+                         Path("/cache/ddr/masks/MA/ddr_0001.png"))
+
+    def test_nesting_below_images_does_not_move_the_mask(self):
+        """EyePACS nests under images/; build_cache.py still writes masks flat
+        under masks/<CH>/ keyed by stem, so the anchor is the images directory."""
+        img = Path("/cache/eyepacs/images/ORIG/train/2/16_left.jpg")
+        self.assertEqual(mask_path(img, "HE"),
+                         Path("/cache/eyepacs/masks/HE/16_left.png"))
+
+
+class TestSegmentationAugmentation(unittest.TestCase):
+    """Image and mask must be flipped together. Flipping one and not the other
+    trains against mirrored targets and is indistinguishable from a model that
+    never converged -- the same failure class as the geometry flip."""
+
+    def _fixture(self, tmp: Path, size: int = 32):
+        root = tmp / "ddr"
+        (root / "images").mkdir(parents=True)
+        for channel in MASK_DIRS:
+            (root / "masks" / channel).mkdir(parents=True)
+
+        img = Image.new("RGB", (size, size), (0, 0, 0))
+        img.paste((255, 0, 0), (2, 10, 8, 16))          # a mark on the LEFT
+        img.save(root / "images" / "ddr_0000.jpg", quality=100)
+
+        mask = Image.new("L", (size, size), 0)
+        mask.paste(255, (2, 10, 8, 16))                 # the same pixels
+        mask.save(root / "masks" / "MA" / "ddr_0000.png")
+
+        frame = pd.DataFrame([{"image_path": str(root / "images" / "ddr_0000.jpg"),
+                               "dataset": "ddr", "patient_id": "p0"}])
+        return frame, size
+
+    @staticmethod
+    def _column_centroid(profile: torch.Tensor) -> float:
+        """Intensity-weighted mean column.
+
+        Compared rather than argmax because the image is a JPEG: compression
+        softens the block's edges, so its row-mean peaks mid-block while the
+        binary mask's peaks at the first column. Both describe the same region,
+        and the centroid says so; argmax reports a spurious few-pixel gap.
+        """
+        weights = (profile - profile.min()).clamp_min(0)
+        columns = torch.arange(len(weights), dtype=weights.dtype)
+        return float((weights * columns).sum() / weights.sum().clamp_min(1e-9))
+
+    def test_flip_moves_image_and_mask_together(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            frame, size = self._fixture(Path(tmp))
+            item = SegmentationDataset(frame, image_size=size, train=True,
+                                       hflip=1.0, jitter=0.0)[0]
+            red = self._column_centroid(item["image"][0].mean(0))
+            mask = self._column_centroid(item["mask"][0].mean(0))
+            self.assertAlmostEqual(red, mask, delta=2.0,
+                                   msg="image and mask flipped independently")
+            self.assertGreater(mask, size / 2, "mark should have moved right")
+
+    def test_not_flipping_leaves_both_on_the_left(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            frame, size = self._fixture(Path(tmp))
+            item = SegmentationDataset(frame, image_size=size, train=True,
+                                       hflip=0.0, jitter=0.0)[0]
+            red = self._column_centroid(item["image"][0].mean(0))
+            mask = self._column_centroid(item["mask"][0].mean(0))
+            self.assertAlmostEqual(red, mask, delta=2.0)
+            self.assertLess(mask, size / 2)
+
+    def test_unflipped_mark_stays_left(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            frame, size = self._fixture(Path(tmp))
+            item = SegmentationDataset(frame, image_size=size, train=False)[0]
+            self.assertLess(int(item["mask"][0].mean(0).argmax()), size // 2)
+
+    def test_absent_channel_becomes_an_all_zero_target(self):
+        """DDR ships a mask only where the lesion occurs, so a missing file means
+        absent -- not unlabelled, and not a reason to skip the image."""
+        with tempfile.TemporaryDirectory() as tmp:
+            frame, size = self._fixture(Path(tmp))
+            masks = SegmentationDataset(frame, image_size=size, train=False)[0]["mask"]
+            self.assertEqual(tuple(masks.shape), (4, size, size))
+            self.assertGreater(float(masks[0].sum()), 0)      # MA present
+            for c in range(1, 4):
+                self.assertEqual(float(masks[c].sum()), 0.0)  # HE, EX, SE absent
+
+    def test_masks_stay_binary_after_resize(self):
+        """Bilinear resizing of a binary mask invents partial-membership pixels on
+        every boundary, and a microaneurysm is only a few pixels across."""
+        with tempfile.TemporaryDirectory() as tmp:
+            frame, size = self._fixture(Path(tmp))
+            masks = SegmentationDataset(frame, image_size=size * 2, train=False)[0]["mask"]
+            values = set(masks.unique().tolist())
+            self.assertTrue(values <= {0.0, 1.0}, f"non-binary values: {values}")
+
+    def test_channel_presence_counts_images_not_pixels(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            frame, _ = self._fixture(Path(tmp))
+            counts = channel_presence(frame)
+            self.assertEqual(counts["microaneurysm"], 1)
+            self.assertEqual(counts["soft_exudate"], 0)
+
+
+class TestSegmentationLoss(unittest.TestCase):
+    def test_empty_target_costs_nothing_when_prediction_is_empty(self):
+        """Summing Dice over batch and space makes an empty target's denominator
+        the accumulated predicted probability, so at 512 px a correct empty answer
+        scored ~0.99. Empty channels are the norm here, so that dominated."""
+        empty = torch.zeros(2, 4, 256, 256)
+        confident_empty = torch.full((2, 4, 256, 256), -10.0)
+        self.assertLess(float(dice_loss(confident_empty, empty)), 1e-4)
+
+    def test_missing_a_present_lesion_is_fully_penalised(self):
+        target = torch.zeros(2, 4, 64, 64)
+        target[:, 1, 20:40, 20:40] = 1.0
+        predicts_nothing = torch.full((2, 4, 64, 64), -10.0)
+        self.assertGreater(float(dice_loss(predicts_nothing, target)), 0.9)
+
+    def test_perfect_prediction_is_near_zero(self):
+        target = torch.zeros(2, 4, 64, 64)
+        target[:, 1, 20:40, 20:40] = 1.0
+        perfect = torch.where(target > 0, 10.0, -10.0)
+        self.assertLess(float(dice_loss(perfect, target)), 0.05)
+
+    def test_bce_keeps_a_gradient_on_an_all_empty_batch(self):
+        """Dice contributes nothing when there is no overlap to score, so BCE has
+        to carry it -- that is the division of labour the 0.5/0.5 split is for."""
+        logits = torch.randn(2, 4, 32, 32, requires_grad=True)
+        SegmentationLoss()(logits, torch.zeros(2, 4, 32, 32))["loss"].backward()
+        self.assertGreater(float(logits.grad.norm()), 0.0)
+
+
+class TestSegmentationMetrics(unittest.TestCase):
+    def test_dice_present_excludes_images_without_the_lesion(self):
+        """Averaging over every image folds in empty/empty pairs that score 1.0 by
+        convention, inflating the headline without segmenting anything."""
+        truth = np.zeros((10, 4, 8, 8), dtype=np.float32)
+        truth[0, 3, 2:5, 2:5] = 1.0                  # SE in one image of ten
+        probs = np.zeros((10, 4, 8, 8), dtype=np.float32)   # predicts nothing ever
+
+        m = segmentation_metrics(probs, truth)["per_lesion"]["soft_exudate"]
+        self.assertEqual(m["images_with_lesion"], 1)
+        self.assertAlmostEqual(m["dice_present"], 0.0)       # missed the only one
+        self.assertAlmostEqual(m["dice_all"], 0.9, places=6)  # nine free 1.0s
+
+    def test_perfect_segmentation_scores_one(self):
+        truth = np.zeros((4, 4, 8, 8), dtype=np.float32)
+        truth[:, 0, 1:4, 1:4] = 1.0
+        m = segmentation_metrics(truth.copy(), truth)["per_lesion"]["microaneurysm"]
+        self.assertAlmostEqual(m["dice_present"], 1.0)
+        self.assertAlmostEqual(m["iou_present"], 1.0)
+
+    def test_over_segmentation_is_counted(self):
+        """A segmenter that finds lesions everywhere makes disagreement
+        meaningless, so false-positive images are reported, not just Dice."""
+        truth = np.zeros((5, 4, 8, 8), dtype=np.float32)
+        probs = np.zeros((5, 4, 8, 8), dtype=np.float32)
+        probs[:, 2, 0:2, 0:2] = 1.0                  # hallucinates EX everywhere
+        m = segmentation_metrics(probs, truth)["per_lesion"]["hard_exudate"]
+        self.assertEqual(m["false_positive_images"], 5)
+        self.assertNotEqual(m["dice_all"], 1.0)
+
+
+class TestChannelLabels(unittest.TestCase):
+    """The per-epoch log abbreviates each lesion. Two channels printing under the
+    same label would let a collapsed one hide behind a healthy one, which is exactly
+    the failure the log exists to surface."""
+
+    def test_abbreviations_are_distinct(self):
+        from verify_dr.data.segmentation import LESION_NAMES, MASK_DIRS
+        self.assertEqual(len(set(MASK_DIRS)), len(MASK_DIRS))
+        self.assertEqual(len(MASK_DIRS), len(LESION_NAMES))
+
+    def test_first_two_letters_would_have_collided(self):
+        # Pins why MASK_DIRS is used rather than name[:2]: haemorrhage and
+        # hard_exudate both truncate to "HA".
+        from verify_dr.data.segmentation import LESION_NAMES
+        truncated = [n[:2].upper() for n in LESION_NAMES]
+        self.assertLess(len(set(truncated)), len(truncated))
