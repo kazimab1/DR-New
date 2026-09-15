@@ -59,6 +59,9 @@ from typing import Dict, List, Optional, Sequence, Tuple
 import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+# The package too, for verify_dr.data.idrid_tables. The training scripts already
+# do this; this script did not, and only needed it once it grew a package import.
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 from build_cache import IMAGE_SUFFIXES, LESION_CHANNELS, MASK_CHANNELS  # noqa: E402
 
 DATASETS = ("EyePACS", "DDR", "IDRiD", "APTOS", "Messidor2")
@@ -194,16 +197,37 @@ def project_coords(
     import cv2
     from build_cache import imread, map_point, retinal_bbox
 
-    frame = pd.read_excel(coords_csv) if coords_csv.suffix.lower() in {".xlsx", ".xls"} \
-        else pd.read_csv(coords_csv)
-    frame.columns = [str(c).strip() for c in frame.columns]
+    # Read via idrid_tables: mirrors ship these with a UTF-8 BOM, with a title
+    # line above the header, and as .xlsx. A single pd.read_csv handles one of
+    # the three, and the id column is identified by its values rather than its
+    # name because mirrors disagree about that too.
+    from verify_dr.data.idrid_tables import id_column, read_markup_table
 
-    id_col = next((c for c in frame.columns if "image" in c.lower() or c.lower() in {"id", "name"}),
-                  frame.columns[0])
-    x_col = next((c for c in frame.columns if c.lower().startswith("x") or "x-" in c.lower()), None)
-    y_col = next((c for c in frame.columns if c.lower().startswith("y") or "y-" in c.lower()), None)
-    if x_col is None or y_col is None:
-        raise KeyError(f"{coords_csv.name}: no X/Y columns in {list(frame.columns)}")
+    frames, errors = read_markup_table(coords_csv)
+    if not frames:
+        raise ValueError(
+            f"{coords_csv.name}: present but unreadable. Tried every encoding and "
+            f"header offset; first error was {errors[0] if errors else 'unknown'}."
+            + ("\n  -> pip install openpyxl"
+               if any("openpyxl" in e for e in errors) else ""))
+
+    frame = id_col = x_col = y_col = None
+    for candidate in frames:
+        col = id_column(candidate)
+        if col is None:
+            continue
+        xs = next((c for c in candidate.columns
+                   if c != col and (c.lower().startswith("x") or "x-" in c.lower())), None)
+        ys = next((c for c in candidate.columns
+                   if c != col and (c.lower().startswith("y") or "y-" in c.lower())), None)
+        if xs is not None and ys is not None:
+            frame, id_col, x_col, y_col = candidate, col, xs, ys
+            break
+    if frame is None:
+        raise KeyError(
+            f"{coords_csv.name}: readable, but no reading of it has an IDRiD id "
+            f"column alongside X and Y columns. Columns seen: "
+            f"{list(frames[0].columns)[:8]}")
 
     kind = "fovea" if "fovea" in coords_csv.name.lower() else "od"
     print(f"  {coords_csv.name}: id={id_col!r} x={x_col!r} y={y_col!r} -> {kind}")

@@ -397,3 +397,84 @@ class TestChannelLabels(unittest.TestCase):
         from verify_dr.data.segmentation import LESION_NAMES
         truncated = [n[:2].upper() for n in LESION_NAMES]
         self.assertLess(len(set(truncated)), len(truncated))
+
+
+class TestIDRiDTables(unittest.TestCase):
+    """Reading IDRiD's markup tables. Every property pinned here has broken a run:
+    the filename carries no reliable keyword, the header row moves, .xlsx needs an
+    engine that is not always installed, and a grading table looks similar."""
+
+    def setUp(self):
+        import tempfile
+        import numpy as np
+        import pandas as pd
+        self.tmp = tempfile.mkdtemp()
+        self.root = Path(self.tmp)
+        rng = np.random.default_rng(0)
+        ids = [f"IDRiD_{i:03d}" for i in range(1, 31)]
+        coords = pd.DataFrame({"Image No": ids,
+                               "X- Coordinate": rng.integers(200, 600, 30),
+                               "Y- Coordinate": rng.integers(150, 450, 30)})
+        self.coords = coords
+        self.ids = set(ids)
+        (self.root / "gt").mkdir()
+        coords.to_csv(self.root / "gt" / "IDRiD_OD_Center_Markups.csv", index=False)
+
+    def tearDown(self):
+        import shutil
+        shutil.rmtree(self.tmp, ignore_errors=True)
+
+    def test_finds_a_plain_table(self):
+        from verify_dr.data.idrid_tables import find_coord_tables
+        found, _n, _u = find_coord_tables(self.root)
+        self.assertEqual(len(found), 1)
+        ids, col = next(iter(found.values()))
+        self.assertEqual(ids, self.ids)
+        self.assertEqual(col, "Image No")
+
+    def test_name_carries_no_keyword(self):
+        # A mirror that calls it Localization_Groundtruth still resolves, because
+        # detection reads the values rather than the filename.
+        (self.root / "gt" / "IDRiD_OD_Center_Markups.csv").unlink()
+        self.coords.to_csv(self.root / "gt" / "somefile.csv", index=False)
+        from verify_dr.data.idrid_tables import find_coord_tables
+        found, _n, _u = find_coord_tables(self.root)
+        self.assertEqual(len(found), 1)
+
+    def test_title_line_above_the_header(self):
+        (self.root / "gt" / "IDRiD_OD_Center_Markups.csv").unlink()
+        body = "Localization ground truth, IDRiD 2018\n" + self.coords.to_csv(index=False)
+        (self.root / "gt" / "t.csv").write_text(body)
+        from verify_dr.data.idrid_tables import find_coord_tables
+        found, _n, _u = find_coord_tables(self.root)
+        self.assertEqual(len(found), 1, "a preamble line must not hide the table")
+
+    def test_a_grading_table_is_not_a_coordinate_table(self):
+        # Same ids, one numeric column. It must be reported as readable-but-not-
+        # coordinates, never counted as a coordinate source.
+        import pandas as pd
+        pd.DataFrame({"Image name": sorted(self.ids),
+                      "Retinopathy grade": [1] * len(self.ids)}
+                     ).to_csv(self.root / "gt" / "grades.csv", index=False)
+        from verify_dr.data.idrid_tables import find_coord_tables
+        found, not_coords, _u = find_coord_tables(self.root)
+        self.assertEqual(len(found), 1)
+        self.assertTrue(any("grades.csv" in p.name for p, _w in not_coords))
+
+    def test_unreadable_is_distinct_from_absent(self):
+        # The distinction that matters: an earlier version collapsed both into
+        # "no Part C coordinate tables found", which sent the search the wrong way.
+        (self.root / "gt" / "broken.xlsx").write_bytes(b"not really a workbook")
+        from verify_dr.data.idrid_tables import find_coord_tables, report
+        found, _n, unreadable = find_coord_tables(self.root)
+        self.assertEqual(len(found), 1)
+        self.assertTrue(any("broken.xlsx" in p.name for p, _w in unreadable))
+        self.assertIn("UNREADABLE", report(found, _n, unreadable))
+
+    def test_empty_root_says_so(self):
+        import tempfile
+        from verify_dr.data.idrid_tables import find_coord_tables, report
+        with tempfile.TemporaryDirectory() as empty:
+            f, n, u = find_coord_tables(Path(empty))
+            self.assertEqual((f, n, u), ({}, [], []))
+            self.assertIn("no .csv/.xlsx tables", report(f, n, u))
