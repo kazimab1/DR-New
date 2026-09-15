@@ -77,17 +77,55 @@ def _xy_columns(frame: pd.DataFrame, id_col: str) -> List[str]:
             if c != id_col and pd.api.types.is_numeric_dtype(frame[c])]
 
 
-def _has_xy(numeric: Sequence[str]) -> bool:
-    low = [c.lower() for c in numeric]
-    return (any(c.startswith("x") or "x-" in c for c in low)
-            and any(c.startswith("y") or "y-" in c for c in low))
+#: A fundus coordinate is a pixel index in an image thousands of pixels wide.
+#: A grade is 0-4. That gap is what separates a coordinate table from a grading
+#: table whose id column looks identical.
+COORD_MIN_MEDIAN = 50
+COORD_MAX = 20000
+
+
+def _looks_like_coordinates(series) -> bool:
+    values = pd.to_numeric(series, errors="coerce").dropna()
+    if len(values) < 5 or values.nunique() < 3:
+        return False
+    return (values.min() >= 0 and values.median() >= COORD_MIN_MEDIAN
+            and values.max() <= COORD_MAX)
+
+
+def coordinate_pair(frame: pd.DataFrame, id_col: str):
+    """The (x, y) columns, by name when the mirror labels them and by value when
+    it does not.
+
+    Name matching alone was too strict: mirrors ship 'X- Coordinate' but also
+    'OD Center X', which starts with neither x nor y. Value matching alone would
+    accept IDRiD's own grading table, which has two numeric columns
+    ('Retinopathy grade', 'Risk of macular edema') beside the same ids -- so the
+    magnitude test above is what rules that out.
+    """
+    numeric = [c for c in frame.columns
+               if c != id_col and pd.api.types.is_numeric_dtype(frame[c])]
+    if len(numeric) < 2:
+        return None
+
+    low = {c: c.lower() for c in numeric}
+    xs = [c for c in numeric if low[c].startswith("x") or "x-" in low[c]
+          or low[c].endswith(" x") or low[c].endswith("_x")]
+    ys = [c for c in numeric if low[c].startswith("y") or "y-" in low[c]
+          or low[c].endswith(" y") or low[c].endswith("_y")]
+    if xs and ys:
+        return xs[0], ys[0]
+
+    plausible = [c for c in numeric if _looks_like_coordinates(frame[c])]
+    if len(plausible) >= 2:
+        return plausible[0], plausible[1]
+    return None
 
 
 def find_coord_tables(root: Path):
     """Coordinate tables under `root`.
 
     Returns ``(found, not_coords, unreadable)`` where ``found`` maps path ->
-    ``(ids, id_column)``. A grading table carries IDRiD ids too, so the X/Y
+    ``(ids, id_column, (x_col, y_col))``. A grading table carries IDRiD ids too, so the X/Y
     pair is what distinguishes a coordinate table from one.
     """
     found: Dict[Path, Tuple[set, str]] = {}
@@ -105,16 +143,16 @@ def find_coord_tables(root: Path):
             col = id_column(frame)
             if col is None:
                 continue
-            numeric = _xy_columns(frame, col)
-            if _has_xy(numeric):
-                hit = (frame, col)
+            pair = coordinate_pair(frame, col)
+            if pair is not None:
+                hit = (frame, col, pair)
                 break
             if near is None:
-                near = numeric
+                near = _xy_columns(frame, col)
         if hit is not None:
-            frame, col = hit
+            frame, col, pair = hit
             ids = {Path(str(v).strip()).stem for v in frame[col].dropna()}
-            found[path] = ({i for i in ids if STEM_RE.match(i)}, col)
+            found[path] = ({i for i in ids if STEM_RE.match(i)}, col, pair)
         elif near is not None:
             not_coords.append((path, f"IDRiD ids but no X/Y pair (numeric: {near[:3]})"))
         else:
@@ -127,10 +165,10 @@ def report(found, not_coords, unreadable) -> str:
     lines = []
     if found:
         lines.append("coordinate tables:")
-        for path, (ids, col) in found.items():
+        for path, (ids, col, pair) in found.items():
             lines.append(f"   {path.name}")
-            lines.append(f"      id column {col!r} · {len(ids)} ids · "
-                         f"e.g. {sorted(ids)[:2]}")
+            lines.append(f"      id {col!r} · x/y {pair[0]!r},{pair[1]!r} · "
+                         f"{len(ids)} ids · e.g. {sorted(ids)[:2]}")
     if not_coords:
         lines.append("readable, but not coordinate tables:")
         for path, why in not_coords:

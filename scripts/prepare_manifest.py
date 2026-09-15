@@ -201,7 +201,8 @@ def project_coords(
     # line above the header, and as .xlsx. A single pd.read_csv handles one of
     # the three, and the id column is identified by its values rather than its
     # name because mirrors disagree about that too.
-    from verify_dr.data.idrid_tables import id_column, read_markup_table
+    from verify_dr.data.idrid_tables import (coordinate_pair, id_column,
+                                             read_markup_table)
 
     frames, errors = read_markup_table(coords_csv)
     if not frames:
@@ -216,12 +217,9 @@ def project_coords(
         col = id_column(candidate)
         if col is None:
             continue
-        xs = next((c for c in candidate.columns
-                   if c != col and (c.lower().startswith("x") or "x-" in c.lower())), None)
-        ys = next((c for c in candidate.columns
-                   if c != col and (c.lower().startswith("y") or "y-" in c.lower())), None)
-        if xs is not None and ys is not None:
-            frame, id_col, x_col, y_col = candidate, col, xs, ys
+        pair = coordinate_pair(candidate, col)
+        if pair is not None:
+            frame, id_col, (x_col, y_col) = candidate, col, pair
             break
     if frame is None:
         raise KeyError(

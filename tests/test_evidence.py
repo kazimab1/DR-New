@@ -428,7 +428,8 @@ class TestIDRiDTables(unittest.TestCase):
         from verify_dr.data.idrid_tables import find_coord_tables
         found, _n, _u = find_coord_tables(self.root)
         self.assertEqual(len(found), 1)
-        ids, col = next(iter(found.values()))
+        ids, col, (x_col, y_col) = next(iter(found.values()))
+        self.assertEqual((x_col, y_col), ("X- Coordinate", "Y- Coordinate"))
         self.assertEqual(ids, self.ids)
         self.assertEqual(col, "Image No")
 
@@ -478,3 +479,44 @@ class TestIDRiDTables(unittest.TestCase):
             f, n, u = find_coord_tables(Path(empty))
             self.assertEqual((f, n, u), ({}, [], []))
             self.assertIn("no .csv/.xlsx tables", report(f, n, u))
+
+    def test_columns_not_named_x_and_y_still_resolve(self):
+        # A mirror labelling them 'OD Center X' / 'OD Center Y' has the values but
+        # fails a name test that requires the name to START with x or y.
+        import pandas as pd
+        (self.root / "gt" / "IDRiD_OD_Center_Markups.csv").unlink()
+        pd.DataFrame({"Image name": sorted(self.ids),
+                      "OD Center X": range(1500, 1500 + len(self.ids)),
+                      "OD Center Y": range(900, 900 + len(self.ids))}
+                     ).to_csv(self.root / "gt" / "t.csv", index=False)
+        from verify_dr.data.idrid_tables import find_coord_tables
+        found, _n, _u = find_coord_tables(self.root)
+        self.assertEqual(len(found), 1)
+        _ids, _col, pair = next(iter(found.values()))
+        self.assertEqual(pair, ("OD Center X", "OD Center Y"))
+
+    def test_opaque_column_names_resolve_by_value(self):
+        import pandas as pd
+        (self.root / "gt" / "IDRiD_OD_Center_Markups.csv").unlink()
+        pd.DataFrame({"Image": sorted(self.ids),
+                      "Col1": range(1500, 1500 + len(self.ids)),
+                      "Col2": range(900, 900 + len(self.ids))}
+                     ).to_csv(self.root / "gt" / "t.csv", index=False)
+        from verify_dr.data.idrid_tables import find_coord_tables
+        found, _n, _u = find_coord_tables(self.root)
+        self.assertEqual(len(found), 1, "values alone must be enough")
+
+    def test_two_small_int_columns_are_grades_not_coordinates(self):
+        # IDRiD's Part B table has TWO numeric columns beside the same ids
+        # (retinopathy grade, macular oedema risk). Magnitude is what separates
+        # them from a coordinate pair, so a bare "2+ numeric columns" rule fails.
+        import pandas as pd
+        (self.root / "gt" / "IDRiD_OD_Center_Markups.csv").unlink()
+        pd.DataFrame({"Image name": sorted(self.ids),
+                      "Retinopathy grade": [i % 5 for i in range(len(self.ids))],
+                      "Risk of macular edema": [i % 3 for i in range(len(self.ids))]}
+                     ).to_csv(self.root / "gt" / "grades.csv", index=False)
+        from verify_dr.data.idrid_tables import find_coord_tables
+        found, not_coords, _u = find_coord_tables(self.root)
+        self.assertEqual(found, {}, "a grading table is not a coordinate table")
+        self.assertTrue(any("grades.csv" in p.name for p, _w in not_coords))
