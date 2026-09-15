@@ -10,17 +10,39 @@ INPUT = Path("/kaggle/input")
 IMG = {".jpg", ".jpeg", ".png", ".tif", ".tiff"}
 TAB = {".csv", ".xlsx", ".xls"}
 
-print("ATTACHED INPUTS")
-for d in sorted(INPUT.iterdir()):
-    print("   ", d.name)
+def roots(max_depth=3):
+    """Every directory /kaggle/input exposes, breadth-first.
+
+    Kaggle sometimes mounts everything under a datasets/ or competitions/
+    wrapper, so /kaggle/input can have exactly one child and iterdir() sees
+    only that.
+    """
+    level, out = [INPUT], []
+    for _ in range(max_depth):
+        nxt = []
+        for d in level:
+            try:
+                kids = sorted(c for c in d.iterdir() if c.is_dir())
+            except OSError:
+                continue
+            out.extend(kids); nxt.extend(kids)
+        level = nxt
+    return out
+
+print("EVERYTHING /kaggle/input EXPOSES")
+for d in roots():
+    print("   " + "  " * (len(d.relative_to(INPUT).parts) - 1) + d.name)
 
 def norm(s):
     return s.lower().replace("-", "").replace("_", "").replace("%20", "")
 
-mounts = [d for d in sorted(INPUT.iterdir())
-          if d.is_dir() and not norm(d.name).startswith("verifydr")
-          and ("idrid" in norm(d.name)
-               or all(k in norm(d.name) for k in ("diabetic", "retinopathy")))]
+mounts = []
+for d in roots():
+    if not d.is_dir() or norm(d.name).startswith("verifydr"):
+        continue
+    if "idrid" in norm(d.name) or all(k in norm(d.name) for k in ("diabetic", "retinopathy")):
+        if not any(str(d).startswith(str(m) + "/") for m in mounts):
+            mounts.append(d)
 
 print(f"\n{len(mounts)} IDRiD-looking mount(s): {[m.name for m in mounts]}")
 
