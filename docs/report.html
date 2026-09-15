@@ -387,8 +387,8 @@
     <div class="stamp">
       <span>Updated <b>15 Sep 2026</b></span>
       <span>Stage <b>C</b> · evidence pathway</span>
-      <span>Experiments closed <b>6 / 26</b></span>
-      <span>GPU spent <b>≈3.4 h</b></span>
+      <span>Experiments closed <b>7 / 26</b></span>
+      <span>GPU spent <b>≈3.5 h</b></span>
     </div>
   </header>
 
@@ -796,8 +796,8 @@
     <ul class="queue">
       <li>
         <span class="id">C1</span>
-        <span class="what">Optic disc and fovea regressor (M2b)<small>Gate: mean error &lt; 0.5 disc diameters. Without it there is no coordinate frame, and the 4-2-1 rule M3 reasons with is undefined.</small></span>
-        <span class="cost">~15 min</span>
+        <span class="what">Optic disc and fovea regressor (M2b)<small>FAILS the gate at 0.686 DD — but the fovea passes alone and the disc error is heavy-tailed. See below.</small></span>
+        <span class="cost">done · 1.3 min</span>
       </li>
       <li>
         <span class="id">C2</span>
@@ -864,6 +864,161 @@
         real directory layout: the old discovery resolved <span class="num">0 of 50</span>
         coordinate rows, the new one <span class="num">50 of 50</span>, after which C1 trained
         end to end.
+      </p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Experiment C1 · optic disc and fovea</h2>
+    <h3>Fails the gate at 0.686 DD — and the single number hides what happened</h3>
+
+    <p>
+      413 IDRiD Part B images, 330 train / 83 validation, 512 px, early-stopped from
+      epoch 6 after 17 epochs. <span class="num">1.3</span> GPU-minutes. Error is
+      reported in <strong>disc diameters</strong> rather than pixels, because a fixed
+      pixel tolerance means different things at different fields of view; IDRiD
+      publishes no disc diameter, so it is derived per image from the disc-to-fovea
+      distance ÷ 2.5.
+    </p>
+
+    <figure>
+      <div class="chart-shell">
+        <p class="chart-title">Landmark error against the 0.5 DD gate</p>
+        <p class="chart-sub">Model mean and median per landmark, beside the constant-predictor baseline. Lower is better; bars are green below the gate and red above it.</p>
+        <svg viewBox="0 0 480 240" role="img"
+             aria-label="Optic disc error: baseline 2.155 disc diameters, model mean 1.082 above the 0.5 gate, model median 0.354 below it. Fovea error: baseline 0.724, model mean 0.289 and median 0.246, both below the gate. The disc mean is three times its median.">
+          <!-- x: 0 at 120, 2.4 at 450 => 137.5 px per DD.
+               Order matters: grid, bars, axes, gate line, then ALL text, so no
+               rule is painted over a number. -->
+          <line class="grid" x1="258" y1="30" x2="258" y2="176"></line>
+          <line class="grid" x1="326" y1="30" x2="326" y2="176"></line>
+          <line class="grid" x1="395" y1="30" x2="395" y2="176"></line>
+
+          <rect x="120" y="30" width="296" height="14" fill="var(--muted)" opacity="0.38"></rect>
+          <rect x="120" y="50" width="149" height="14" fill="var(--crit)"></rect>
+          <rect x="120" y="70" width="49"  height="14" fill="var(--good)"></rect>
+          <rect x="120" y="112" width="100" height="14" fill="var(--muted)" opacity="0.38"></rect>
+          <rect x="120" y="132" width="40"  height="14" fill="var(--good)"></rect>
+          <rect x="120" y="152" width="34"  height="14" fill="var(--good)"></rect>
+
+          <line class="axis" x1="120" y1="30" x2="120" y2="176"></line>
+          <line class="axis" x1="120" y1="176" x2="450" y2="176"></line>
+          <line x1="189" y1="26" x2="189" y2="176" stroke="var(--crit)"
+                stroke-width="1.5" stroke-dasharray="4 3"></line>
+
+          <text class="ax" x="112" y="24" text-anchor="end" fill="var(--muted)">OPTIC DISC</text>
+          <text class="ax" x="112" y="41" text-anchor="end">baseline</text>
+          <text class="ax" x="112" y="61" text-anchor="end">mean</text>
+          <text class="ax" x="112" y="81" text-anchor="end">median</text>
+          <text class="ax" x="112" y="106" text-anchor="end" fill="var(--muted)">FOVEA</text>
+          <text class="ax" x="112" y="123" text-anchor="end">baseline</text>
+          <text class="ax" x="112" y="143" text-anchor="end">mean</text>
+          <text class="ax" x="112" y="163" text-anchor="end">median</text>
+
+          <text class="val" x="422" y="42">2.155</text>
+          <text class="val" x="275" y="62">1.082</text>
+          <text class="val" x="175" y="82">0.354</text>
+          <text class="val" x="226" y="124">0.724</text>
+          <text class="val" x="166" y="144">0.289</text>
+          <text class="val" x="160" y="164">0.246</text>
+
+          <text class="ax" x="250" y="18" text-anchor="start" fill="var(--crit)">0.5 DD gate</text>
+          <line x1="196" y1="14" x2="245" y2="14" stroke="var(--crit)" stroke-width="1.5" stroke-dasharray="4 3"></line>
+
+          <text class="ax" x="120" y="190" text-anchor="middle">0</text>
+          <text class="ax" x="189" y="190" text-anchor="middle">0.5</text>
+          <text class="ax" x="258" y="190" text-anchor="middle">1.0</text>
+          <text class="ax" x="326" y="190" text-anchor="middle">1.5</text>
+          <text class="ax" x="395" y="190" text-anchor="middle">2.0</text>
+          <text class="ax" x="285" y="212" text-anchor="middle">error (disc diameters)</text>
+        </svg>
+      </div>
+      <figcaption>
+        Only one bar crosses the gate — the optic disc <em>mean</em>. Its median sits
+        well inside, which is the whole finding: the mean is carried past 0.5 by a
+        minority of images, not by the typical one.
+      </figcaption>
+    </figure>
+
+    <ol class="findings">
+      <li>
+        <div>
+          <h4>The fovea passes on its own; only the disc misses</h4>
+          <p>
+            Fovea <span class="num">0.289</span> DD against disc
+            <span class="num">1.082</span>. They are two outputs of one head and the
+            failure is not shared — which matters, because a macula-centred coordinate
+            frame needs the fovea and the 4-2-1 quadrant rule needs both.
+          </p>
+        </div>
+      </li>
+      <li>
+        <div>
+          <h4>The disc error is heavy-tailed, by a factor of 2.3</h4>
+          <p>
+            Mean <span class="num">62.0</span> px against median
+            <span class="num">26.6</span> px. On the median image the disc lands at
+            <span class="num">0.354</span> DD — inside the gate. A minority of images
+            are far enough out to carry the mean past it. "Most images slightly off"
+            and "a few placed somewhere else entirely" have different causes and
+            different fixes, and no aggregate separates them.
+          </p>
+        </div>
+      </li>
+      <li>
+        <div>
+          <h4>It is not the failure the gate was built to catch</h4>
+          <p>
+            It beats the constant predictor by <span class="num">0.754</span> DD
+            (<span class="num">1.440 → 0.686</span>) and lifts landmarks within 0.5 DD
+            from <span class="num">11.4%</span> to <span class="num">74.7%</span>.
+            Fundus framing is stereotyped enough that a constant predictor is a real
+            opponent; this model clears it decisively, so it has learnt where landmarks
+            are rather than where they usually are.
+          </p>
+        </div>
+      </li>
+      <li>
+        <div>
+          <h4>It overfits early, and stops on the wrong landmark</h4>
+          <p>
+            Train loss falls <span class="num">0.084 → 0.014</span> while validation
+            loss sits at <span class="num">~0.030</span> from epoch 6 — expected on 330
+            images. Early stopping then halted while the <em>fovea</em> was still
+            improving (<span class="num">36.4 → 18.1</span> px), because the disc term
+            dominates the stopping metric.
+          </p>
+        </div>
+      </li>
+    </ol>
+
+    <div class="note bad">
+      <span class="tag">Recorded result</span>
+      <p>
+        <strong>C1 FAILS.</strong> The criterion was fixed before the run and it is a
+        mean over both landmarks. The median is reported beside it as a
+        <em>diagnostic</em> and is not a second criterion — swapping in the statistic
+        that reads better once the result is known is precisely what the
+        pre-registration exists to prevent.
+      </p>
+    </div>
+
+    <div class="note decision">
+      <span class="tag">What happens next</span>
+      <p>
+        <code>train_geometry.py</code> now writes <code>val_errors.csv</code>: every
+        validation image with predicted and true coordinates, per-landmark error in
+        pixels and disc diameters, sorted worst disc error first. It also flags
+        <code>side_flipped</code> — the disc predicted on the <em>wrong side of the
+        fovea</em>. The disc sits nasal to the macula, so a sign flip there is a
+        laterality error rather than an imprecise one.
+      </p>
+      <p>
+        That distinction decides M3's reasoning. If the tail is mostly laterality, it
+        has one systematic cause and quadrant reasoning survives a fix. If the disc is
+        simply imprecise across the tail, <strong>M3 falls back to count-only
+        rules</strong> — which <code>docs/00_START_HERE.md</code> names as the designed
+        fallback, not a failure to hide.
       </p>
     </div>
   </section>
