@@ -186,3 +186,52 @@ def channel_presence(frame: pd.DataFrame) -> Dict[str, int]:
             if mask_path(path, channel).exists():
                 out[name] += 1
     return out
+
+
+def segmentation_manifest_from_cache(roots, datasets=("ddr", "idrid")) -> pd.DataFrame:
+    """Every cached image that carries at least one lesion mask.
+
+    C2's population is "images with lesion annotations", which is a property of
+    the cache rather than of any grading table -- and the two genuinely differ.
+    prepare_manifest.py builds IDRiD's manifest from the Part B grading tables,
+    so it holds the 516 graded images and none of Part A's 81; Part A is exactly
+    the set carrying masks. A manifest built for grading cannot be assumed to
+    cover segmentation, so this reads the cache directly.
+
+    Grades are not needed here and are not invented: the frame carries
+    image_path and dataset only.
+    """
+    roots = [Path(r) for r in (roots if isinstance(roots, (list, tuple)) else [roots])]
+    wanted = {d.lower() for d in datasets}
+    seen, rows = set(), []
+
+    for root in roots:
+        if not root.is_dir():
+            continue
+        for dataset_dir in sorted(x for x in root.iterdir() if x.is_dir()):
+            if dataset_dir.name.lower() not in wanted:
+                continue
+            images = dataset_dir / "images"
+            if not images.is_dir():
+                continue
+            # Index the mask stems per channel once. The alternative -- four
+            # exists() calls per image -- is ~50k stat calls on DDR alone.
+            have = set()
+            for channel in MASK_DIRS:
+                channel_dir = dataset_dir / "masks" / channel
+                if channel_dir.is_dir():
+                    have |= {f.stem for f in channel_dir.iterdir() if f.is_file()}
+            if not have:
+                continue
+            for image in images.rglob("*"):
+                if not image.is_file() or image.stem not in have:
+                    continue
+                key = (dataset_dir.name.lower(), image.stem)
+                if key in seen:          # a dataset split across roots
+                    continue
+                seen.add(key)
+                rows.append({"image_path": str(image),
+                             "dataset": dataset_dir.name.lower(),
+                             "grade": -1})
+
+    return pd.DataFrame(rows, columns=["image_path", "dataset", "grade"])

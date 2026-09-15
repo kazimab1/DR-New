@@ -561,3 +561,60 @@ class TestChannelVocabulary(unittest.TestCase):
         from verify_dr.data.segmentation import LESION_NAMES, SHORT_LABELS
         self.assertEqual(len(SHORT_LABELS), len(LESION_NAMES))
         self.assertEqual(len(set(SHORT_LABELS)), len(SHORT_LABELS))
+
+
+class TestManifestFromCache(unittest.TestCase):
+    """C2's population comes from the cache, not from a grading table.
+
+    prepare_manifest.py builds IDRiD's manifest from the Part B grading tables,
+    which name the 516 graded images and none of Part A's 81 -- and Part A is
+    exactly the set carrying masks. Fixing C1 (by caching Part B, so the grades
+    finally joined) therefore removed every mask-bearing row from the manifest
+    C2 was reading, and C2 reported the masks missing.
+    """
+
+    def setUp(self):
+        import tempfile
+        self.tmp = tempfile.mkdtemp()
+        self.root = Path(self.tmp) / "cache"
+        for ds, stems in (("idrid", ["IDRiD_01", "IDRiD_02"]),
+                          ("ddr", ["ddr_0001"])):
+            (self.root / ds / "images").mkdir(parents=True)
+            for ch in MASK_DIRS:
+                (self.root / ds / "masks" / ch).mkdir(parents=True)
+            for stem in stems:
+                (self.root / ds / "images" / f"{stem}.jpg").write_text("x")
+                (self.root / ds / "masks" / MASK_DIRS[0] / f"{stem}.png").write_text("x")
+        # A graded image with no mask: present in the cache, absent from C2.
+        (self.root / "idrid" / "images" / "IDRiD_001.jpg").write_text("x")
+
+    def tearDown(self):
+        import shutil
+        shutil.rmtree(self.tmp, ignore_errors=True)
+
+    def test_only_mask_bearing_images_are_included(self):
+        from verify_dr.data.segmentation import segmentation_manifest_from_cache
+        frame = segmentation_manifest_from_cache([self.root])
+        stems = sorted(Path(p).stem for p in frame["image_path"])
+        self.assertEqual(stems, ["IDRiD_01", "IDRiD_02", "ddr_0001"])
+        self.assertNotIn("IDRiD_001", stems, "a graded image with no mask is not C2 data")
+
+    def test_both_datasets_appear(self):
+        from verify_dr.data.segmentation import segmentation_manifest_from_cache
+        frame = segmentation_manifest_from_cache([self.root])
+        self.assertEqual(set(frame["dataset"]), {"ddr", "idrid"})
+
+    def test_nested_image_layouts_are_found(self):
+        # DDR nests images under train/valid/test.
+        from verify_dr.data.segmentation import segmentation_manifest_from_cache
+        nested = self.root / "ddr" / "images" / "valid"
+        nested.mkdir()
+        (nested / "ddr_0002.jpg").write_text("x")
+        (self.root / "ddr" / "masks" / MASK_DIRS[1] / "ddr_0002.png").write_text("x")
+        frame = segmentation_manifest_from_cache([self.root])
+        self.assertIn("ddr_0002", {Path(p).stem for p in frame["image_path"]})
+
+    def test_a_split_cache_does_not_duplicate(self):
+        from verify_dr.data.segmentation import segmentation_manifest_from_cache
+        frame = segmentation_manifest_from_cache([self.root, self.root])
+        self.assertEqual(len(frame), len(set(frame["image_path"])))
