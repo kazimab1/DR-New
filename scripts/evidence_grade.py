@@ -78,6 +78,12 @@ def main() -> int:
     p.add_argument("--results-dir", type=Path, default=Path("results/stage_c"))
     p.add_argument("--cache-root", type=Path, nargs="+", default=None)
     p.add_argument("--datasets", nargs="+", default=None)
+    p.add_argument("--exclude-manifest", type=Path, nargs="+", default=None,
+                   help="Drop every image named here. C4 must not be scored on "
+                        "images M2a was fitted on: the annotated subset is what "
+                        "C2 trains and validates against, so pass the "
+                        "segmentation manifest to leave only images the "
+                        "segmenter has never seen.")
     p.add_argument("--image-size", type=int, default=512)
     p.add_argument("--batch-size", type=int, default=4)
     p.add_argument("--threshold", type=float, default=0.5)
@@ -99,6 +105,15 @@ def main() -> int:
     if args.datasets:
         wanted = {d.lower() for d in args.datasets}
         frame = frame[frame["dataset"].str.lower().isin(wanted)]
+
+    if args.exclude_manifest:
+        seen = set()
+        for path in args.exclude_manifest:
+            seen |= set(pd.read_csv(path)["image_path"].map(lambda v: Path(v).stem))
+        before = len(frame)
+        frame = frame[~frame["image_path"].map(lambda v: Path(v).stem).isin(seen)]
+        print(f"  excluded {before - len(frame)} images M2a was fitted on; "
+              f"{len(frame)} remain")
 
     # Grades are the whole point here, so rows without one are dropped loudly.
     before = len(frame)

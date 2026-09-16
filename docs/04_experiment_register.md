@@ -449,8 +449,8 @@ reasoning is auditable rather than assumed.
 |---|---|---|---|---|---|
 | C1 | Can we locate disc and fovea well enough? | — | Euclidean error on IDRiD test, in disc diameters (**target < 0.5 DD**), against the constant-predictor baseline | **DONE** | **FAIL, 0.686 DD** — fovea fine (0.289), disc is the miss (1.082) |
 | C2 | How well do the 4 lesion channels segment? | DDR-seg / +IDRiD / +augmentation | Per-lesion Dice, IoU, **over images where the lesion is annotated** | **DONE (DDR only)** | mean Dice 0.497; MA 0.316 |
-| C3 | Does the segmenter transfer? | DDR→IDRiD and reverse | Dice drop across domains | **BLOCKED — rerun** | IDRiD absent from C2's population |
-| C4 | How informative is evidence alone? | Reasoner over predicted lesions, no grader | QWK of evidence-grade vs label | BLOCKED — needs M3 | |
+| C3 | Does the segmenter transfer? | C2's checkpoint on held-out IDRiD | Dice drop across domains | **STILL NOT RUN** | see below |
+| C4 | How informative is evidence alone? | M3 over M2a's predicted lesions | QWK of evidence-grade vs label | **DONE** | **QWK 0.386** vs M1's 0.679 — informative but weaker |
 
 > **C4 is load-bearing.** The evidence path must be *informative but weaker* than the
 > grader. As good ⇒ the grader is redundant. Noise ⇒ disagreement means nothing.
@@ -653,6 +653,82 @@ must be reported beside any number it yields.
 design. The trade is deliberate — an external domain for C3 is worth more to this
 thesis than 81 extra training images, because the thesis claims something about
 disagreement generalising, not about segmentation accuracy.
+
+### C4 — the premise survives: QWK 0.386 against M1's 0.679
+
+12 522 graded DDR images, M2a's predicted masks through M3's rules, count-only
+(R4 declined — C1 failed its gate).
+
+| | |
+|---|---|
+| QWK vs true grade | **0.3858** |
+| exact agreement | 55.6% |
+| within one grade | 65.5% |
+| distinct evidence grades | **3 of 5** |
+| rules fired | R1 2 599 · R2 661 · R3 5 089 · R3\* 4 173 |
+
+**This is the result the project needed.** `docs/00_START_HERE.md` requires the
+evidence path to be *informative but weaker* than the grader: matching M1 would make
+M1 redundant, and noise would mean disagreement carries no signal and H1 cannot hold
+for the stated reason. 0.386 against 0.679 is squarely in between. **The premise
+holds and F2 in Phase 7 is worth running.**
+
+Four qualifications, all of which belong beside the number:
+
+1. **It is a floor, not an estimate.** Only three of five grades are reachable.
+   Grade 3 needs R4, which needs quadrants, which need C1 — so every severe case can
+   at best read as moderate. Grade 4 needs neovascularisation, which nothing
+   annotates. A reasoner that cannot emit two of the five classes is being scored
+   against all five.
+2. **R3\* fired on 4 173 images — a third of the set.** That is haemorrhage or
+   exudate found with *no* microaneurysm detected, a combination ICDR has no rung
+   for. It is M2a's MA channel (Dice 0.344) missing what its larger-lesion channels
+   find. The rule exists so those images are not graded 0, but a third of the
+   corpus resting on a fallback rung is a limitation, not a detail.
+3. **The split is not M1's.** M1's 0.679 is validation on EyePACS; this is DDR. The
+   comparison says "same order of magnitude, clearly weaker", which is what the
+   premise needs, and it is not a like-for-like contest.
+4. **Contaminated, mildly.** All 12 522 DDR images were scored, and 757 of them are
+   the annotated subset M2a was fitted and validated on — about 6%. Fixed for the
+   next run with `--exclude-manifest`, which leaves only images the segmenter has
+   never seen. The effect is small at 6% but the figure should be regenerated
+   before it reaches the thesis.
+
+### C1b — the heatmap head is WORSE: 1.028 DD against 0.686
+
+| head | mean DD | OD | fovea | within 0.5 DD | vs constant |
+|---|---|---|---|---|---|
+| coordinate regression | **0.686** | 1.082 DD | 0.289 DD | 74.7% | +0.754 |
+| heatmap | 1.028 | 1.594 DD | 0.461 DD | 66.3% | +0.412 |
+
+**The hypothesis is falsified as implemented.** The reasoning was that the disc's x
+position is bimodal and a regressed coordinate must commit to one mode; a heatmap
+can hold both peaks. The heatmap head is worse on every figure, including the fovea,
+which has no bimodality to resolve at all — and that last point suggests the problem
+is the head's optimisation rather than the diagnosis.
+
+> **The likely mechanism, stated as a hypothesis and not tested.** The loss is plain
+> MSE against a Gaussian with sigma 2 on a 128x128 grid: roughly 25 pixels of signal
+> against 16 000 of background, so predicting all-zero is a good local minimum and
+> the positives get almost no gradient. Standard heatmap regression weights the
+> positives or uses focal MSE for exactly this reason, and this implementation does
+> neither. **Whether the bimodality diagnosis was right is still open** — the number
+> that settles it is the flip count on the heatmap run, not the mean error.
+
+**A methodological error made this comparison harder than it needed to be.** `--head`
+defaults to `heatmap`, and section 6 of the notebook did not state a head, so the
+baseline arm silently became a second heatmap run and section 6b compared heatmap
+with heatmap. Same defect as B4's duplicate sampler arm: an experimental arm riding
+on a default. Both cells now state their head explicitly.
+
+**C1 stays FAILED at 0.686 DD**, which remains the recorded result — the better of
+the two and the pre-specified architecture. M3 runs count-only.
+
+### C3 — still not run
+
+The split-cache fix (`repath_to_cache` preferring the mask-bearing root) landed, but
+C3 did not produce metrics in this run either. Diagnosis needs section 5's
+per-dataset counts and section 8's output, which have not been seen.
 
 ### C1 was blocked on first run — cause found and fixed
 
