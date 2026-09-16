@@ -37,20 +37,60 @@
 
 Copy the selected config to `preregistration/frozen_config.yaml`. Summarise here:
 
-| Setting | Value |
-|---|---|
-| Input resolution | _(from B1)_ |
-| Backbone | _(from B2)_ |
-| Head | _(from B3)_ |
-| Loss + focal γ | _(from B3)_ |
-| Sampler | _(from B4)_ |
-| Eye-pair fusion | _(from B5)_ |
-| Epochs / early stopping | _(…)_ |
-| Optimiser, LR, schedule | _(…)_ |
-| Seeds | 42, 43, 44 |
-| Evidence segmenter | ResNet18-UNet, 4 channels |
-| Evidence training data | DDR-seg + IDRiD-seg |
-| OD/fovea regressor | ResNet18 + coordinate head, IDRiD |
+### M1 — grading pathway (settled; Stage B closed)
+
+| Setting | Value | From |
+|---|---|---|
+| Input resolution | **512 px** (the cache's native size) | B1 |
+| Backbone | **EfficientNet-B0** | B2 |
+| Head | **CORAL ordinal**, 4 cumulative logits | B3 |
+| Loss + focal γ | **focal-ordinal, γ = 2.0** | B3 |
+| Sampler | **stratified exposure** (inverse grade frequency) | B4 |
+| Eye-pair fusion | **none** | B5 |
+| Epochs / early stopping | 12 epochs, early stop on val QWK, patience 3 | default |
+| Optimiser, LR, schedule | AdamW, lr 3e-4, weight decay 1e-4, 2 warm-up epochs then cosine | default |
+| Batch size / dropout | 32 / 0.3 | default |
+| Seeds | 42, 43, 44 | |
+
+Every Stage B ablation either lost or tied against this configuration, which is also
+the default specified in `docs/03_model_architecture.md` before any run happened.
+
+### M2 — evidence pathway
+
+| Setting | Value | Status |
+|---|---|---|
+| Evidence segmenter | ResNet18-UNet, 4 channels, 0.5·Dice + 0.5·BCE | settled (C2) |
+| Evidence training data | **DDR-seg only; IDRiD held out** | **changed** — see deviation D2 |
+| OD/fovea regressor | ResNet18, **head to be fixed** — coordinate vs heatmap | **OPEN** — see below |
+| Quadrant reasoning (R4) | available only if the OD/fovea gate passes | depends on the above |
+
+> **Two rows here are not yet frozen, and this section cannot be signed off until they
+> are.**
+>
+> **Evidence training data** originally read "DDR-seg + IDRiD-seg". C2 trains on DDR
+> alone with IDRiD held out, which makes IDRiD a genuine external domain for C3. That
+> is a deliberate change of design, recorded as a deviation rather than silently
+> edited.
+>
+> **The OD/fovea head is undecided.** C1 with a coordinate head failed its 0.5 DD gate
+> at 0.686, and the per-image dump attributes 47% of the disc error to 12% of images
+> that place the disc on the wrong side of the fovea. A heatmap head is implemented and
+> is the hypothesised fix, but it has not been run on this data. **Whichever is frozen
+> here determines whether M3's rule R4 (the 4-2-1 severe-NPDR criterion) can fire at
+> all**, so it is not a detail that can be settled later.
+
+### Not yet logged — Phase 4's exit condition is unmet
+
+| | Needs | Cost |
+|---|---|---|
+| C3 cross-domain | run the eval-only cell | ~1 min GPU |
+| C1 head choice | run the comparison cell | ~1.5 min GPU |
+| **C4 evidence-only grading** | **M3 does not exist yet** | hours of Python, no GPU |
+
+C4 is the falsification test named in section 8: if the evidence pathway is
+uninformative, disagreement carries no signal and H1 cannot hold for the stated reason.
+Freezing before C4 means committing 21.7 GPU-hours of Phase 6 training to a premise that
+has not been tested.
 
 ## 3. Models to be evaluated externally
 
