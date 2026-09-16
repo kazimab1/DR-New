@@ -1,0 +1,837 @@
+<title>VERIFY-DR Roadmap</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@400;500;600;700&family=IBM+Plex+Serif:ital,wght@0,400;0,500;1,400&display=swap">
+<style>
+  :root {
+    --ground:   #F4F6F9;
+    --surface:  #FFFFFF;
+    --sunken:   #EDF1F5;
+    --ink:      #14181F;
+    --ink-2:    #3D4753;
+    --muted:    #667383;
+    --line:     #D9E0E8;
+    --line-2:   #C3CDD8;
+    --accent:   #A85207;
+    --accent-2: #C97524;
+    --good:     #256B4E;
+    --warn:     #97640F;
+    --crit:     #9C332C;
+    --good-bg:  #E4F0EA;
+    --warn-bg:  #F6EEDC;
+    --crit-bg:  #F6E5E3;
+    --idle-bg:  #E6EBF1;
+
+    --sans: "IBM Plex Sans Condensed", "Helvetica Neue", Arial, sans-serif;
+    --serif: "IBM Plex Serif", Georgia, "Times New Roman", serif;
+    --mono: "IBM Plex Mono", "SFMono-Regular", Consolas, monospace;
+  }
+  /* Dark tokens are written out in full in both places: the un-stamped
+     system-default state below, and the explicit [data-theme="dark"] toggle. */
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground:   #101319;
+      --surface:  #181C23;
+      --sunken:   #1E232B;
+      --ink:      #E7EAEF;
+      --ink-2:    #BAC3CE;
+      --muted:    #8E9AA8;
+      --line:     #2A313B;
+      --line-2:   #3A434F;
+      --accent:   #E29B4F;
+      --accent-2: #C97F33;
+      --good:     #58A77F;
+      --warn:     #D0A249;
+      --crit:     #D9736A;
+      --good-bg:  #17291F;
+      --warn-bg:  #2A2318;
+      --crit-bg:  #2B1B19;
+      --idle-bg:  #222831;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground:   #101319;
+    --surface:  #181C23;
+    --sunken:   #1E232B;
+    --ink:      #E7EAEF;
+    --ink-2:    #BAC3CE;
+    --muted:    #8E9AA8;
+    --line:     #2A313B;
+    --line-2:   #3A434F;
+    --accent:   #E29B4F;
+    --accent-2: #C97F33;
+    --good:     #58A77F;
+    --warn:     #D0A249;
+    --crit:     #D9736A;
+    --good-bg:  #17291F;
+    --warn-bg:  #2A2318;
+    --crit-bg:  #2B1B19;
+    --idle-bg:  #222831;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--serif);
+    font-size: 16px;
+    line-height: 1.62;
+    margin: 0;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap {
+    max-width: 860px;
+    margin: 0 auto;
+    padding-inline: 20px;
+    padding-block: 0 72px;
+  }
+
+  /* ---------- masthead ---------- */
+  .masthead {
+    border-bottom: 2px solid var(--ink);
+    padding-block: 40px 18px;
+    margin-bottom: 28px;
+  }
+  .eyebrow {
+    font-family: var(--sans);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0 0 10px;
+  }
+  h1 {
+    font-family: var(--sans);
+    font-weight: 700;
+    font-size: clamp(34px, 7vw, 50px);
+    line-height: 1.02;
+    letter-spacing: -0.015em;
+    margin: 0 0 12px;
+    text-wrap: balance;
+  }
+  .standfirst {
+    font-size: 17px;
+    color: var(--ink-2);
+    margin: 0 0 20px;
+    max-width: 60ch;
+  }
+  .stamp {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--muted);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 20px;
+  }
+  .stamp b { color: var(--ink-2); font-weight: 500; }
+
+  /* ---------- phase tracker ---------- */
+  .phases {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    list-style: none;
+    padding: 0;
+    margin: 0 0 10px;
+  }
+  .phases li {
+    font-family: var(--mono);
+    font-size: 11.5px;
+    line-height: 1;
+    padding: 7px 9px;
+    border-radius: 3px;
+    background: var(--idle-bg);
+    color: var(--muted);
+    white-space: nowrap;
+  }
+  .phases li.done { background: var(--good-bg); color: var(--good); }
+  .phases li.live {
+    background: var(--warn-bg);
+    color: var(--warn);
+    box-shadow: inset 0 0 0 1.5px currentColor;
+    font-weight: 600;
+  }
+
+  /* ---------- sections ---------- */
+  section { margin-top: 52px; }
+  h2 {
+    font-family: var(--sans);
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin: 0 0 6px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--line);
+  }
+  h3 {
+    font-family: var(--sans);
+    font-size: clamp(22px, 4vw, 28px);
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    line-height: 1.15;
+    margin: 18px 0 10px;
+    text-wrap: balance;
+  }
+  h4 {
+    font-family: var(--sans);
+    font-size: 17px;
+    font-weight: 600;
+    margin: 26px 0 6px;
+  }
+  p { margin: 0 0 14px; max-width: 68ch; }
+  a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+  strong { font-weight: 600; }
+  code, .num {
+    font-family: var(--mono);
+    font-size: 0.88em;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ---------- tables ---------- */
+  .scroller { overflow-x: auto; margin: 18px 0 8px; }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    min-width: 560px;
+    font-family: var(--mono);
+    font-size: 13px;
+    font-variant-numeric: tabular-nums;
+  }
+  caption {
+    caption-side: bottom;
+    text-align: left;
+    font-family: var(--sans);
+    font-size: 13px;
+    color: var(--muted);
+    padding-top: 10px;
+    max-width: 68ch;
+  }
+  th, td { padding: 9px 12px; text-align: right; border-bottom: 1px solid var(--line); }
+  th:first-child, td:first-child { text-align: left; }
+  thead th {
+    font-family: var(--sans);
+    font-size: 11.5px;
+    font-weight: 600;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--muted);
+    border-bottom: 1.5px solid var(--line-2);
+    white-space: nowrap;
+  }
+  tbody tr.pick { background: var(--warn-bg); }
+  tbody tr.pick td { color: var(--ink); font-weight: 500; }
+  tbody tr.pick td:first-child::after {
+    content: " chosen";
+    font-family: var(--sans);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--warn);
+    margin-left: 8px;
+  }
+  td.key { color: var(--accent); font-weight: 600; }
+  td.dim { color: var(--muted); }
+
+  /* ---------- callouts ---------- */
+  .note {
+    border-left: 3px solid var(--line-2);
+    padding: 2px 0 2px 18px;
+    margin: 22px 0;
+  }
+  .note.decision { border-left-color: var(--accent); }
+  .note.caution  { border-left-color: var(--warn); }
+  .note.bad      { border-left-color: var(--crit); }
+  .note p:last-child { margin-bottom: 0; }
+  .note .tag {
+    font-family: var(--sans);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    display: block;
+    margin-bottom: 4px;
+  }
+  .note.decision .tag { color: var(--accent); }
+  .note.caution  .tag { color: var(--warn); }
+  .note.bad      .tag { color: var(--crit); }
+
+  /* ---------- findings ---------- */
+  .findings { counter-reset: f; list-style: none; padding: 0; margin: 18px 0; }
+  .findings > li {
+    counter-increment: f;
+    display: grid;
+    grid-template-columns: 28px 1fr;
+    gap: 14px;
+    padding-block: 14px;
+    border-top: 1px solid var(--line);
+  }
+  .findings > li::before {
+    content: counter(f);
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--accent);
+    padding-top: 3px;
+  }
+  .findings h4 { margin: 0 0 4px; }
+  .findings p { margin: 0; }
+
+  /* ---------- traps: unnumbered, they are not a sequence ---------- */
+  .traps { list-style: none; padding: 0; margin: 18px 0; }
+  .traps > li {
+    padding-block: 15px;
+    border-top: 1px solid var(--line);
+  }
+  .traps h4 { margin: 0 0 3px; }
+  .traps p { margin: 0; }
+  .traps .sig {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--crit);
+    display: block;
+    margin-top: 5px;
+  }
+
+  /* ---------- chart ---------- */
+  figure { margin: 24px 0 8px; }
+  .chart-shell {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    padding: 16px 14px 10px;
+  }
+  .chart-title {
+    font-family: var(--sans);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--ink);
+    margin: 0 0 2px;
+  }
+  .chart-sub {
+    font-family: var(--sans);
+    font-size: 12.5px;
+    color: var(--muted);
+    margin: 0 0 8px;
+  }
+  svg { display: block; width: 100%; height: auto; max-width: 100%; }
+  .ax    { font-family: var(--mono); font-size: 11px; fill: var(--muted); }
+  .val   { font-family: var(--mono); font-size: 12px; font-weight: 600; fill: var(--ink); }
+  .barlab{ font-family: var(--sans); font-size: 12.5px; fill: var(--ink-2); }
+  .grid  { stroke: var(--line); stroke-width: 1; }
+  .axis  { stroke: var(--line-2); stroke-width: 1; }
+  figcaption {
+    font-family: var(--sans);
+    font-size: 13px;
+    color: var(--muted);
+    padding-top: 10px;
+    max-width: 68ch;
+  }
+
+  /* ---------- queue ---------- */
+  .queue { list-style: none; padding: 0; margin: 18px 0; }
+  .queue li {
+    display: grid;
+    grid-template-columns: 64px 1fr auto;
+    gap: 6px 16px;
+    align-items: baseline;
+    padding-block: 13px;
+    border-top: 1px solid var(--line);
+  }
+  .queue .id {
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--accent);
+  }
+  .queue .what { font-size: 15px; }
+  .queue .what small { display: block; color: var(--muted); font-size: 13px; }
+  .queue .cost {
+    font-family: var(--mono);
+    font-size: 12.5px;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+  @media (max-width: 520px) {
+    .queue li { grid-template-columns: 56px 1fr; }
+    .queue .cost { grid-column: 2; }
+  }
+
+  footer {
+    margin-top: 56px;
+    padding-top: 18px;
+    border-top: 1px solid var(--line);
+    font-family: var(--sans);
+    font-size: 13px;
+    color: var(--muted);
+  }
+  footer p { max-width: 68ch; }
+</style>
+
+<style>
+  /* ---------- phase ledger ---------- */
+  .ledger { list-style: none; padding: 0; margin: 22px 0; counter-reset: ph -1; }
+  .ledger > li {
+    counter-increment: ph;
+    display: grid;
+    grid-template-columns: 34px 1fr auto;
+    gap: 4px 14px;
+    padding-block: 16px;
+    border-top: 1px solid var(--line);
+    align-items: start;
+  }
+  .ledger > li::before {
+    content: counter(ph);
+    font-family: var(--mono);
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--muted);
+    padding-top: 2px;
+  }
+  .ledger > li.now::before { color: var(--accent); }
+  .ledger h4 { margin: 0 0 2px; font-size: 17px; }
+  .ledger .weeks {
+    font-family: var(--mono);
+    font-size: 11.5px;
+    color: var(--muted);
+    display: block;
+    margin-bottom: 6px;
+  }
+  .ledger p { margin: 0 0 6px; font-size: 15px; }
+  .ledger .detail { grid-column: 2 / -1; }
+  .chip {
+    font-family: var(--sans);
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    padding: 4px 8px;
+    border-radius: 3px;
+    white-space: nowrap;
+    background: var(--idle-bg);
+    color: var(--muted);
+  }
+  .chip.done { background: var(--good-bg); color: var(--good); }
+  .chip.part { background: var(--warn-bg); color: var(--warn); }
+  .chip.now  { background: var(--accent); color: var(--surface); }
+  .chip.block{ background: var(--crit-bg); color: var(--crit); }
+  @media (max-width: 560px) {
+    .ledger > li { grid-template-columns: 26px 1fr; }
+    .ledger .chip { grid-column: 2; justify-self: start; margin-top: 4px; }
+  }
+
+  /* ---------- decisions ---------- */
+  .decide { list-style: none; padding: 0; margin: 20px 0; }
+  .decide > li {
+    padding: 14px 16px;
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--accent);
+    border-radius: 3px;
+    margin-bottom: 10px;
+    background: var(--surface);
+  }
+  .decide h4 { margin: 0 0 4px; font-size: 16px; }
+  .decide p { margin: 0 0 6px; font-size: 14.5px; }
+  .decide .opts {
+    font-family: var(--mono);
+    font-size: 12.5px;
+    color: var(--muted);
+    margin: 0;
+  }
+  .decide .opts b { color: var(--accent); font-weight: 600; }
+</style>
+
+<div class="wrap">
+
+  <header class="masthead">
+    <p class="eyebrow">MSc thesis · project state</p>
+    <h1>VERIFY-DR Roadmap</h1>
+    <p class="standfirst">
+      Where the project stands after Phase 4, what each remaining phase needs, and the
+      four decisions that are waiting on a person rather than on a run.
+    </p>
+    <div class="stamp">
+      <span>Updated <b>16 Sep 2026</b></span>
+      <span>Phase <b>4 of 9</b></span>
+      <span>GPU spent <b>≈3.7 h</b></span>
+      <span>GPU remaining <b>≈32 h</b></span>
+    </div>
+  </header>
+
+  <section style="margin-top:34px">
+    <h2>Where it stands</h2>
+    <h3>Both pathways exist and produce numbers. Neither is frozen.</h3>
+
+    <p>
+      The grading pathway (M1) is selected and its recipe is settled. The evidence
+      pathway (M2) segments lesions and locates the fovea reliably. What does not exist
+      yet is <strong>M3, the reasoner</strong> — and Phase 4 cannot formally close
+      without it, because C4 runs on it.
+    </p>
+
+    <div class="scroller">
+      <table>
+        <caption>
+          Every figure here is validation-only. No locked dataset has been touched and
+          no test split has been read.
+        </caption>
+        <thead>
+          <tr><th scope="col">Component</th><th scope="col">State</th><th scope="col">Headline</th><th scope="col">Reads</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>M1 — grader</td><td>recipe frozen</td><td>QWK 0.679 · grade-1 F1 0.142</td>
+            <td class="dim">weak on grade 1, by design useful</td>
+          </tr>
+          <tr>
+            <td>M2a — lesions</td><td>trained, DDR only</td><td>mean Dice 0.497 · MA 0.316</td>
+            <td class="dim">sees MA better than M1 does</td>
+          </tr>
+          <tr>
+            <td>M2b — geometry</td><td>trained, gate failed</td><td>0.686 DD vs 0.5 gate</td>
+            <td class="dim">fovea fine; disc flips on 12%</td>
+          </tr>
+          <tr>
+            <td>M3 — reasoner</td><td class="key">not built</td><td>—</td>
+            <td class="dim">blocks C4, blocks Phase 4 exit</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="note decision">
+      <span class="tag">The result that matters most so far</span>
+      <p>
+        M1 reaches grade-1 F1 <span class="num">0.142</span>; M2a segments
+        microaneurysms at Dice <span class="num">0.316</span>. Grade 1 <em>is</em>
+        microaneurysms, so <strong>the evidence pathway sees the thing the grader is
+        blind to</strong>. That asymmetry is the mechanism the whole thesis rests on,
+        and it is now measured rather than assumed.
+      </p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Phases</h2>
+    <h3>Done, doing, and what each remaining one actually needs</h3>
+
+    <ul class="ledger">
+      <li>
+        <div>
+          <h4>Before any code</h4>
+          <span class="weeks">Week 1</span>
+        </div>
+        <span class="chip done">done</span>
+        <div class="detail">
+          <p>Protocol, hypotheses, dataset card, experiment register. The register has
+          been kept current after every experiment since.</p>
+        </div>
+      </li>
+
+      <li>
+        <div>
+          <h4>Build the 512 px cache</h4>
+          <span class="weeks">Week 2</span>
+        </div>
+        <span class="chip done">done</span>
+        <div class="detail">
+          <p>EyePACS 88 009 · DDR 14 430 · APTOS 3 662 · Messidor-2 1 744 · IDRiD 494,
+          published as three Kaggle datasets. Needed two top-ups:
+          <code>01b</code> for IDRiD's lesion masks and <code>01c</code> for Part B's
+          grading images.</p>
+        </div>
+      </li>
+
+      <li>
+        <div>
+          <h4>Manifests and splits</h4>
+          <span class="weeks">Week 3</span>
+        </div>
+        <span class="chip done">done</span>
+        <div class="detail">
+          <p>Patient-grouped splits with disjointness asserted, 1.989 images per
+          patient. <strong>A0 closed</strong>: crops verified over 260 tiles, counts
+          reconcile exactly except EyePACS, which is 693 short upstream and
+          non-randomly by grade — a limitation to state, not a bug to fix.</p>
+        </div>
+      </li>
+
+      <li>
+        <div>
+          <h4>Grading pathway — Stage B</h4>
+          <span class="weeks">Weeks 4–7 · 3.4 GPU-h</span>
+        </div>
+        <span class="chip done">done</span>
+        <div class="detail">
+          <p>Nine runs, B1–B5. <strong>512 px · EfficientNet-B0 · focal-ordinal ·
+          stratified exposure · no fusion</strong> — the designed default, which
+          survived every ablation. Two levers mattered (sampler 6.0× its noise floor,
+          focal head 5.6×); resolution was indistinguishable from noise.</p>
+          <p class="dim" style="font-size:14px">B6 and B7 remain, and both need the
+          single unblinding pass, so they belong to Phase 6.</p>
+        </div>
+      </li>
+
+      <li class="now">
+        <div>
+          <h4>Evidence pathway — Stage C</h4>
+          <span class="weeks">Weeks 6–9 · 0.3 GPU-h so far</span>
+        </div>
+        <span class="chip now">now</span>
+        <div class="detail">
+          <p><strong>C1 done, gate failed</strong> at 0.686 DD. Diagnosed: 12% of
+          images place the disc on the wrong side of the fovea, and those carry 47% of
+          the error. Fovea alone is 0.289 DD.</p>
+          <p><strong>C2 done</strong> on DDR: mean Dice 0.497, MA 0.316. Over-segments
+          rare lesions — soft exudate fires on 42 of 96 negatives.</p>
+          <p><strong>C3 ready to run</strong>, ~1 minute: C2's checkpoint evaluated on
+          held-out IDRiD. No training needed.</p>
+          <p><strong>C4 blocked on M3.</strong> It is load-bearing — the evidence path
+          must be informative but weaker than the grader — and nothing builds M3 yet.</p>
+        </div>
+      </li>
+
+      <li>
+        <div>
+          <h4>Freeze</h4>
+          <span class="weeks">Week 10 · point of no return</span>
+        </div>
+        <span class="chip block">blocked</span>
+        <div class="detail">
+          <p>Needs: <code>PREREGISTRATION.md</code> filled in, <code>frozen_config.yaml</code>
+          committed, the commit hash recorded inside the document, and written
+          supervisor acknowledgement.</p>
+          <p>Blocked until C3 and C4 are logged. Four deviations are already waiting to
+          be recorded here — listed at the foot of this page.</p>
+        </div>
+      </li>
+
+      <li>
+        <div>
+          <h4>Final training and the single unblinding</h4>
+          <span class="weeks">Weeks 11–12 · 21.7 GPU-h</span>
+        </div>
+        <span class="chip">ahead</span>
+        <div class="detail">
+          <p>Frozen recipe × 3 seeds × 2 variants = six runs on <code>eyepacs_full</code>
+          and <code>eyepacs_ddr_full</code>. Temperature fitted on the internal
+          calibration split only. Then, <strong>once</strong>: EyePACS official test
+          (H1), APTOS, Messidor-2.</p>
+          <p>That single pass is what makes <strong>B7</strong> legitimate rather than
+          fishing. It also closes <strong>B6</strong>.</p>
+        </div>
+      </li>
+
+      <li>
+        <div>
+          <h4>Calibration, verification, triage</h4>
+          <span class="weeks">Weeks 12–15 · ~10 GPU-h, inference only</span>
+        </div>
+        <span class="chip">ahead</span>
+        <div class="detail">
+          <p><strong>D1–D4</strong> calibration. D2 is expected to <em>fail</em> —
+          grade-0 prevalence moves ~73% → ~49% between EyePACS and APTOS, so a
+          temperature fitted on one prior cannot transfer. That failure is the finding;
+          D3 corrects it with prior-shift EM.</p>
+          <p><strong>E1–E3</strong> verification. E2, the random-region control, is not
+          optional: without it E1 measures "reacts to inpainting", not "uses lesions".</p>
+          <p><strong>F1–F5</strong> triage — five gating arms. <strong>F2 is the
+          thesis</strong>: a signal that only wins in-domain is a curiosity, one that
+          holds under shift is a contribution.</p>
+        </div>
+      </li>
+
+      <li>
+        <div>
+          <h4>Error analysis</h4>
+          <span class="weeks">Weeks 15–17</span>
+        </div>
+        <span class="chip">ahead</span>
+        <div class="detail">
+          <p>G1 — which errors disagreement catches that confidence misses. A case
+          where the grader says "confident normal" and the evidence path finds
+          microaneurysms is <strong>figure 1</strong>, and Stage B plus C2 now say such
+          cases should exist. G2 quality head, G3 failure taxonomy.</p>
+        </div>
+      </li>
+
+      <li>
+        <div>
+          <h4>Write up</h4>
+          <span class="weeks">Weeks 16–20</span>
+        </div>
+        <span class="chip">ahead</span>
+        <div class="detail">
+          <p>Methods chapter comes from the pre-registration, already in the right
+          order and tense. Three things to get right: never compare custom-split numbers
+          to the Kaggle leaderboard; distinguish label noise from model failure
+          (EyePACS is single-grader, Messidor-2 is three-specialist adjudicated); and
+          report negative results as results.</p>
+        </div>
+      </li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Waiting on you</h2>
+    <h3>Four decisions no run can make</h3>
+
+    <ul class="decide">
+      <li>
+        <h4>1 · Does M2b get a second attempt?</h4>
+        <p>
+          C1 fails at 0.686 DD, but 12% of images are outright laterality flips and the
+          other 88% sit at 0.333 DD. A heatmap head can represent both possible disc
+          positions and let the evidence pick; a regressed coordinate must commit to
+          one. Retraining costs <span class="num">1.3</span> minutes.
+        </p>
+        <p class="opts">
+          <b>fix</b> — code change + retrain, likely clears the gate, keeps quadrant
+          reasoning &nbsp;·&nbsp; <b>accept</b> — M3 falls back to count-only rules, which
+          is the designed fallback but a weaker reasoning story
+        </p>
+      </li>
+
+      <li>
+        <h4>2 · Who builds M3, and when?</h4>
+        <p>
+          Nothing in Phase 4 builds the reasoner, yet C4 runs on it and Phase 4's exit
+          condition requires C4. It is also what turns lesion masks into the structured
+          facts the 4-2-1 rule reads. This is the largest unscheduled piece of work in
+          the project.
+        </p>
+        <p class="opts">
+          <b>now</b> — finish Phase 4 properly before freezing &nbsp;·&nbsp;
+          <b>defer</b> — freeze without C4 and record it as a deviation, accepting that
+          the evidence path's informativeness is unmeasured going into Phase 6
+        </p>
+      </li>
+
+      <li>
+        <h4>3 · How is Phase 6 trimmed to budget?</h4>
+        <p>
+          The frozen recipe projects to <span class="num">21.7</span> GPU-hours against
+          a ~20 h plan, on 59 842 real training rows. Kaggle allows 30 h per week, so it
+          fits in a week — but Phase 7 needs another ~10, and the two together do not.
+        </p>
+        <p class="opts">
+          <b>trim seeds</b> 3 → 2 &nbsp;·&nbsp; <b>trim epochs</b> 10 → 8 &nbsp;·&nbsp;
+          <b>split across two weeks</b> — whichever, it is a pre-registration entry, not
+          a mid-run improvisation
+        </p>
+      </li>
+
+      <li>
+        <h4>4 · Does C2 get its <code>+IDRiD</code> arm back?</h4>
+        <p>
+          C2 trains on DDR with IDRiD held out, which buys a genuine external domain for
+          C3 at the cost of the <code>+IDRiD</code> training arm the register specifies.
+          IDRiD contributes ~81 annotated images.
+        </p>
+        <p class="opts">
+          <b>keep held out</b> (current) — external validity for the transfer claim
+          &nbsp;·&nbsp; <b>train on both</b> — marginally better segmenter, no
+          cross-domain test left
+        </p>
+      </li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Compute</h2>
+    <h3>≈3.7 hours spent, ≈32 ahead</h3>
+
+    <div class="scroller">
+      <table>
+        <caption>Kaggle allows 30 GPU-hours per week. Phases 6 and 7 do not fit in one week together.</caption>
+        <thead>
+          <tr><th scope="col">Phase</th><th scope="col">Work</th><th scope="col">GPU-h</th><th scope="col">Status</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>3 · Stage B</td><td>9 selection runs</td><td>3.4</td><td class="dim">spent</td></tr>
+          <tr><td>4 · C1</td><td>geometry</td><td>0.02</td><td class="dim">spent</td></tr>
+          <tr><td>4 · C2</td><td>lesion segmenter</td><td>0.30</td><td class="dim">spent</td></tr>
+          <tr><td>4 · C3</td><td>evaluation only</td><td>~0.02</td><td>queued</td></tr>
+          <tr><td>4 · C4</td><td>evidence-only grading</td><td class="dim">unknown</td><td>needs M3</td></tr>
+          <tr class="pick"><td>6 · final + unblinding</td><td>3 seeds × 2 variants</td><td>21.7</td><td>over the ~20 h plan</td></tr>
+          <tr><td>7 · calibration, verification, triage</td><td>inference only</td><td>~10</td><td>—</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2>For the freeze</h2>
+    <h3>Deviations that must be written down in Phase 5</h3>
+
+    <ol class="findings">
+      <li>
+        <div>
+          <h4>C1 fails its gate</h4>
+          <p>
+            0.686 DD against a pre-specified 0.5. Record the failure, the laterality
+            diagnosis, and whichever fallback M3 ends up using. The median (0.300 DD)
+            is a diagnostic and must never be substituted for the criterion.
+          </p>
+        </div>
+      </li>
+      <li>
+        <div>
+          <h4>C2's <code>+IDRiD</code> arm did not run</h4>
+          <p>
+            IDRiD is held out of M2a training to serve as C3's external domain. A
+            deliberate trade, and a departure from the register as written.
+          </p>
+        </div>
+      </li>
+      <li>
+        <div>
+          <h4>B4 tested two samplers, not three</h4>
+          <p>
+            <code>class_balanced</code> and <code>stratified_exposure</code> proved
+            identical at default <code>epoch_samples</code> — same weights, same draw
+            count, same index sequence. The register says three arms; two ran.
+          </p>
+        </div>
+      </li>
+      <li>
+        <div>
+          <h4>B1 cannot test what motivated it</h4>
+          <p>
+            The 384/512/768 sweep reads one 512 px cache, so the 768 arm upsamples.
+            Report B1 as choosing an operating point under a fixed cache, not as a
+            resolution-sensitivity study.
+          </p>
+        </div>
+      </li>
+      <li>
+        <div>
+          <h4>EyePACS is 693 images short, non-randomly</h4>
+          <p>
+            χ² = 105.6 on 4 df; grade 4 lost at three times grade 0's rate. Upstream of
+            this project, prevalence impact negligible (rDR 19.34% → 19.23%), but a
+            severity-dependent selection effect belongs in the limitations of a referral
+            study.
+          </p>
+        </div>
+      </li>
+    </ol>
+  </section>
+
+  <footer>
+    <p>
+      Generated from <code>docs/00_START_HERE.md</code> and
+      <code>docs/04_experiment_register.md</code>, which remain authoritative. Results
+      narrative and per-experiment figures live in the companion report. Every number
+      here is validation-only; the locked external sets are evaluated exactly once, in
+      Phase 6, after the pre-registration is committed.
+    </p>
+  </footer>
+
+</div>
