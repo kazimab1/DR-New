@@ -29,6 +29,7 @@ from typing import Dict, Optional, Sequence
 import numpy as np
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from torch.utils.data import DataLoader
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
@@ -38,7 +39,9 @@ from verify_dr.data.geometry import (  # noqa: E402
 from verify_dr.evaluation.geometry_metrics import (  # noqa: E402
     C1_GATE_DD, geometry_metrics,
 )
-from verify_dr.models.evidence import GeometryModel  # noqa: E402
+from verify_dr.models.evidence import (  # noqa: E402
+    GeometryHeatmapModel, GeometryModel,
+)
 
 
 def set_seed(seed: int) -> None:
@@ -65,7 +68,10 @@ def evaluate(model, loader, criterion, device, amp: bool, image_size: int) -> Di
         with torch.autocast("cuda", enabled=amp and device.type == "cuda"):
             out = model(image)
             losses.append(float(criterion(out, target).detach()))
-        preds.append(out.float().cpu().numpy())
+        # A heatmap model's forward gives logits, not coordinates; the metrics and
+        # the per-image dump both want coordinates.
+        coords = model.coordinates(out) if hasattr(model, "coordinates") else out
+        preds.append(coords.float().detach().cpu().numpy())
         truths.append(target.float().cpu().numpy())
         indices.append(batch["index"].cpu().numpy())
 
@@ -127,6 +133,26 @@ def write_val_errors(path, dataset, arrays, image_size: int, disc_px: float) -> 
         writer.writerows(rows)
 
 
+class HeatmapLoss(nn.Module):
+    """MSE against Gaussian targets, which is what makes the two modes learnable.
+
+    Regressing a coordinate under SmoothL1 forces one number per landmark, so a
+    bimodal target (disc left for one eye, right for the other) can only be met
+    by committing to a mode -- and C1's first run was wrong on 12% of images for
+    exactly that reason. A per-pixel loss instead asks "is the disc here?" at
+    every location, so both modes can be represented and inference picks the
+    stronger by argmax.
+    """
+
+    def __init__(self, model) -> None:
+        super().__init__()
+        self.model = model
+
+    def forward(self, logits: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
+        maps = self.model.target_heatmaps(target, logits.shape[-1])
+        return F.mse_loss(torch.sigmoid(logits), maps)
+
+
 def train_one_epoch(model, loader, criterion, optimiser, scaler, device, amp: bool) -> float:
     model.train()
     total, seen = 0.0, 0
@@ -147,7 +173,10 @@ def train_one_epoch(model, loader, criterion, optimiser, scaler, device, amp: bo
     return total / max(1, seen)
 
 
-ARCHITECTURE_KEYS = ("image_size",)
+# "head" belongs here, not in TRAJECTORY_KEYS: a heatmap checkpoint and a
+# regression checkpoint have different parameter sets entirely, and resuming
+# one into the other is the silent-success failure the Phase 3 guard exists for.
+ARCHITECTURE_KEYS = ("image_size", "head")
 TRAJECTORY_KEYS = ("lr", "weight_decay", "dropout", "epochs", "batch_size", "manifest", "seed")
 
 
@@ -171,6 +200,7 @@ class Config:
     manifest: str
     experiment: str
     image_size: int
+    head: str
     batch_size: int
     epochs: int
     warmup_epochs: int
@@ -210,6 +240,12 @@ def parse_args(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
     p.add_argument("--workers", type=int, default=4)
     p.add_argument("--seed", type=int, default=42)
     p.add_argument("--limit", type=int, default=0)
+    p.add_argument("--head", choices=("heatmap", "regress"), default="heatmap",
+                   help="heatmap (default) localises by peak, which is what lets the "
+                        "disc sit on either side of the fovea. regress is the original "
+                        "coordinate head, kept so C1's first result stays reproducible.")
+    p.add_argument("--heatmap-sigma", type=float, default=2.0,
+                   help="Gaussian sigma in heatmap pixels.")
     p.add_argument("--resume", action="store_true")
     p.add_argument("--device", default=None)
     return p.parse_args(argv)
@@ -253,10 +289,18 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     print(f"  baseline (predict the training mean): {baseline['mean_error_dd']:.3f} DD, "
           f"{baseline['od_error_px']:.1f} px OD / {baseline['fovea_error_px']:.1f} px fovea")
 
-    model = GeometryModel(pretrained=args.pretrained, dropout=args.dropout).to(device)
-    # Smooth L1 per docs/03: quadratic near zero so fine positioning still gets a
-    # gradient, linear in the tail so a badly-marked centre cannot dominate.
-    criterion = nn.SmoothL1Loss(beta=0.05)
+    if args.head == "heatmap":
+        model = GeometryHeatmapModel(pretrained=args.pretrained,
+                                     sigma=args.heatmap_sigma).to(device)
+        criterion = HeatmapLoss(model)
+        print(f"  head: heatmap  {args.image_size // GeometryHeatmapModel.STRIDE} px grid, "
+              f"sigma {args.heatmap_sigma}")
+    else:
+        model = GeometryModel(pretrained=args.pretrained, dropout=args.dropout).to(device)
+        # Smooth L1 per docs/03: quadratic near zero so fine positioning still gets a
+        # gradient, linear in the tail so a badly-marked centre cannot dominate.
+        criterion = nn.SmoothL1Loss(beta=0.05)
+        print("  head: coordinate regression")
     optimiser = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
     scheduler = torch.optim.lr_scheduler.LambdaLR(
         optimiser, lambda e: lr_lambda(e, args.warmup_epochs, args.epochs))
@@ -264,6 +308,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
 
     config = Config(
         manifest=str(args.manifest), experiment=args.experiment, image_size=args.image_size,
+        head=args.head,
         batch_size=args.batch_size, epochs=args.epochs, warmup_epochs=args.warmup_epochs,
         lr=args.lr, weight_decay=args.weight_decay, dropout=args.dropout,
         val_frac=args.val_frac, pretrained=args.pretrained, patience=args.patience,

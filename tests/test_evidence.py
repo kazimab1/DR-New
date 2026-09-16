@@ -618,3 +618,79 @@ class TestManifestFromCache(unittest.TestCase):
         from verify_dr.data.segmentation import segmentation_manifest_from_cache
         frame = segmentation_manifest_from_cache([self.root, self.root])
         self.assertEqual(len(frame), len(set(frame["image_path"])))
+
+
+class TestGeometryHeatmap(unittest.TestCase):
+    """The heatmap head exists to fix one measured failure: C1 put the optic disc
+    on the wrong side of the fovea in 12% of validation images, and those carried
+    47% of the total error. The disc's x position is bimodal -- nasal, so left for
+    one eye and right for the other -- and a single regressed coordinate must
+    commit to one mode."""
+
+    def test_coordinates_recover_a_known_peak(self):
+        import torch
+        from verify_dr.models.evidence import GeometryHeatmapModel
+        m = GeometryHeatmapModel(pretrained=False)
+        logits = torch.full((1, 2, 64, 64), -10.0)
+        logits[0, 0, 16, 48] = 10.0        # disc at (x=48, y=16)
+        logits[0, 1, 32, 20] = 10.0        # fovea at (x=20, y=32)
+        c = m.coordinates(logits)[0]
+        self.assertAlmostEqual(float(c[0]), 48 / 63, places=2)
+        self.assertAlmostEqual(float(c[1]), 16 / 63, places=2)
+        self.assertAlmostEqual(float(c[2]), 20 / 63, places=2)
+        self.assertAlmostEqual(float(c[3]), 32 / 63, places=2)
+
+    def test_two_peaks_are_not_averaged(self):
+        """The property the whole change rests on.
+
+        A global soft-argmax over a two-peaked heatmap returns the weighted mean --
+        a point midway between the two candidate discs, which is worse than either
+        and is exactly the failure mode a regressed coordinate already has. argmax
+        must pick one peak instead.
+        """
+        import torch
+        from verify_dr.models.evidence import GeometryHeatmapModel
+        m = GeometryHeatmapModel(pretrained=False)
+        logits = torch.full((1, 2, 64, 64), -10.0)
+        logits[0, 0, 32, 10] = 8.0         # a left-eye candidate
+        logits[0, 0, 32, 54] = 10.0        # a right-eye candidate, stronger
+        logits[0, 1, 32, 32] = 10.0
+        x = float(m.coordinates(logits)[0][0]) * 63
+
+        self.assertGreater(x, 45, "argmax must commit to the stronger peak")
+        self.assertNotAlmostEqual(x, 32, delta=8,
+                                  msg="a midpoint here means the peaks were averaged")
+
+    def test_target_heatmap_peaks_on_the_landmark(self):
+        import torch
+        from verify_dr.models.evidence import GeometryHeatmapModel
+        m = GeometryHeatmapModel(pretrained=False)
+        target = torch.tensor([[0.25, 0.75, 0.80, 0.30]])
+        maps = m.target_heatmaps(target, 64)
+        for ch, (tx, ty) in enumerate(((0.25, 0.75), (0.80, 0.30))):
+            idx = int(maps[0, ch].flatten().argmax())
+            self.assertAlmostEqual((idx % 64) / 63, tx, places=1)
+            self.assertAlmostEqual((idx // 64) / 63, ty, places=1)
+
+    def test_head_is_guarded_on_resume(self):
+        """A heatmap checkpoint and a regression checkpoint have different
+        parameter sets. Resuming one into the other is the silent-success failure
+        the Phase 3 architecture guard exists for, so 'head' must be fatal."""
+        import ast
+        src = Path(__file__).resolve().parent.parent / "scripts" / "train_geometry.py"
+        tree = ast.parse(src.read_text())
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Assign) and any(
+                    getattr(t, "id", None) == "ARCHITECTURE_KEYS" for t in node.targets):
+                self.assertIn("head", ast.literal_eval(node.value))
+                return
+        self.fail("train_geometry.py no longer defines ARCHITECTURE_KEYS")
+
+    def test_encoder_attribute_name_is_unchanged(self):
+        """C2 loads C1's encoder by the 'encoder.' prefix, so renaming it here
+        would silently leave C2 on ImageNet weights."""
+        from verify_dr.models.evidence import GeometryHeatmapModel, GeometryModel
+        a = {k.split(".")[0] for k in GeometryModel(pretrained=False).state_dict()}
+        b = {k.split(".")[0] for k in GeometryHeatmapModel(pretrained=False).state_dict()}
+        self.assertIn("encoder", a)
+        self.assertIn("encoder", b)

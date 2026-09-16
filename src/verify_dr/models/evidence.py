@@ -108,6 +108,106 @@ class GeometryModel(nn.Module):
         return self.head(bottleneck)
 
 
+class GeometryHeatmapModel(nn.Module):
+    """M2b as heatmap localisation rather than coordinate regression.
+
+    Why this exists: C1's first run failed its 0.5 DD gate at 0.686, and the
+    per-image dump showed the cause is not imprecision. 10 of 83 validation
+    images placed the optic disc on the *wrong side of the fovea* -- median error
+    3.875 DD against 0.333 DD elsewhere -- and those eight worst images carried
+    47% of the total error.
+
+    That is a representational limit, not a capacity one. The disc sits nasal to
+    the macula, so its x position is **bimodal**: left for one eye, right for the
+    other. A regressed coordinate must emit one number, so it has to commit to a
+    mode and is simply wrong when it commits to the wrong one. A heatmap can hold
+    both peaks and let argmax pick the stronger.
+
+    **argmax, not soft-argmax.** A global soft-argmax over a two-peaked heatmap
+    returns the weighted mean -- a point between the two discs, worse than either.
+    So the peak is taken by argmax and refined by a soft-argmax over a small
+    window around it, which buys sub-pixel accuracy without averaging across
+    modes.
+
+    The encoder is the same EvidenceEncoder under the same attribute name, so a
+    checkpoint from this model still loads into C2 via --encoder-from.
+    """
+
+    #: Heatmap side at 512 px input. /4 keeps a microaneurysm-scale grid while
+    #: staying cheap; the disc is ~75 px, so 128 is ample for it.
+    STRIDE = 4
+
+    def __init__(self, pretrained: bool = True, sigma: float = 2.0,
+                 refine_window: int = 5) -> None:
+        super().__init__()
+        self.encoder = EvidenceEncoder(pretrained)
+        self.sigma = sigma
+        self.refine_window = refine_window
+        skips = EvidenceEncoder.SKIPS
+        self.up3 = DecoderBlock(EvidenceEncoder.BOTTLENECK, skips[3][0], 256)  # 16->32
+        self.up2 = DecoderBlock(256, skips[2][0], 128)                          # 32->64
+        self.up1 = DecoderBlock(128, skips[1][0], 64)                           # 64->128
+        # 2 channels: optic disc, fovea. Order matches the target vector's
+        # (od_x, od_y, fovea_x, fovea_y) pairing.
+        self.out = nn.Conv2d(64, 2, kernel_size=1)
+
+    def forward(self, image: torch.Tensor) -> torch.Tensor:
+        """Heatmap logits, [B, 2, H/4, W/4]."""
+        bottleneck, skips = self.encoder(image)
+        x = self.up3(bottleneck, skips[3])
+        x = self.up2(x, skips[2])
+        x = self.up1(x, skips[1])
+        return self.out(x)
+
+    def coordinates(self, logits: torch.Tensor) -> torch.Tensor:
+        """Peak per channel as [od_x, od_y, fovea_x, fovea_y] in [0, 1].
+
+        Taken by argmax so a second mode cannot drag the estimate toward it, then
+        refined by a soft-argmax inside `refine_window` around that peak.
+        """
+        b, c, h, w = logits.shape
+        flat = logits.reshape(b, c, -1)
+        peak = flat.argmax(dim=-1)
+        py, px = peak // w, peak % w
+
+        half = self.refine_window // 2
+        prob = torch.softmax(flat, dim=-1).reshape(b, c, h, w)
+        ys = torch.arange(h, device=logits.device, dtype=logits.dtype)
+        xs = torch.arange(w, device=logits.device, dtype=logits.dtype)
+
+        out = torch.zeros(b, c * 2, device=logits.device, dtype=logits.dtype)
+        for i in range(b):
+            for j in range(c):
+                y0, y1 = int(max(0, py[i, j] - half)), int(min(h, py[i, j] + half + 1))
+                x0, x1 = int(max(0, px[i, j] - half)), int(min(w, px[i, j] + half + 1))
+                patch = prob[i, j, y0:y1, x0:x1]
+                total = patch.sum()
+                if total <= 0:                      # degenerate window: keep the peak
+                    cy, cx = py[i, j].to(logits.dtype), px[i, j].to(logits.dtype)
+                else:
+                    cy = (patch.sum(dim=1) * ys[y0:y1]).sum() / total
+                    cx = (patch.sum(dim=0) * xs[x0:x1]).sum() / total
+                out[i, j * 2] = cx / (w - 1)
+                out[i, j * 2 + 1] = cy / (h - 1)
+        return out
+
+    def target_heatmaps(self, target: torch.Tensor, size: int) -> torch.Tensor:
+        """Gaussian targets at heatmap resolution from normalised coordinates.
+
+        `target` is [B, 4] as (od_x, od_y, fovea_x, fovea_y) in [0, 1].
+        """
+        b = target.shape[0]
+        grid = torch.arange(size, device=target.device, dtype=target.dtype)
+        maps = torch.zeros(b, 2, size, size, device=target.device, dtype=target.dtype)
+        for j in range(2):
+            cx = target[:, j * 2] * (size - 1)
+            cy = target[:, j * 2 + 1] * (size - 1)
+            dx = grid.view(1, 1, size) - cx.view(b, 1, 1)
+            dy = grid.view(1, size, 1) - cy.view(b, 1, 1)
+            maps[:, j] = torch.exp(-(dx ** 2 + dy ** 2) / (2 * self.sigma ** 2))
+        return maps
+
+
 # ---------------------------------------------------------- M2a segmentation
 
 
