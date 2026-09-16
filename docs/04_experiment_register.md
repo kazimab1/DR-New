@@ -448,8 +448,8 @@ reasoning is auditable rather than assumed.
 | ID | Question | Varies | Decided by | Status | Result |
 |---|---|---|---|---|---|
 | C1 | Can we locate disc and fovea well enough? | — | Euclidean error on IDRiD test, in disc diameters (**target < 0.5 DD**), against the constant-predictor baseline | **DONE** | **FAIL, 0.686 DD** — fovea fine (0.289), disc is the miss (1.082) |
-| C2 | How well do the 4 lesion channels segment? | DDR-seg / +IDRiD / +augmentation | Per-lesion Dice, IoU, **over images where the lesion is annotated** | CODE READY | |
-| C3 | Does the segmenter transfer? | DDR→IDRiD and reverse | Dice drop across domains | CODE READY | |
+| C2 | How well do the 4 lesion channels segment? | DDR-seg / +IDRiD / +augmentation | Per-lesion Dice, IoU, **over images where the lesion is annotated** | **DONE (DDR only)** | mean Dice 0.497; MA 0.316 |
+| C3 | Does the segmenter transfer? | DDR→IDRiD and reverse | Dice drop across domains | **BLOCKED — rerun** | IDRiD absent from C2's population |
 | C4 | How informative is evidence alone? | Reasoner over predicted lesions, no grader | QWK of evidence-grade vs label | BLOCKED — needs M3 | |
 
 > **C4 is load-bearing.** The evidence path must be *informative but weaker* than the
@@ -538,6 +538,95 @@ the mean, and C1 stays FAILED, whatever `val_errors.csv` shows.**
 > and quadrant reasoning survives. If the disc is simply imprecise everywhere in
 > the tail, M3 falls back to count-only rules — which
 > `docs/00_START_HERE.md` names as the designed fallback, not a failure to hide.
+
+### C1 diagnosed — the tail is laterality, and it is 47% of the error
+
+`val_errors.csv`, 83 validation images, best epoch 6.
+
+| | median | p75 | p90 | max | > 0.5 DD |
+|---|---|---|---|---|---|
+| Optic disc | 0.354 | 0.717 | 3.461 | 4.501 | 32 (39%) |
+| Fovea | 0.246 | 0.391 | 0.515 | 1.099 | 9 (11%) |
+
+**10 of 83 images (12%) place the disc on the wrong side of the fovea.** On those
+the median disc error is **3.875 DD**; on the other 73 it is **0.333 DD** — 11.6×
+worse. The eight worst images are all flips and carry **47% of the total disc
+error** between them. Their fovea error is unaffected (0.06–0.46 DD), and the
+predicted coordinates are mirror images of the truth:
+
+| image | OD error | predicted x | true x |
+|---|---|---|---|
+| IDRiD_076 | 4.50 DD | 405.0 | 65.8 |
+| IDRiD_054 | 4.16 DD | 72.9 | 386.1 |
+| IDRiD_077 | 4.07 DD | 104.2 | 407.3 |
+
+This is not imprecision. The model locates the fovea correctly, then puts the disc
+on the opposite side of it — a **laterality error**, the single systematic cause the
+`side_flipped` flag was added to look for.
+
+**What it implies.** Excluding the flips, the disc median is 0.333 DD and the worst
+non-flipped image is 1.473 DD, so a model that got laterality right would very likely
+clear the 0.5 gate. The failure is one recoverable mode, not a diffuse inability to
+find the disc.
+
+**The gate still FAILS at 0.686 DD.** This diagnosis does not change the recorded
+result, and no post-hoc statistic may replace the pre-specified mean.
+
+> **Why direct coordinate regression struggles here.** The disc sits nasal to the
+> macula, so its position is bimodal in x — left for one eye, right for the other —
+> and which mode applies is a property of the image that a single regressed
+> coordinate must commit to. A heatmap head can represent both modes and let the
+> evidence choose; a regressor cannot. That, not capacity, is the likely reason a
+> model with a 0.333 DD median flips outright on 12% of images.
+
+### C2 — DONE, but on DDR alone: mean Dice 0.497
+
+604 train / 151 val, 512 px, best epoch 32 of 48, 17.9 GPU-minutes.
+
+| lesion | Dice (present) | IoU | images | FP images | pred px | true px |
+|---|---|---|---|---|---|---|
+| microaneurysm | 0.3159 | 0.2014 | 120 | 26 | 82 | 90 |
+| haemorrhage | 0.4808 | 0.3437 | 116 | 18 | 793 | 1088 |
+| hard_exudate | 0.5417 | 0.3993 | 104 | 32 | 557 | 451 |
+| soft_exudate | 0.6504 | 0.5178 | 55 | 42 | 325 | 300 |
+| **mean** | **0.4972** | 0.3656 | | | | |
+
+**Microaneurysm segments at 0.316**, which is the number that matters most for this
+thesis: grade 1 is microaneurysms only, and Stage B established that the grader
+reaches just 0.142 grade-1 F1. The evidence pathway sees MA *better than the grader
+does*, which is the asymmetry the disagreement rule is built on. Predicted MA area
+(82 px) also tracks the truth (90 px), so the overlap is not coincidental.
+
+**Over-segmentation is the weak point, and it rises as lesions get rarer.** Soft
+exudate scores the best Dice (0.650) on only 55 annotated images while firing falsely
+on **42** of the 96 images that have none — 44%. Hard exudate: 32 false-positive
+images. A channel that fires on nearly half the negatives inflates evidence counts and
+makes disagreement fire for the wrong reason, so this belongs in M3's confidence
+handling rather than being read as a good Dice.
+
+**`dice_all` runs *below* `dice_present` here** (MA 0.284 vs 0.316, EX 0.472 vs 0.542),
+the opposite of the inflation the all-image average usually produces. With this many
+false-positive images, the empty-target images score 0 rather than the conventional
+1.0. Both figures are reported for exactly this reason: which way the gap runs is a
+property of the data, not something to assume.
+
+> **C2 ran on DDR only — IDRiD never entered.** The notebook chose its population from
+> the Phase 2 manifests and fell back to the cache only if none had masks.
+> `ddr_manifest.csv` has them, so the fallback never fired, and IDRiD's manifest has
+> none: `prepare_manifest.py` builds it from the Part B grading tables, which name the
+> 516 graded images and not one of Part A's 81 — and Part A is the whole IDRiD mask
+> set. Fixed: C2/C3 now take their population from the cache directly, since the
+> manifests answer "which images have grades" and this experiment needs "which images
+> have lesion annotations". In IDRiD those sets are disjoint.
+>
+> **So C2's numbers are a DDR-only result and must be reported as such**, and the
+> "+IDRiD" arm the register specifies has not run.
+
+### C3 — did not run
+
+`SKIPPED - cross-domain needs both DDR and IDRiD, found {'ddr'}`. A direct consequence
+of the above: with IDRiD absent from C2's population there was no second domain. It
+runs once C2 is re-run with the cache-built population.
 
 ### C1 was blocked on first run — cause found and fixed
 
