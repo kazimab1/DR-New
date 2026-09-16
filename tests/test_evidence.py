@@ -718,3 +718,49 @@ class TestSplitDisjointness(unittest.TestCase):
         src = self._source()
         self.assertIn('"--datasets"', src)
         self.assertIn("population restricted to", src)
+
+
+class TestSplitCacheResolution(unittest.TestCase):
+    """A dataset can live in two attached roots at once: the Phase 1 build has
+    IDRiD Part A's images with no masks, the later top-up has them with masks.
+    Resolving on image existence alone picked the mask-less copy, every row was
+    then dropped for carrying no mask, and C3 reported IDRiD absent from a cache
+    that had it."""
+
+    def setUp(self):
+        import tempfile
+        self.tmp = Path(tempfile.mkdtemp())
+        for root, channels in (("cache512", []), ("topup", list(MASK_DIRS[:2]))):
+            d = self.tmp / root / "idrid"
+            (d / "images").mkdir(parents=True)
+            (d / "images" / "IDRiD_55.jpg").write_text("x")
+            for ch in channels:
+                (d / "masks" / ch).mkdir(parents=True)
+                (d / "masks" / ch / "IDRiD_55.png").write_text("x")
+
+    def tearDown(self):
+        import shutil
+        shutil.rmtree(self.tmp, ignore_errors=True)
+
+    def _repath(self, roots):
+        import pandas as pd
+        from verify_dr.data.dataset import repath_to_cache
+        frame = pd.DataFrame([{"image_path": "/old/idrid/images/IDRiD_55.jpg",
+                               "dataset": "idrid"}])
+        return Path(repath_to_cache(frame, roots)["image_path"].iloc[0])
+
+    def test_the_mask_bearing_root_wins_whatever_the_order(self):
+        for roots in ([self.tmp / "cache512", self.tmp / "topup"],
+                      [self.tmp / "topup", self.tmp / "cache512"]):
+            got = self._repath(roots)
+            self.assertIn("topup", str(got), f"order {[r.name for r in roots]}")
+
+    def test_the_repathed_image_actually_carries_masks(self):
+        from verify_dr.data.segmentation import available_channels
+        got = self._repath([self.tmp / "cache512", self.tmp / "topup"])
+        self.assertTrue(available_channels(got),
+                        "repath and available_channels must agree about the same file")
+
+    def test_a_single_root_is_unchanged(self):
+        got = self._repath([self.tmp / "cache512"])
+        self.assertIn("cache512", str(got))

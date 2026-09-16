@@ -129,6 +129,27 @@ def cache_tail(value: str, dataset: Optional[str] = None) -> Optional[Path]:
     return None
 
 
+def _mask_channels(root: Path, dataset: str) -> int:
+    """How many mask channel directories this root has for `dataset`."""
+    masks = root / dataset / "masks"
+    try:
+        return sum(1 for d in masks.iterdir() if d.is_dir())
+    except OSError:
+        return 0
+
+
+def _best_root(roots, tail, dataset: str) -> Path:
+    """The root holding the most complete copy of `dataset`.
+
+    Candidates must actually contain the file; among those, more mask channels
+    wins. Order breaks a tie, so a single-root cache behaves exactly as before.
+    """
+    holders = [r for r in roots if (r / tail).exists()]
+    if not holders:
+        return roots[0]
+    return max(holders, key=lambda r: _mask_channels(r, dataset))
+
+
 def repath_to_cache(frame: pd.DataFrame, cache_root) -> pd.DataFrame:
     """Point image_path at `cache_root`, keeping the <dataset>/images/... tail.
 
@@ -138,8 +159,16 @@ def repath_to_cache(frame: pd.DataFrame, cache_root) -> pd.DataFrame:
 
     `cache_root` may be several roots. The cache is legitimately split across
     published datasets: a full build plus a later top-up (IDRiD's masks ship as
-    their own dataset). Each dataset is resolved to the first root that actually
-    holds it, so a split cache works without merging it on disk.
+    their own dataset). Each dataset resolves to the root holding the **most
+    complete** copy, so a split cache works without merging it on disk.
+
+    "Most complete" means most mask channels, not merely first-with-the-image.
+    IDRiD appears in both roots -- the Phase 1 build has Part A's images with no
+    masks, the top-up has them with masks -- so resolving on image existence
+    alone picked the mask-less copy, every row was dropped for carrying no mask,
+    and C3 reported IDRiD absent from a cache that had it. Images are identical
+    between the two, so preferring the mask-bearing root costs a caller that
+    only wants images nothing at all.
     """
     roots = [Path(r) for r in (cache_root if isinstance(cache_root, (list, tuple))
                                else [cache_root])]
@@ -155,7 +184,7 @@ def repath_to_cache(frame: pd.DataFrame, cache_root) -> pd.DataFrame:
             return value
         key = tail.parts[0]
         if key not in chosen:
-            chosen[key] = next((r for r in roots if (r / tail).exists()), roots[0])
+            chosen[key] = _best_root(roots, tail, key)
         return str(chosen[key] / tail)
 
     frame = frame.copy()
