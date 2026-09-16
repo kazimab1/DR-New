@@ -4,8 +4,10 @@
 # After committing, this file does not change. Deviations go in PREREGISTRATION.md.
 
 meta:
-  frozen_at: null            # YYYY-MM-DD -- fill in on the day you commit
-  frozen_commit: null        # fill in AFTER committing, then amend
+  frozen_at: 2026-09-16
+  frozen_commit: null        # set by the NEXT commit; see PREREGISTRATION.md.
+                             # Not by amending -- an amended commit has a
+                             # different hash than the one just recorded.
   seeds: [42, 43, 44]
   # Phase 6 at 10 epochs projects to 21.7 GPU-h on 59 842 training rows -- more
   # than one week's 30 h quota allows alongside anything else, so the six runs

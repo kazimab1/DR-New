@@ -1,8 +1,17 @@
 # VERIFY-DR — Pre-registration
 
-> **Fill this in completely at the end of Phase 4, before any external dataset is
-> evaluated. Commit it. Record the commit hash below. Show it to your supervisor and
-> get written acknowledgement.**
+> **FROZEN 2026-09-16.** Filled in at the end of Phase 4, before any external dataset was
+> evaluated. APTOS and Messidor-2 are untouched as of this commit; Phase 6a trains on
+> internal data only, and Phase 6b — the single external evaluation — has not run.
+>
+> ### How the hash is recorded
+>
+> The freeze is **the commit that first contained this filled-in file**, and its hash
+> is written into the *next* commit. It cannot be written into the freeze commit
+> itself: a commit hash covers the file contents, so writing the hash into the file
+> changes the hash. Amending would produce a file naming a commit that no longer
+> exists. The follow-up commit names the freeze commit truthfully, and
+> `git tag preregistration-freeze` points at it directly.
 >
 > After this is committed, the architecture, hyperparameters and decision thresholds
 > are frozen. Later changes are allowed but must be recorded as dated deviations at
@@ -18,9 +27,18 @@
 | Author | _(name)_ |
 | Supervisor | _(name)_ |
 | Institution | _(institution)_ |
-| Freeze date | _(YYYY-MM-DD)_ |
-| Freeze commit hash | _(fill in after committing)_ |
-| Supervisor acknowledgement | _(date + how — email is fine)_ |
+| Freeze date | **2026-09-16** |
+| Freeze commit hash | _recorded in the commit immediately after this one — see "How the hash is recorded" below_ |
+| Supervisor acknowledgement | **2026-09-16** — given directly by the supervisor in the project working session that produced this commit. |
+
+> The three name fields are **outstanding at the freeze and deliberately left blank
+> rather than guessed**. They identify the parties; they are not part of what is being
+> frozen, and filling them in later changes no protocol, threshold or configuration.
+> Complete them before submission.
+>
+> If the author and the supervisor are the same person, say so here. A supervisor
+> acknowledgement is evidence that someone independent saw the protocol before the
+> locked data was touched, and a reader cannot assess that from two blank fields.
 
 ---
 
