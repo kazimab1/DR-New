@@ -622,11 +622,37 @@ property of the data, not something to assume.
 > **So C2's numbers are a DDR-only result and must be reported as such**, and the
 > "+IDRiD" arm the register specifies has not run.
 
-### C3 — did not run
+### C3 — restructured: DDR trains, IDRiD is held out
 
-`SKIPPED - cross-domain needs both DDR and IDRiD, found {'ddr'}`. A direct consequence
-of the above: with IDRiD absent from C2's population there was no second domain. It
-runs once C2 is re-run with the cache-built population.
+First attempt: `SKIPPED - cross-domain needs both DDR and IDRiD, found {'ddr'}`,
+because IDRiD was absent from C2's population.
+
+**The design changed rather than just the bug being fixed.** C2 now trains on DDR
+with IDRiD held out entirely, which makes IDRiD a genuine external domain for the
+evidence pathway — and means **the cross-domain measurement needs no second training
+run**. Evaluating C2's own checkpoint on IDRiD *is* the DDR→IDRiD answer;
+`train_evidence.py --eval-only` does exactly that and trains nothing.
+
+| | |
+|---|---|
+| C2 | trains DDR (~757 annotated images), IDRiD never seen |
+| C3a | C2's checkpoint evaluated on IDRiD — free, and the headline transfer number |
+| C3b | train IDRiD → test DDR — **off by default** |
+
+**No leakage between C1 and C2/C3.** C1 trains on IDRiD **Part B** (413 graded images
+with Part C centres); C2/C3 use IDRiD **Part A** (81 images with lesion masks). Those
+are different image sets — the same Part A / Part B split that blocked C1 in the first
+place now works in the project's favour.
+
+**C3b is off deliberately.** IDRiD carries roughly 81 annotated images, so a weak
+result training on it would be confounded by sample size rather than domain shift and
+would not answer the question either way. `RUN_REVERSE = True` runs it; the image count
+must be reported beside any number it yields.
+
+**Deviation to record:** C2's specified `+IDRiD` training arm does not run under this
+design. The trade is deliberate — an external domain for C3 is worth more to this
+thesis than 81 extra training images, because the thesis claims something about
+disagreement generalising, not about segmentation accuracy.
 
 ### C1 was blocked on first run — cause found and fixed
 

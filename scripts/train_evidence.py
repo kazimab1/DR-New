@@ -182,6 +182,11 @@ def parse_args(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
     p.add_argument("--seed", type=int, default=42)
     p.add_argument("--limit", type=int, default=0)
     p.add_argument("--resume", action="store_true")
+    p.add_argument("--eval-only", type=Path, default=None, metavar="CHECKPOINT",
+                   help="Evaluate this checkpoint on --val-datasets and exit, "
+                        "training nothing. The cross-domain question 'does a "
+                        "DDR-trained segmenter work on IDRiD' needs no second "
+                        "training run -- the DDR model already exists.")
     p.add_argument("--device", default=None)
     return p.parse_args(argv)
 
@@ -229,7 +234,19 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         frame = frame.head(args.limit)
 
     lower = frame["dataset"].str.lower()
-    if args.train_datasets or args.val_datasets:
+    if args.eval_only:
+        # No training set is needed or wanted: the checkpoint fixes what was
+        # trained on, and naming it again here could only contradict it.
+        if not args.val_datasets:
+            print("error: --eval-only requires --val-datasets", file=sys.stderr)
+            return 1
+        val_frame = frame[lower.isin([d.lower() for d in args.val_datasets])]
+        train_frame = val_frame.head(0)
+        if val_frame.empty:
+            print(f"error: no rows for {args.val_datasets}. Available: "
+                  f"{sorted(frame['dataset'].unique())}", file=sys.stderr)
+            return 1
+    elif args.train_datasets or args.val_datasets:
         # C3: the split is by source, not by row, so the two sets are disjoint by
         # construction and "cross-domain" means what it says.
         train_frame = frame[lower.isin([d.lower() for d in (args.train_datasets or [])])]
@@ -261,8 +278,11 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
 
     train_set = SegmentationDataset(train_frame, args.image_size, train=True, seed=args.seed)
     val_set = SegmentationDataset(val_frame, args.image_size, train=False, seed=args.seed)
-    train_loader = DataLoader(train_set, batch_size=args.batch_size, shuffle=True,
-                              num_workers=args.workers, pin_memory=device.type == "cuda")
+    # None under --eval-only: the training frame is deliberately empty there, and
+    # a shuffling DataLoader over zero rows raises before the eval branch is reached.
+    train_loader = None if args.eval_only else DataLoader(
+        train_set, batch_size=args.batch_size, shuffle=True,
+        num_workers=args.workers, pin_memory=device.type == "cuda")
     val_loader = DataLoader(val_set, batch_size=args.batch_size, shuffle=False,
                             num_workers=args.workers, pin_memory=device.type == "cuda")
 
@@ -277,6 +297,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     criterion = SegmentationLoss(dice_weight=args.dice_weight,
                                  bce_weight=1.0 - args.dice_weight,
                                  pos_weight=args.pos_weight)
+
     trainable = [p for p in model.parameters() if p.requires_grad]
     optimiser = torch.optim.AdamW(trainable, lr=args.lr, weight_decay=args.weight_decay)
     scheduler = torch.optim.lr_scheduler.LambdaLR(
@@ -294,6 +315,37 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         freeze_encoder=args.freeze_encoder, patience=args.patience,
         seed=args.seed, amp=args.amp)
     (out_dir / "config.json").write_text(json.dumps(asdict(config), indent=2), encoding="utf-8")
+
+    started = time.time()
+    if args.eval_only:
+        state = torch.load(args.eval_only, map_location=device, weights_only=False)
+        model.load_state_dict(state["model"])
+        trained_on = state.get("config", {}).get("manifest", "unrecorded")
+        print(f"  evaluating {args.eval_only.name} on "
+              f"{sorted(val_frame['dataset'].unique())}: {len(val_set)} images")
+        print(f"  that checkpoint was trained from: {trained_on}")
+        result = evaluate(model, val_loader, criterion, device, args.amp)
+        print()
+        print(format_report(result))
+
+        summary = {
+            "experiment": args.experiment,
+            "finished_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+            "eval_only": True,
+            "checkpoint": str(args.eval_only),
+            "checkpoint_trained_on": trained_on,
+            "best_mean_dice_present": result["mean_dice_present"],
+            "best_val": result,
+            "train_images": 0,
+            "val_images": len(val_set),
+            "val_datasets": sorted(val_frame["dataset"].unique()),
+            "minutes": round((time.time() - started) / 60, 1),
+            "config": asdict(config),
+        }
+        (out_dir / "metrics.json").write_text(json.dumps(summary, indent=2),
+                                              encoding="utf-8")
+        print(f"\n  wrote {out_dir}")
+        return 0
 
     start_epoch, best_dice, best_epoch, history = 0, -math.inf, -1, []
     if args.resume and checkpoint_path.exists():
