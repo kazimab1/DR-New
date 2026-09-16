@@ -806,6 +806,22 @@ MA channel (Dice 0.344) missing what its larger-lesion channels find. The rule e
 so those images are not graded 0, but a third of the corpus resting on a fallback rung
 is a limitation to state, not a detail.
 
+### The C2/C3 population, for the record
+
+`segmentation_manifest.csv`, built from the cache and published inside
+`verify-dr-stage-c`, is the provenance record for which images Stage C used.
+
+| source | images | resolved from |
+|---|---|---|
+| DDR | 757 | `verify-dr-cache-512` |
+| IDRiD (Part A only, `IDRiD_01`–`81`) | 81 | `verify-dr-idrid` |
+| **total** | **838** | no duplicates |
+
+`grade` is −1 throughout: this is the set of images carrying lesion annotations, not a
+grading manifest, which is why C4 reads `ddr_manifest.csv` instead. IDRiD resolving to
+`verify-dr-idrid` rather than to the Phase 1 build is the split-cache fix working —
+that mis-resolution is what blocked C3 on two separate runs.
+
 ## Stage C closed
 
 | | result | verdict |
