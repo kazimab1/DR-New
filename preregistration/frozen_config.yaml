@@ -8,7 +8,10 @@ meta:
   frozen_commit: 17472a2497054158c20588e9b71505b40b44a590
   # Recorded by the commit AFTER the freeze, not by amending it: a hash covers the
   # file contents, so writing the hash into the file changes the hash.
-  # Also reachable as the tag `preregistration-freeze`.
+  # A local tag `preregistration-freeze` also points at it. It is NOT on the
+  # remote -- this session's git relay accepts branch refs only. Push it with
+  #   git push origin refs/tags/preregistration-freeze
+  # The hash above is the authoritative record either way; the tag is a convenience.
   seeds: [42, 43, 44]
   # Phase 6 at 10 epochs projects to 21.7 GPU-h on 59 842 training rows -- more
   # than one week's 30 h quota allows alongside anything else, so the six runs

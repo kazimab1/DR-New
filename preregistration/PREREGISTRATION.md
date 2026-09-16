@@ -11,7 +11,9 @@
 > itself: a commit hash covers the file contents, so writing the hash into the file
 > changes the hash. Amending would produce a file naming a commit that no longer
 > exists. The follow-up commit names the freeze commit truthfully, and
-> `git tag preregistration-freeze` points at it directly.
+> A local tag `preregistration-freeze` also points at it. That tag is not yet on
+> the remote — push it with `git push origin refs/tags/preregistration-freeze`.
+> The hash recorded above is the authoritative record regardless.
 >
 > After this is committed, the architecture, hyperparameters and decision thresholds
 > are frozen. Later changes are allowed but must be recorded as dated deviations at
