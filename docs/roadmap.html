@@ -458,21 +458,20 @@
     </p>
     <div class="stamp">
       <span>Updated <b>16 Sep 2026</b></span>
-      <span>Phase <b>4 of 9</b></span>
-      <span>GPU spent <b>≈3.7 h</b></span>
+      <span>Phase <b>5 of 9</b></span>
+      <span>GPU spent <b>≈4.3 h</b></span>
       <span>GPU remaining <b>≈32 h</b></span>
     </div>
   </header>
 
   <section style="margin-top:34px">
     <h2>Where it stands</h2>
-    <h3>Both pathways exist and produce numbers. Neither is frozen.</h3>
+    <h3>Both pathways are built and measured. Stage C is closed; the freeze is next.</h3>
 
     <p>
-      The grading pathway (M1) is selected and its recipe is settled. The evidence
-      pathway (M2) segments lesions and locates the fovea reliably. What does not exist
-      yet is <strong>M3, the reasoner</strong> — and Phase 4 cannot formally close
-      without it, because C4 runs on it.
+      Both pathways are built, M3 exists, and all four Stage C experiments have numbers.
+      <strong>The premise survived its own falsification test</strong>: C4 was specified
+      to be able to kill the project, and it landed where the design needs it.
     </p>
 
     <div class="scroller">
@@ -490,7 +489,7 @@
             <td class="dim">weak on grade 1, by design useful</td>
           </tr>
           <tr>
-            <td>M2a — lesions</td><td>trained, DDR only</td><td>mean Dice 0.497 · MA 0.316</td>
+            <td>M2a — lesions</td><td>trained, DDR only</td><td>Dice 0.505 · MA 0.344 · transfers at 0.425</td>
             <td class="dim">sees MA better than M1 does</td>
           </tr>
           <tr>
@@ -498,8 +497,8 @@
             <td class="dim">fovea fine; disc flips on 12%</td>
           </tr>
           <tr>
-            <td>M3 — reasoner</td><td class="key">not built</td><td>—</td>
-            <td class="dim">blocks C4, blocks Phase 4 exit</td>
+            <td>M3 — reasoner</td><td>built, count-only</td><td>C4 QWK 0.375 vs M1's 0.679</td>
+            <td class="dim">informative but weaker — as required</td>
           </tr>
         </tbody>
       </table>
@@ -578,22 +577,25 @@
         </div>
       </li>
 
-      <li class="now">
+      <li>
         <div>
           <h4>Evidence pathway — Stage C</h4>
-          <span class="weeks">Weeks 6–9 · 0.3 GPU-h so far</span>
+          <span class="weeks">Weeks 6–9 · 0.9 GPU-h</span>
         </div>
-        <span class="chip now">now</span>
+        <span class="chip done">done</span>
         <div class="detail">
-          <p><strong>C1 done, gate failed</strong> at 0.686 DD. Diagnosed: 12% of
-          images place the disc on the wrong side of the fovea, and those carry 47% of
-          the error. Fovea alone is 0.289 DD.</p>
-          <p><strong>C2 done</strong> on DDR: mean Dice 0.497, MA 0.316. Over-segments
-          rare lesions — soft exudate fires on 42 of 96 negatives.</p>
-          <p><strong>C3 ready to run</strong>, ~1 minute: C2's checkpoint evaluated on
-          held-out IDRiD. No training needed.</p>
-          <p><strong>C4 blocked on M3.</strong> It is load-bearing — the evidence path
-          must be informative but weaker than the grader — and nothing builds M3 yet.</p>
+          <p><strong>C1 FAIL</strong> at 0.686 DD. Two attempts: the coordinate head
+          flips the disc's side on 10 of 83 images, carrying 47% of the error; the
+          heatmap head built to fix that gave 27 of 83 and worse error everywhere. The
+          remedy is refuted, the cause is not established, M3 runs count-only.</p>
+          <p><strong>C2</strong> on DDR: mean Dice 0.505, MA 0.344. Over-segments rare
+          lesions — soft exudate fires on 51 of 106 negatives.</p>
+          <p><strong>C3 transfers</strong>: 0.425 on held-out IDRiD against 0.505
+          in-domain, −16% relative. Not the collapse the experiment was built to detect,
+          and the first evidence for H1′.</p>
+          <p><strong>C4 QWK 0.375</strong> against M1's 0.679 on 11 767 images the
+          segmenter never saw. Informative but weaker — the premise holds. Read it as a
+          floor: only 3 of 5 grades are reachable, and R3* carries 35% of the corpus.</p>
         </div>
       </li>
 
@@ -602,13 +604,16 @@
           <h4>Freeze</h4>
           <span class="weeks">Week 10 · point of no return</span>
         </div>
-        <span class="chip block">blocked</span>
+        <span class="chip now">now</span>
         <div class="detail">
-          <p>Needs: <code>PREREGISTRATION.md</code> filled in, <code>frozen_config.yaml</code>
-          committed, the commit hash recorded inside the document, and written
-          supervisor acknowledgement.</p>
-          <p>Blocked until C3 and C4 are logged. Four deviations are already waiting to
-          be recorded here — listed at the foot of this page.</p>
+          <p><strong>Unblocked.</strong> Stage C is closed, so the two open rows in the
+          pre-registration resolve: the OD/fovea head is the <em>coordinate</em> head
+          (0.686 DD, the better of the two), and the evidence training data is
+          <em>DDR only</em> with IDRiD held out.</p>
+          <p>What remains is a person's work, not a run: <code>PREREGISTRATION.md</code>
+          administrative fields, <code>frozen_config.yaml</code> committed, the commit
+          hash recorded inside the document, and written supervisor acknowledgement.
+          Six deviations are waiting to be recorded — listed at the foot of this page.</p>
         </div>
       </li>
 
@@ -680,11 +685,11 @@
 
   <section>
     <h2>Waiting on you</h2>
-    <h3>Four decisions no run can make</h3>
+    <h3>Two settled by Stage C, two still open</h3>
 
     <ul class="decide">
-      <li>
-        <h4>1 · Does M2b get a second attempt?</h4>
+      <li style="border-left-color:var(--good)">
+        <h4>1 · Does M2b get a second attempt? — <em>settled: no</em></h4>
         <p>
           C1 fails at 0.686 DD, but 12% of images are outright laterality flips and the
           other 88% sit at 0.333 DD. A heatmap head can represent both possible disc
@@ -692,14 +697,14 @@
           one. Retraining costs <span class="num">1.3</span> minutes.
         </p>
         <p class="opts">
-          <b>fix</b> — code change + retrain, likely clears the gate, keeps quadrant
-          reasoning &nbsp;·&nbsp; <b>accept</b> — M3 falls back to count-only rules, which
-          is the designed fallback but a weaker reasoning story
+          It was tried and it failed: 27 of 83 flips against 10, and worse on the fovea
+          where bimodality cannot apply. A third attempt (weighted heatmap loss, 1.3 min)
+          is <b>declined</b> — landmark accuracy is not the contribution.
         </p>
       </li>
 
-      <li>
-        <h4>2 · Who builds M3, and when?</h4>
+      <li style="border-left-color:var(--good)">
+        <h4>2 · Who builds M3, and when? — <em>settled: built</em></h4>
         <p>
           Nothing in Phase 4 builds the reasoner, yet C4 runs on it and Phase 4's exit
           condition requires C4. It is also what turns lesion masks into the structured
@@ -707,9 +712,8 @@
           the project.
         </p>
         <p class="opts">
-          <b>now</b> — finish Phase 4 properly before freezing &nbsp;·&nbsp;
-          <b>defer</b> — freeze without C4 and record it as a deviation, accepting that
-          the evidence path's informativeness is unmeasured going into Phase 6
+          Built and run. M3 is deterministic Python, no learned parameters, five ICDR
+          rules, and C4 measured it at QWK <b>0.375</b>. Phase 4 closed properly.
         </p>
       </li>
 
