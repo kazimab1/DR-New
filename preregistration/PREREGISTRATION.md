@@ -60,37 +60,47 @@ the default specified in `docs/03_model_architecture.md` before any run happened
 | Setting | Value | Status |
 |---|---|---|
 | Evidence segmenter | ResNet18-UNet, 4 channels, 0.5·Dice + 0.5·BCE | settled (C2) |
-| Evidence training data | **DDR-seg only; IDRiD held out** | **changed** — see deviation D2 |
-| OD/fovea regressor | ResNet18, **head to be fixed** — coordinate vs heatmap | **OPEN** — see below |
-| Quadrant reasoning (R4) | available only if the OD/fovea gate passes | depends on the above |
+| Evidence training data | **DDR-seg only; IDRiD held out** | settled — deviation D2 |
+| OD/fovea regressor | ResNet18 + **coordinate head**, IDRiD Part B | settled — deviation D6 |
+| Quadrant reasoning (R4) | **disabled** — the gate was not met | settled — deviation D1 |
+| Reachable evidence grades | **0, 1, 2** only | consequence of R4 being disabled |
 
-> **Two rows here are not yet frozen, and this section cannot be signed off until they
-> are.**
+> **Both rows are now settled by Stage C.**
 >
-> **Evidence training data** originally read "DDR-seg + IDRiD-seg". C2 trains on DDR
-> alone with IDRiD held out, which makes IDRiD a genuine external domain for C3. That
-> is a deliberate change of design, recorded as a deviation rather than silently
-> edited.
+> **Evidence training data.** The template read "DDR-seg + IDRiD-seg". C2 trains on DDR
+> alone with IDRiD held out, which gives C3 a genuine external domain — worth more to a
+> thesis about generalisation than 81 extra training images. C3 then measured a 16%
+> relative Dice drop rather than a collapse.
 >
-> **The OD/fovea head is undecided.** C1 with a coordinate head failed its 0.5 DD gate
-> at 0.686, and the per-image dump attributes 47% of the disc error to 12% of images
-> that place the disc on the wrong side of the fovea. A heatmap head is implemented and
-> is the hypothesised fix, but it has not been run on this data. **Whichever is frozen
-> here determines whether M3's rule R4 (the 4-2-1 severe-NPDR criterion) can fire at
-> all**, so it is not a detail that can be settled later.
+> **The OD/fovea head is the coordinate head.** C1 reached 0.686 DD against a 0.5 gate
+> and **failed**. A heatmap head was built to address the laterality flips that carry
+> 47% of that error; it gave 1.028 DD and 27/83 flips against 10/83, so it is worse on
+> the very thing it targeted. The coordinate head is frozen as the better of two, with
+> its failure recorded rather than revised.
+>
+> **What that costs, stated plainly:** R4 — the 4-2-1 severe-NPDR criterion — needs
+> quadrants, quadrants need geometry that passed its gate, and it did not. R4 never
+> fires, so **evidence grades 3 and 4 are unreachable** and every C4 figure is a floor.
+> `docs/00_START_HERE.md` names this as the designed fallback, not a failure to hide.
 
-### Not yet logged — Phase 4's exit condition is unmet
+### Stage C, logged
 
-| | Needs | Cost |
+| | result | verdict |
 |---|---|---|
-| C3 cross-domain | run the eval-only cell | ~1 min GPU |
-| C1 head choice | run the comparison cell | ~1.5 min GPU |
-| **C4 evidence-only grading** | **M3 does not exist yet** | hours of Python, no GPU |
+| C1 | 0.686 DD against a 0.5 gate | **FAIL** — R4 disabled, M3 count-only |
+| C2 | mean Dice 0.505; microaneurysm 0.344 | DDR only |
+| C3 | 0.425 on held-out IDRiD, −16% relative | **transfers** |
+| C4 | **QWK 0.375** against M1's 0.679, n = 11 767 | **informative but weaker** |
 
-C4 is the falsification test named in section 8: if the evidence pathway is
-uninformative, disagreement carries no signal and H1 cannot hold for the stated reason.
-Freezing before C4 means committing 21.7 GPU-hours of Phase 6 training to a premise that
-has not been tested.
+**Section 8's falsification test has been run and the premise survived.** C4 was
+specified to be capable of ending the project: an evidence path as good as the grader
+makes the grader redundant, one at chance makes disagreement meaningless. 0.375 against
+0.679 is neither.
+
+Two qualifications that belong beside every C4 figure: only 3 of 5 grades are
+reachable, so the QWK is a floor; and `R3*` — haemorrhage or exudate with no
+microaneurysm detected — fired on 35% of the corpus, which is M2a's MA channel missing
+what its larger-lesion channels find.
 
 ## 3. Models to be evaluated externally
 
@@ -152,6 +162,19 @@ file.
 
 Append dated entries. Never edit the sections above after the freeze.
 
-| Date | Section | Change | Reason |
+Recorded at the freeze, before any external evaluation. Later entries are appended
+with their date; the sections above are never edited.
+
+| # | Section | Change | Reason |
 |---|---|---|---|
-| | | | |
+| D1 | 2 · reasoner | R4 disabled; evidence grades limited to 0–2 | C1 measured 0.686 DD against a 0.5 gate. Quadrants need geometry that passed; a wrong frame makes R4 confidently wrong rather than cautious. The count-only fallback is named in `docs/00_START_HERE.md`. |
+| D2 | 2 · evidence data | `[ddr_seg, idrid_seg]` → **DDR only**, IDRiD held out | Gives C3 a genuine external domain. A thesis claiming disagreement generalises needs an unseen source more than it needs 81 extra training images. C2's specified `+IDRiD` arm therefore did not run. |
+| D3 | 7 · analysis plan | B4 tested two samplers, not the three specified | `class_balanced` and `stratified_exposure` are identical at default `epoch_samples` — same weights, same draw count, same index sequence, verified by comparing the emitted indices. `make_sampler` now warns and a test pins the equivalence. |
+| D4 | 2 · input resolution | B1 reported as an operating-point choice, **not** a resolution-sensitivity study | All three arms read one 512 px cache, so the 768 arm upsamples and cannot test the claim that motivated the sweep. Testing it honestly needs a cache rebuilt at 768 from the originals. |
+| D5 | — · data | EyePACS is 693 images (0.78%) short of the official 88 702 | Upstream of this project: `cache_report.json` shows found = cached = 88 009, failed = 0. The loss is non-random by grade (χ² = 105.6, 4 df; grade 4 lost at 3× grade 0's rate). Prevalence impact negligible (rDR 19.34% → 19.23%), but a severity-dependent selection effect belongs in a referral study's limitations. |
+| D6 | 2 · OD/fovea head | A heatmap head was built, tested and **rejected** | Intended to fix the laterality flips carrying 47% of C1's error. It produced 27/83 flips against 10/83 and 1.028 DD against 0.686 — worse on the fovea too, where bimodality cannot apply, so it refutes the remedy rather than the diagnosis. The cause of the flips is not established. A weighted-loss retrain (~1.3 GPU-min) was declined: landmark accuracy is not this project's contribution. |
+
+> **Not a deviation, but decide it here:** Phase 6 at the frozen recipe projects to
+> **21.7 GPU-hours** against a ~20 h plan, on 59 842 real training rows. Trim seeds or
+> epochs in `frozen_config.yaml` *before* committing, or record the overrun as D7.
+> Discovering it mid-run is what this document exists to prevent.
