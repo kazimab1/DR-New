@@ -942,7 +942,73 @@ says nothing about real lesions, and the fixture's numbers must never reach the 
 
 ---
 
+## Phase 6a — final training, split across sessions
+
+Six runs: the frozen recipe on both declared variants at three seeds. Executed by
+`notebooks/06_final_training.ipynb`.
+
+| run | variant | seed | Status | QWK | macro-F1 | g1-F1 | distinct |
+|---|---|---|---|---|---|---|---|
+| H1_eyepacs_full_s42 | eyepacs_full | 42 | TODO | | | | |
+| H1_eyepacs_full_s43 | eyepacs_full | 43 | TODO | | | | |
+| H1_eyepacs_full_s44 | eyepacs_full | 44 | TODO | | | | |
+| H1_eyepacs_ddr_full_s42 | eyepacs_ddr_full | 42 | TODO | | | | |
+| H1_eyepacs_ddr_full_s43 | eyepacs_ddr_full | 43 | TODO | | | | |
+| H1_eyepacs_ddr_full_s44 | eyepacs_ddr_full | 44 | TODO | | | | |
+
+### The budget was priced wrong, and by 10%
+
+The 21.7 GPU-h figure prices **both** variants at `eyepacs_full`'s 59 842 training
+rows. `eyepacs_ddr_full` is that plus all 12 522 DDR images, which
+`build_variants.py` assigns to train wholesale — about 72 364 rows. At 46 img/s and
+10 epochs:
+
+| variant | train rows | h/run | × 3 seeds |
+|---|---|---|---|
+| eyepacs_full | ~59 842 | ~3.6 | ~10.8 |
+| eyepacs_ddr_full | ~72 364 | ~4.4 | ~13.1 |
+| | | **total** | **~24 h** |
+
+So Phase 6a is **~24 GPU-h, not 21.7** — beyond a single week's 30 h quota once
+anything else is run in it. The notebook reads each variant's real row count rather
+than reusing one figure for both, so the estimate can no longer be wrong in the same
+direction twice.
+
+### Why splitting across sessions costs nothing
+
+The six runs are independent and individually seeded, so *when* each is trained does
+not enter any result. What does not survive a session is `/kaggle/working`: the
+notebook's section 6 copies completed runs back in from the attached
+`verify-dr-phase6` dataset before resuming. **Skipping that step silently retrains
+finished runs** — the failure is invisible, because a retrained run produces a
+perfectly well-formed `metrics.json`.
+
+That is the same shape as every Stage C failure in this register: a stage that
+cannot do its job still emits a valid artefact. The countermeasure is the same —
+gate on the quantity the next step consumes. Here the notebook prints each run's
+state (`done` / `partial` / `not started`) before doing anything.
+
+### The guard counts wall-clock, not training time
+
+Kaggle bills the whole session while the GPU is attached, so cache extraction and
+the carry-forward copy draw on the same quota as training. Counting only the seconds
+inside a training call would under-report the spend and start a run that cannot
+finish. Elapsed session time also self-corrects: if 46 img/s proves optimistic, the
+overrun appears after the first run instead of after the third.
+
+`tests/test_phase6_notebook.py` executes the notebook's own cell text against a
+fixture with an injected clock — not a re-implementation of the arithmetic. The C2
+channel-vocabulary bug survived because the test restated the code's wrong
+assumption and therefore agreed with it.
+
+---
+
 ## Summary
 
 **26 experiments.** Selection happens only in B1–B5. External data is touched exactly
-once, in Phase 6, after the freeze.
+once, in Phase 6b, after the freeze.
+
+Phase 6a (the six training runs) touches no locked data and can therefore be split
+across as many sessions as the quota needs. The unblinding is a separate notebook for
+exactly that reason: re-running the training notebook must never be able to spend the
+one shot.

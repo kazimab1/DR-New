@@ -143,6 +143,28 @@ Next: **Phase 5 freeze.** The pre-registration's M1 half is filled in; its OD/fo
 resolves to the coordinate head, and the evidence-data row to DDR-only with IDRiD held
 out. Administrative fields and supervisor acknowledgement are the author's.
 
+## Phase 6a — final training, written to be interrupted
+
+`notebooks/06_final_training.ipynb` runs the six final runs (2 variants x 3 seeds).
+It does **not** unblind: the single external evaluation is a separate notebook, so
+re-running the training one can never spend the one shot.
+
+**epochs is 10, not 12** (D7). 12 was `train_grading.py`'s default leaking into
+`frozen_config.yaml`; every Stage B arm that selected this recipe ran 10, so freezing
+12 would freeze a configuration no experiment evaluated.
+
+**~24 GPU-h, not 21.7.** The old figure priced both variants at `eyepacs_full`'s
+59 842 rows; `eyepacs_ddr_full` carries all 12 522 DDR images in train as well. The
+notebook reads each variant's real row count.
+
+**The step that is expensive to skip:** `/kaggle/working` does not survive a session.
+Publish results as `verify-dr-phase6` every session and attach it the next, or
+section 6 finds nothing and finished runs are retrained -- silently, because a
+retrained run writes a perfectly valid `metrics.json`.
+
+The budget guard counts **elapsed session wall-clock**, which is what Kaggle bills,
+and refuses to start a run that will not fit rather than have it killed mid-epoch.
+
 ### A0 — CLOSED: pass, with two recorded limitations
 
 **Crops.** The EyePACS fallback rate of 0.99919 against a 0.005 gate was benign — the

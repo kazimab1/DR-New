@@ -7,9 +7,12 @@ meta:
   frozen_at: null            # YYYY-MM-DD -- fill in on the day you commit
   frozen_commit: null        # fill in AFTER committing, then amend
   seeds: [42, 43, 44]
-  # Phase 6 at this recipe projects to 21.7 GPU-h against a ~20 h plan, on 59 842
-  # training rows. Trim seeds or epochs here BEFORE committing, or record the
-  # overrun as a deviation. Do not discover it mid-run.
+  # Phase 6 at 10 epochs projects to 21.7 GPU-h on 59 842 training rows -- more
+  # than one week's 30 h quota allows alongside anything else, so the six runs
+  # are executed across sessions by notebooks/06_final_training.ipynb, which
+  # checkpoints every epoch, resumes, and refuses to start a run it cannot
+  # finish. Splitting the runs across weeks changes no number: the six are
+  # independent, and each is seeded.
 
 data:
   cache: verify-dr-cache-512
@@ -35,7 +38,7 @@ training:
   weight_decay: 1.0e-4
   schedule: cosine
   warmup_epochs: 2
-  epochs: 12
+  epochs: 10              # every Stage B result was measured at 10; see D7
   early_stopping: {metric: val_qwk, patience: 3}
   batch_size: 32
   amp: true

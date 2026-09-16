@@ -173,8 +173,12 @@ with their date; the sections above are never edited.
 | D4 | 2 · input resolution | B1 reported as an operating-point choice, **not** a resolution-sensitivity study | All three arms read one 512 px cache, so the 768 arm upsamples and cannot test the claim that motivated the sweep. Testing it honestly needs a cache rebuilt at 768 from the originals. |
 | D5 | — · data | EyePACS is 693 images (0.78%) short of the official 88 702 | Upstream of this project: `cache_report.json` shows found = cached = 88 009, failed = 0. The loss is non-random by grade (χ² = 105.6, 4 df; grade 4 lost at 3× grade 0's rate). Prevalence impact negligible (rDR 19.34% → 19.23%), but a severity-dependent selection effect belongs in a referral study's limitations. |
 | D6 | 2 · OD/fovea head | A heatmap head was built, tested and **rejected** | Intended to fix the laterality flips carrying 47% of C1's error. It produced 27/83 flips against 10/83 and 1.028 DD against 0.686 — worse on the fovea too, where bimodality cannot apply, so it refutes the remedy rather than the diagnosis. The cause of the flips is not established. A weighted-loss retrain (~1.3 GPU-min) was declined: landmark accuracy is not this project's contribution. |
+| D7 | 2 · training | `epochs: 12` → **10** in `frozen_config.yaml` | 12 was `train_grading.py`'s default leaking into the config, not a choice. Every Stage B arm that selected this recipe ran 10 epochs (`03_grading_sweeps.ipynb` sets `epochs = 10`; the register records "seed 42, 10 epochs"), so B1–B5 measured the 10-epoch recipe and 12 would freeze a configuration no experiment evaluated. Corrected before the freeze commit, not after. |
 
 > **Not a deviation, but decide it here:** Phase 6 at the frozen recipe projects to
 > **21.7 GPU-hours** against a ~20 h plan, on 59 842 real training rows. Trim seeds or
-> epochs in `frozen_config.yaml` *before* committing, or record the overrun as D7.
+> epochs in `frozen_config.yaml` *before* committing. Resolved: epochs were
+> already 10 in every Stage B run (D7), and the six Phase 6 runs are executed
+> across sessions by `notebooks/06_final_training.ipynb` rather than trimmed.
+> Seeds stay at three: section 7's paired-seed analysis needs them.
 > Discovering it mid-run is what this document exists to prevent.
