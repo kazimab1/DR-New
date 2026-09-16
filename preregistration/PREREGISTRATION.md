@@ -28,7 +28,7 @@
 | Supervisor | _(name)_ |
 | Institution | _(institution)_ |
 | Freeze date | **2026-09-16** |
-| Freeze commit hash | _recorded in the commit immediately after this one — see "How the hash is recorded" below_ |
+| Freeze commit hash | [`17472a2`](../../commit/17472a2497054158c20588e9b71505b40b44a590) — full: `17472a2497054158c20588e9b71505b40b44a590` |
 | Supervisor acknowledgement | **2026-09-16** — given directly by the supervisor in the project working session that produced this commit. |
 
 > The three name fields are **outstanding at the freeze and deliberately left blank

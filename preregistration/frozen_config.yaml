@@ -5,9 +5,10 @@
 
 meta:
   frozen_at: 2026-09-16
-  frozen_commit: null        # set by the NEXT commit; see PREREGISTRATION.md.
-                             # Not by amending -- an amended commit has a
-                             # different hash than the one just recorded.
+  frozen_commit: 17472a2497054158c20588e9b71505b40b44a590
+  # Recorded by the commit AFTER the freeze, not by amending it: a hash covers the
+  # file contents, so writing the hash into the file changes the hash.
+  # Also reachable as the tag `preregistration-freeze`.
   seeds: [42, 43, 44]
   # Phase 6 at 10 epochs projects to 21.7 GPU-h on 59 842 training rows -- more
   # than one week's 30 h quota allows alongside anything else, so the six runs
