@@ -701,19 +701,37 @@ Four qualifications, all of which belong beside the number:
 | coordinate regression | **0.686** | 1.082 DD | 0.289 DD | 74.7% | +0.754 |
 | heatmap | 1.028 | 1.594 DD | 0.461 DD | 66.3% | +0.412 |
 
-**The hypothesis is falsified as implemented.** The reasoning was that the disc's x
-position is bimodal and a regressed coordinate must commit to one mode; a heatmap
-can hold both peaks. The heatmap head is worse on every figure, including the fovea,
-which has no bimodality to resolve at all — and that last point suggests the problem
-is the head's optimisation rather than the diagnosis.
+| head | mean DD | fovea DD | **laterality flips** |
+|---|---|---|---|
+| coordinate regression | **0.686** | 0.289 | **10 / 83** |
+| heatmap | 1.028 | 0.461 | **27 / 83** |
 
-> **The likely mechanism, stated as a hypothesis and not tested.** The loss is plain
+**The hypothesis is falsified, and the flip count is decisive.** The heatmap head was
+introduced specifically to fix laterality: a regressed coordinate must commit to one
+mode, a heatmap can hold both peaks and let argmax choose. It produced **more than
+twice as many flips** — 33% of images against 12% — as well as worse error everywhere.
+
+**But this refutes the remedy, not the diagnosis, and the distinction matters.** The
+heatmap head is worse on the *fovea* too (0.461 against 0.289), and the fovea has no
+bimodality to resolve. A head that is worse where the hypothesis cannot apply is not
+evidence about the hypothesis; it is evidence that the head is badly fitted. The extra
+flips are most likely a symptom of that — a weak, noisy heatmap gives a noisy argmax —
+rather than a verdict on bimodality.
+
+So the honest position is: **C1 fails at 0.686 DD; its error tail is laterality flips;
+the cause of those flips is not established; one remedy was tried and refuted.**
+
+> **Why the head is badly fitted, as a hypothesis and not tested.** The loss is plain
 > MSE against a Gaussian with sigma 2 on a 128x128 grid: roughly 25 pixels of signal
-> against 16 000 of background, so predicting all-zero is a good local minimum and
-> the positives get almost no gradient. Standard heatmap regression weights the
-> positives or uses focal MSE for exactly this reason, and this implementation does
-> neither. **Whether the bimodality diagnosis was right is still open** — the number
-> that settles it is the flip count on the heatmap run, not the mean error.
+> against 16 000 of background, so predicting all-zero is a good local minimum and the
+> positives get almost no gradient. Standard heatmap regression weights the positives
+> or uses focal MSE for exactly this reason, and this implementation does neither.
+>
+> **Not pursued.** A weighted-loss retrain costs 1.3 GPU-minutes, but two attempts at
+> this component have now failed and the project has a designed fallback for exactly
+> this case. Landmark accuracy is not the contribution; spending further attempts here
+> buys a rung on the reasoner's ladder at the cost of the work that is actually novel.
+> Recorded as an option, deliberately declined.
 
 **A methodological error made this comparison harder than it needed to be.** `--head`
 defaults to `heatmap`, and section 6 of the notebook did not state a head, so the
@@ -723,6 +741,20 @@ on a default. Both cells now state their head explicitly.
 
 **C1 stays FAILED at 0.686 DD**, which remains the recorded result — the better of
 the two and the pre-specified architecture. M3 runs count-only.
+
+### A config file that misdescribed its own directory
+
+The failed `--head regress --resume` attempt exposed a separate defect:
+`config.json` was written **before** the resume guard ran. A refused resume therefore
+left `C1_geometry/config.json` claiming `head=regress` beside a `best.pt`,
+`metrics.json` and `val_errors.csv` that were all the heatmap run's. Two result
+directories then printed identical numbers under different head labels, and the config
+— the one file a reader would trust to say what produced the artefacts — was the thing
+that was wrong.
+
+Fixed in both training scripts: the config is written only after the guard passes.
+Verified by running heatmap, then attempting a refused regress resume, and confirming
+the config still reads `heatmap`.
 
 ### C3 — still not run
 

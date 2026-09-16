@@ -346,7 +346,6 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         encoder_from=str(args.encoder_from) if args.encoder_from else None,
         freeze_encoder=args.freeze_encoder, patience=args.patience,
         seed=args.seed, amp=args.amp)
-    (out_dir / "config.json").write_text(json.dumps(asdict(config), indent=2), encoding="utf-8")
 
     started = time.time()
     if args.eval_only:
@@ -391,6 +390,14 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         best_dice, best_epoch, history = state["best_dice"], state["best_epoch"], state["history"]
         print(f"  resumed from epoch {state['epoch']} (best mean Dice {best_dice:.4f})")
 
+
+    # config.json is written AFTER the resume guard, not before.
+    # Written first, a REFUSED resume still overwrote it: C1_geometry kept the
+    # heatmap run's best.pt, metrics.json and val_errors.csv while its config
+    # claimed head=regress. A config that misdescribes the artefacts beside it
+    # is worse than none -- it reads as authoritative.
+    (out_dir / "config.json").write_text(json.dumps(asdict(config), indent=2),
+                                        encoding="utf-8")
     started = time.time()
     for epoch in range(start_epoch, args.epochs):
         epoch_start = time.time()
