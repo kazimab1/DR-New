@@ -449,8 +449,8 @@ reasoning is auditable rather than assumed.
 |---|---|---|---|---|---|
 | C1 | Can we locate disc and fovea well enough? | — | Euclidean error on IDRiD test, in disc diameters (**target < 0.5 DD**), against the constant-predictor baseline | **DONE** | **FAIL, 0.686 DD** — fovea fine (0.289), disc is the miss (1.082) |
 | C2 | How well do the 4 lesion channels segment? | DDR-seg / +IDRiD / +augmentation | Per-lesion Dice, IoU, **over images where the lesion is annotated** | **DONE (DDR only)** | mean Dice 0.497; MA 0.316 |
-| C3 | Does the segmenter transfer? | C2's checkpoint on held-out IDRiD | Dice drop across domains | **STILL NOT RUN** | see below |
-| C4 | How informative is evidence alone? | M3 over M2a's predicted lesions | QWK of evidence-grade vs label | **DONE** | **QWK 0.386** vs M1's 0.679 — informative but weaker |
+| C3 | Does the segmenter transfer? | C2's checkpoint on held-out IDRiD | Dice drop across domains | **DONE** | **0.425 vs 0.505** — −16% relative, no collapse |
+| C4 | How informative is evidence alone? | M3 over M2a's predicted lesions | QWK of evidence-grade vs label | **DONE** | **QWK 0.375** vs M1's 0.679 — informative but weaker |
 
 > **C4 is load-bearing.** The evidence path must be *informative but weaker* than the
 > grader. As good ⇒ the grader is redundant. Noise ⇒ disagreement means nothing.
@@ -756,7 +756,77 @@ Fixed in both training scripts: the config is written only after the guard passe
 Verified by running heatmap, then attempting a refused regress resume, and confirming
 the config still reads `heatmap`.
 
-### C3 — still not run
+### C3 — the evidence pathway TRANSFERS: 0.425 against 0.505
+
+C2's checkpoint, trained on DDR and having never seen IDRiD, evaluated on IDRiD's
+81 annotated Part A images. No second training run.
+
+| | mean Dice (present) |
+|---|---|
+| C2, in-domain (DDR val) | 0.5045 |
+| C3, DDR → IDRiD | **0.4254** |
+| drop | −0.0792, **−15.7% relative** |
+
+**This is the result that makes the disagreement rule worth testing off-domain.** The
+experiment was specified to detect a collapse: if Dice halved across sources, then
+disagreement measured on one source would say little about another and the thesis
+would have to state that plainly. It did not halve. A 16% relative drop on a model
+that has never seen the target domain is ordinary transfer degradation, not failure.
+
+It bears directly on **H1′** — that the H1 ranking survives dataset shift. A signal
+that only works in-domain is a curiosity; this is the first evidence that the evidence
+pathway is not one.
+
+**Qualifications.** IDRiD contributes 81 images, so each lesion channel is evaluated on
+a few dozen at most and the per-channel figures in `C3_ddr_to_idrid/metrics.json`
+carry wide uncertainty — the mean is the defensible number here. The reverse direction
+(train IDRiD → test DDR) was deliberately not run: with 81 training images a weak
+result would be confounded by sample size rather than domain shift.
+
+### C4 — final, uncontaminated: QWK 0.375
+
+Re-run with `--exclude-manifest`, so the 755 images M2a was fitted on are gone and
+**11 767** images remain that the segmenter has never seen.
+
+| | contaminated | clean |
+|---|---|---|
+| n | 12 522 | **11 767** |
+| QWK | 0.3858 | **0.3754** |
+| exact agreement | 55.6% | 54.3% |
+| within one grade | 65.5% | 63.9% |
+
+The contamination was worth about **+0.010 QWK** — small, as expected at 6%, and now
+removed. **0.375 against M1's 0.679 is the recorded figure.**
+
+Rules fired: R1 2 596 · R2 634 · R3 4 429 · **R3\* 4 108**.
+
+**R3\* remains the largest caveat: 35% of the corpus.** That is haemorrhage or exudate
+detected with *no* microaneurysm, a combination ICDR has no rung for, and it is M2a's
+MA channel (Dice 0.344) missing what its larger-lesion channels find. The rule exists
+so those images are not graded 0, but a third of the corpus resting on a fallback rung
+is a limitation to state, not a detail.
+
+## Stage C closed
+
+| | result | verdict |
+|---|---|---|
+| C1 | 0.686 DD against a 0.5 gate | **FAIL** — M3 runs count-only |
+| C2 | mean Dice 0.505; MA 0.344 | done, DDR only |
+| C3 | 0.425 on held-out IDRiD, −16% | **transfers** |
+| C4 | QWK 0.375 against M1's 0.679 | **informative but weaker — the premise holds** |
+
+**The premise the thesis rests on survived its own falsification test.** C4 was
+specified to be capable of killing the project: an evidence path as good as the grader
+makes the grader redundant, and one at chance makes disagreement meaningless. 0.375
+against 0.679 is neither.
+
+**Total cost: ~0.9 GPU-hours** (C1 1 min, C2 18 min, C3 1 min, C4 ~10 min, plus the
+refuted heatmap attempt at 3 min).
+
+**Phase 4's exit condition is met** — C1 against its target, C2–C4 logged with real
+numbers — with C1's failure and its documented fallback as the one deviation to carry
+into the freeze.
+
 
 The split-cache fix (`repath_to_cache` preferring the mask-bearing root) landed, but
 C3 did not produce metrics in this run either. Diagnosis needs section 5's

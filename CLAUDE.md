@@ -110,7 +110,38 @@ nothing. Verified on a fixture: 0/50 rows before, 50/50 after, C1 then trains.
 Averaging over every image folds in empty-target/empty-prediction pairs scoring 1.0 by
 convention and inflates the headline without anything having been segmented.
 
-Next: run `01c` -> re-run `02` -> re-run `04`.
+### Stage C CLOSED — all four experiments have numbers
+
+| | result | verdict |
+|---|---|---|
+| C1 | 0.686 DD vs a 0.5 gate | **FAIL** — M3 runs count-only |
+| C2 | mean Dice 0.505, MA 0.344 (DDR only) | done |
+| C3 | 0.425 on held-out IDRiD, -16% relative | **transfers** |
+| C4 | QWK 0.375 vs M1's 0.679 | **informative but weaker** |
+
+**C4 is the premise surviving its own falsification test.** An evidence path as good
+as the grader makes the grader redundant; one at chance makes disagreement
+meaningless. 0.375 against 0.679 is neither, so F2 in Phase 7 is worth running.
+
+**C3 means the signal is not source-specific.** A 16% relative Dice drop on a model
+that never saw IDRiD is ordinary transfer degradation, not the collapse the experiment
+was designed to detect. First evidence for H1'.
+
+**Two caveats that belong beside every C4 number.** Only 3 of 5 grades are reachable
+(grade 3 needs R4 needs quadrants needs C1; grade 4 needs neovascularisation, which
+nothing annotates), so the QWK is a floor. And R3* -- haemorrhage or exudate with no MA
+detected -- fired on 35% of the corpus, which is M2a's MA channel missing what its
+larger channels find.
+
+**C1: two attempts, both failed.** The coordinate head gives 0.686 DD with 10/83
+laterality flips carrying 47% of the error. The heatmap head built to fix that gave
+1.028 DD and 27/83 flips -- worse, including on the fovea, where bimodality cannot
+apply. That refutes the remedy, not the diagnosis; the cause of the flips is not
+established. A weighted-loss retrain (1.3 min) is recorded as declined, deliberately.
+
+Next: **Phase 5 freeze.** The pre-registration's M1 half is filled in; its OD/fovea row
+resolves to the coordinate head, and the evidence-data row to DDR-only with IDRiD held
+out. Administrative fields and supervisor acknowledgement are the author's.
 
 ### A0 — CLOSED: pass, with two recorded limitations
 
