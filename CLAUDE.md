@@ -165,6 +165,15 @@ retrained run writes a perfectly valid `metrics.json`.
 The budget guard counts **elapsed session wall-clock**, which is what Kaggle bills,
 and refuses to start a run that will not fit rather than have it killed mid-epoch.
 
+**Section 1 once shipped as a comment.** The notebook was built by copying cells from
+`04_phase4.ipynb` by index, and the clone step is cell 2 there, not cell 1. The
+markdown heading landed in a code cell, where `## 1 - Clone the repo` is a comment: it
+ran, succeeded and cloned nothing, and only surfaced six sections later when section 8
+wanted `REPO_DIR`. The generator had checked that every cell parsed — and a comment
+parses. `tests/test_notebook_integrity.py` now rejects inert code cells and
+use-before-definition across cells, on every notebook, and asserts it catches this
+exact bug.
+
 ### A0 — CLOSED: pass, with two recorded limitations
 
 **Crops.** The EyePACS fallback rate of 0.99919 against a 0.005 gate was benign — the

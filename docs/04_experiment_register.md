@@ -988,6 +988,33 @@ cannot do its job still emits a valid artefact. The countermeasure is the same �
 gate on the quantity the next step consumes. Here the notebook prints each run's
 state (`done` / `partial` / `not started`) before doing anything.
 
+### Section 1 shipped as a comment
+
+`06_final_training.ipynb` was assembled by copying cells out of `04_phase4.ipynb` **by
+index**. The clone step is cell 2 there; cell 1 is its markdown heading. The generator
+took cell 1 and wrote it into a *code* cell, so section 1 of Phase 6 was the single
+line `## 1 - Clone the repo` — a Python comment. It ran, it succeeded, it cloned
+nothing.
+
+Nothing failed for six sections. Sections 3–7 need only the helpers, the cache mounts
+and pandas; the first use of `REPO_DIR` is the training call in section 8, so that is
+where it surfaced — after the carry-forward copy and the plan, on paid GPU.
+
+The generator *did* validate every cell: it checked each one parsed. A comment parses.
+**Parsing is not doing anything** — the same mistake as gating C2 on "images cached"
+rather than "images carrying coordinates", and the same fix: check the thing the next
+step consumes.
+
+`tests/test_notebook_integrity.py` now checks every notebook for two properties:
+
+1. no code cell is inert (parses to an empty body while having text), and
+2. no cell uses a name that no earlier cell — or its own body — defines.
+
+Both fire on the shipped bug, and the test asserts that they do: it reconstructs the
+broken cell and requires the check to reject it. A guard that only ever passes proves
+nothing. The cells are now located by **what they define** (`REPO_DIR = Path(`), not by
+index.
+
 ### The guard counts wall-clock, not training time
 
 Kaggle bills the whole session while the GPU is attached, so cache extraction and
