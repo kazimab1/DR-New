@@ -157,6 +157,11 @@ def parse_args(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
     p.add_argument("--experiment", required=True)
     p.add_argument("--results-dir", type=Path, default=Path("results/stage_c"))
     p.add_argument("--cache-root", type=Path, nargs="+", default=None)
+    p.add_argument("--datasets", nargs="+", default=None,
+                   help="Restrict the population to these sources, then split it "
+                        "randomly by --val-frac. Use this to train on one source "
+                        "(C2 on DDR) -- NOT --train-datasets/--val-datasets with the "
+                        "same name on both, which yields train == val.")
     p.add_argument("--train-datasets", nargs="+", default=None,
                    help="Restrict training to these datasets (C3 cross-domain).")
     p.add_argument("--val-datasets", nargs="+", default=None,
@@ -233,6 +238,15 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     if args.limit:
         frame = frame.head(args.limit)
 
+    if args.datasets:
+        wanted = {d.lower() for d in args.datasets}
+        before = len(frame)
+        frame = frame[frame["dataset"].str.lower().isin(wanted)].reset_index(drop=True)
+        print(f"  population restricted to {sorted(wanted)}: {len(frame)} of {before} rows")
+        if frame.empty:
+            print(f"error: no rows for {args.datasets}", file=sys.stderr)
+            return 1
+
     lower = frame["dataset"].str.lower()
     if args.eval_only:
         # No training set is needed or wanted: the checkpoint fixes what was
@@ -265,6 +279,24 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
 
     train_frame = train_frame.reset_index(drop=True)
     val_frame = val_frame.reset_index(drop=True)
+
+    # Never assume the split was disjoint -- check it.
+    #
+    # --train-datasets ddr --val-datasets ddr selects every DDR row into BOTH
+    # frames, so train == val and the reported Dice is training performance
+    # wearing a validation label. That configuration reads as reasonable and was
+    # in this project's own notebook, which is exactly why it is asserted here
+    # rather than left to care.
+    overlap = set(train_frame["image_path"]) & set(val_frame["image_path"])
+    if overlap and not args.eval_only:
+        print(f"error: {len(overlap)} image(s) are in BOTH train and val, e.g. "
+              f"{sorted(overlap)[:2]}.\n"
+              "  Every validation number from this split would be training "
+              "performance.\n"
+              "  To train on one source, use --datasets NAME with --val-frac; "
+              "--train-datasets/--val-datasets is for cross-domain and needs "
+              "different sources on each side.", file=sys.stderr)
+        return 1
 
     print(f"{args.experiment}: {len(train_frame)} train / {len(val_frame)} val   device={device}")
     print(f"  train sources: {dict(train_frame['dataset'].value_counts())}")

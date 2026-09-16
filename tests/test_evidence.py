@@ -694,3 +694,27 @@ class TestGeometryHeatmap(unittest.TestCase):
         b = {k.split(".")[0] for k in GeometryHeatmapModel(pretrained=False).state_dict()}
         self.assertIn("encoder", a)
         self.assertIn("encoder", b)
+
+
+class TestSplitDisjointness(unittest.TestCase):
+    """--train-datasets X --val-datasets X selects every X row into both frames,
+    so train == val and the reported Dice is training performance wearing a
+    validation label. That configuration reads as reasonable and reached this
+    project's own notebook, so the script asserts disjointness rather than
+    trusting the caller."""
+
+    def _source(self):
+        return (Path(__file__).resolve().parent.parent
+                / "scripts" / "train_evidence.py").read_text()
+
+    def test_overlap_is_checked_before_training(self):
+        src = self._source()
+        self.assertIn("set(train_frame[\"image_path\"]) & set(val_frame[\"image_path\"])", src)
+        self.assertIn("in BOTH train and val", src)
+
+    def test_datasets_flag_exists_for_single_source_training(self):
+        # The correct way to train on one source: restrict the population, then
+        # let --val-frac split it.
+        src = self._source()
+        self.assertIn('"--datasets"', src)
+        self.assertIn("population restricted to", src)
