@@ -48,7 +48,7 @@ class Fixture(unittest.TestCase):
             (self.man / f"{v}.csv").write_text("\n".join(rows))
         self.calls = []
 
-    def env(self, budget, hours_per_run=1.0):
+    def env(self, budget, hours_per_run=1.0, session_limit=999.0):
         clock = FakeClock()
 
         def fake_run(cmd):
@@ -57,7 +57,8 @@ class Fixture(unittest.TestCase):
 
         g = {"MANIFEST_DIR": self.man, "RESULTS": self.res,
              "THROUGHPUT_IMG_S": 46.0, "GPU_HOURS_LEFT": budget,
-             "SAFETY_MARGIN_H": 0.0, "time": clock, "SESSION_START": clock.time(),
+             "SAFETY_MARGIN_H": 0.0, "SESSION_LIMIT_H": session_limit,
+             "time": clock, "SESSION_START": clock.time(),
              "run": fake_run,
              "q": lambda x: str(x), "REPO_DIR": Path("/repo"),
              "CACHE_FLAGS": "/cache", "print": lambda *a, **k: None}
@@ -160,6 +161,19 @@ class Fixture(unittest.TestCase):
         exec(RUN_SRC, g)
         self.assertEqual(len(self.calls), 1,
                          "1.2 h already billed leaves room for one 1.0 h run")
+
+    def test_the_session_wall_binds_even_with_quota_to_spare(self):
+        """A full 30 h quota does not mean 30 h in one sitting. A session killed
+        mid-run may never save its output, losing the whole session."""
+        g = self.env(30.0, session_limit=2.5)
+        exec(RUN_SRC, g)
+        self.assertEqual(len(self.calls), 2,
+                         "session wall of 2.5 h fits two 1.0 h runs, not six")
+
+    def test_quota_still_binds_when_it_is_the_smaller_limit(self):
+        g = self.env(2.5, session_limit=999.0)
+        exec(RUN_SRC, g)
+        self.assertEqual(len(self.calls), 2)
 
     def test_collapsed_run_is_flagged(self):
         self.finish("H1_eyepacs_full_s42", distinct_predictions=1)

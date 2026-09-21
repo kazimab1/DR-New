@@ -1015,6 +1015,34 @@ broken cell and requires the check to reject it. A guard that only ever passes p
 nothing. The cells are now located by **what they define** (`REPO_DIR = Path(`), not by
 index.
 
+### Two limits, not one — and the session wall is the tighter
+
+The first version of the guard checked the **weekly quota** only. That is the wrong
+limit once the quota is healthy: a Kaggle session is killed at a fixed wall-clock age
+whatever the quota says, and **a session killed mid-run may never save its output** —
+losing the session's work, not just the current epoch.
+
+With a fresh 30 h quota the session wall is what binds. `eyepacs_ddr_full` is ~4.4 h
+per seed, so its three runs are ~13.1 h: they cannot be done in one sitting however
+much quota is available. The budget is now `min(quota, session wall)`, and the notebook
+prints which of the two binds.
+
+| | h/run | 3 seeds | sessions at 10.5 h usable |
+|---|---|---|---|
+| eyepacs_full (~59 842 rows) | ~3.6 | ~10.8 | 1 |
+| eyepacs_ddr_full (~72 364 rows) | ~4.4 | ~13.1 | 2 |
+
+### "Save & Run All" would have retrained everything
+
+Section 10 said to finish each session with **Save Version → Save & Run All (Commit)**.
+That re-executes the notebook top to bottom in a fresh container — it would have spent
+the entire budget a second time to save the results of the first. The correct action
+after an interactive run is **Quick Save**, which keeps the run that just happened.
+
+Nothing about the notebook's logic was wrong here; the instruction beside it was. It is
+the same failure mode as the rest of this register in a different register: the
+artefact was well-formed and the step it described did the opposite of what was needed.
+
 ### The guard counts wall-clock, not training time
 
 Kaggle bills the whole session while the GPU is attached, so cache extraction and

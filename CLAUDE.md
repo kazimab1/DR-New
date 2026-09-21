@@ -165,6 +165,15 @@ retrained run writes a perfectly valid `metrics.json`.
 The budget guard counts **elapsed session wall-clock**, which is what Kaggle bills,
 and refuses to start a run that will not fit rather than have it killed mid-epoch.
 
+**Two limits bind, not one.** The budget is `min(weekly quota, session wall)`. Once the
+quota is healthy the *session* wall is the tighter: a session is killed at a fixed age
+whatever the quota says, and one killed mid-run may never save its output. The DDR
+variant is ~13.1 h across three seeds and therefore needs two sessions regardless of
+quota.
+
+**Finish a session with Quick Save, never "Save & Run All".** Save & Run All
+re-executes the whole notebook in a fresh container and would retrain from scratch.
+
 **Section 1 once shipped as a comment.** The notebook was built by copying cells from
 `04_phase4.ipynb` by index, and the clone step is cell 2 there, not cell 1. The
 markdown heading landed in a code cell, where `## 1 - Clone the repo` is a comment: it
