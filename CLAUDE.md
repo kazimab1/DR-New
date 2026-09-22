@@ -182,8 +182,7 @@ re-executes the whole notebook in a fresh container and would retrain from scrat
 test images are in the six models' training data. Only that one secondary outcome is
 lost; F2, H2, H3 and in-domain triage are unaffected. Decide A (drop the comparison,
 0 GPU-h) or C (one official-split model, ~1.8 GPU-h/seed, needs `source_split`) and
-record it as **D8 before any locked data is read**. `notebooks/snippets/
-phase6_check.py` measures the overlap and says whether C is possible.
+record it as **D8 before any locked data is read**. `notebooks/06_check_runs.ipynb` measures the overlap and says whether C is possible.
 
 **Phase 7 code does not exist** (`calibration/`, `triage/` are empty). Build and test
 it on internal data *first*; then one pass over the locked sets writes a label-free

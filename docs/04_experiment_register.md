@@ -1090,7 +1090,7 @@ own patient-grouped test split are all untouched: none depends on the official s
 | A | drop the leaderboard comparison; report our own EyePACS test split, labelled custom, never beside 0.8496 | 0 GPU-h |
 | C | train the frozen recipe once on the official train split only (`--eyepacs-split source`), score it on the official test set | ~1.8 GPU-h per seed; needs the mirror to have recorded `source_split` |
 
-`notebooks/snippets/phase6_check.py` measures the real overlap from the manifests and
+`notebooks/06_check_runs.ipynb` measures the real overlap from the manifests and
 says whether C is possible.
 
 ### Phase 7's code does not exist yet — and that changes the order
