@@ -174,6 +174,22 @@ quota.
 **Finish a session with Quick Save, never "Save & Run All".** Save & Run All
 re-executes the whole notebook in a fresh container and would retrain from scratch.
 
+### Before the unblinding — two blockers found 2026-09-22
+
+**The leaderboard benchmark cannot run as registered.** Variants were built with
+`--eyepacs-split regroup` (all 88,009 images, official train and test mixed), yet
+`frozen_config.yaml` says `split: official_eyepacs`. About two-thirds of the official
+test images are in the six models' training data. Only that one secondary outcome is
+lost; F2, H2, H3 and in-domain triage are unaffected. Decide A (drop the comparison,
+0 GPU-h) or C (one official-split model, ~1.8 GPU-h/seed, needs `source_split`) and
+record it as **D8 before any locked data is read**. `notebooks/snippets/
+phase6_check.py` measures the overlap and says whether C is possible.
+
+**Phase 7 code does not exist** (`calibration/`, `triage/` are empty). Build and test
+it on internal data *first*; then one pass over the locked sets writes a label-free
+prediction table, and labels are joined once. Unblinding first would mean writing the
+analysis after seeing the answer.
+
 **Section 1 once shipped as a comment.** The notebook was built by copying cells from
 `04_phase4.ipynb` by index, and the clone step is cell 2 there, not cell 1. The
 markdown heading landed in a code cell, where `## 1 - Clone the repo` is a comment: it

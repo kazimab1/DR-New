@@ -1058,6 +1058,59 @@ assumption and therefore agreed with it.
 
 ---
 
+## Before the unblinding — the leaderboard benchmark cannot run as registered
+
+**Found 2026-09-22, after Phase 6a training and before any locked data was read.**
+Recorded now because the same finding written after the unblinding would read as an
+excuse.
+
+The protocol (Rule 6, `02_research_protocol.md`) and the pre-registration (§4, §6) put
+the leaderboard benchmark on the **official** EyePACS test split, 53,576 images,
+"directly comparable to the published leaderboard (0.8496)". The six Phase 6a models
+cannot be scored on it:
+
+- `02_manifests.ipynb` built the variants with `--eyepacs-split regroup`: a fresh
+  patient-grouped split over all 88,009 EyePACS images, official train and test mixed.
+- `build_variants.py` knew, and recorded `leaderboard_comparable: False` in
+  `dataset_plan.json`.
+- `frozen_config.yaml` nonetheless reads `split: official_eyepacs  # 35,126 train /
+  53,576 test`. It describes a split the six models were **not** trained on. The
+  train-row count gives it away: 59,842 rows cannot come from a 35,126-image train set.
+- With 68% of all images in train, roughly two-thirds of the official test images are
+  in the six models' training data, and more in val (early stopping) and calibration.
+
+**Scope.** This removes one *secondary* outcome. The primary outcome (F2, APTOS and
+Messidor-2), H2 (external calibration), H3 (DDR transfer) and in-domain triage on our
+own patient-grouped test split are all untouched: none depends on the official split.
+
+**Options, to be decided and recorded as D8 before anything locked is read:**
+
+| | what | cost |
+|---|---|---|
+| A | drop the leaderboard comparison; report our own EyePACS test split, labelled custom, never beside 0.8496 | 0 GPU-h |
+| C | train the frozen recipe once on the official train split only (`--eyepacs-split source`), score it on the official test set | ~1.8 GPU-h per seed; needs the mirror to have recorded `source_split` |
+
+`notebooks/snippets/phase6_check.py` measures the real overlap from the manifests and
+says whether C is possible.
+
+### Phase 7's code does not exist yet — and that changes the order
+
+`src/verify_dr/calibration/` and `src/verify_dr/triage/` are empty files. Temperature
+scaling, prior-shift EM, OOD-z, disagreement gating and the coverage–accuracy curves
+are all unwritten.
+
+If the unblinding runs first, every one of those is implemented *after* the external
+labels have been seen. The pre-registration froze the procedures (gating arms,
+threshold fitted on internal calibration, coverage points) but not their
+implementations — how disagreement is scored, what the OOD score is computed on — and
+each unwritten detail is a fork that could be taken knowing the answer.
+
+So the order becomes: **build and test the whole analysis on internal data, then read
+the locked sets once**, with one pass producing a label-free prediction table and the
+labels joined in a single final step.
+
+---
+
 ## Summary
 
 **26 experiments.** Selection happens only in B1–B5. External data is touched exactly
