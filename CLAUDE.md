@@ -193,14 +193,24 @@ after printing the mismatch -- it tested that the column existed, not what it he
 It now checks the counts. In-domain results use our 17,615-image test split, labelled
 custom, never beside 0.8496.
 
-**Next: the analysis plan, then the code.** `calibration/` and `triage/` are empty,
-and docs/03 fixes the *formulas* but not every choice inside them -- e.g. what
-`|grade_M1 - evidence_grade_M3|` means when M3 cannot reach grades 3-4, which
-embeddings OOD-z is measured against, how the gate weights are fitted, what
-"accuracy" the primary coverage curve counts. Pin each in writing and commit it
-before the unblinding, then implement to it and test on internal val/calibration.
-**M0 (the quality head) was never built**, so REACQUIRE cannot fire and G2 cannot
-run; the plan must say so.
+**Next: review `preregistration/ANALYSIS_PLAN.md` (DRAFT, 2026-09-22).** It pins every
+choice the pre-registration left open, resolving each by (1) the frozen text, (2) the
+existing code, (3) otherwise the reading that does not favour our own hypotheses. It
+becomes binding when the author marks it FINAL and records D9-D11 -- before any locked
+data is read. Then: implement to it, rehearse on internal val, commit the fitted
+parameters, one label-free pass over the locked sets, labels joined once.
+
+Three things it found that change the analysis, not just pin it:
+- **The six models were trained on a uniform class prior** (`stratified_exposure`
+  draws every grade equally). Temperature scaling cannot re-weight classes, so a
+  parameter-free prior correction precedes it (D11) -- EM needs it to be coherent.
+- **M3 abstains above grade 2**, so `|grade_M1 - evidence_M3|` taken literally would
+  defer every M1 grade-3/4 call by construction. d_evidence is 0 there.
+- **M0 was never built**, so REACQUIRE cannot fire and G2 cannot run (D10).
+
+Phase 6a val numbers are in the register. The four full-length runs peaked at epochs
+7-9, the cosine tail; both seed-43 runs were early-stopped before it, which is why they
+are the worst in each variant. Stopping epochs are now recorded with every run.
 
 **Section 1 once shipped as a comment.** The notebook was built by copying cells from
 `04_phase4.ipynb` by index, and the clone step is cell 2 there, not cell 1. The

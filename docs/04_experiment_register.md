@@ -954,15 +954,23 @@ construction; they are recorded to check the runs, not to report.
 | run | Status | epochs (best) | val QWK | macro-F1 | g1-F1 | distinct |
 |---|---|---|---|---|---|---|
 | H1_eyepacs_full_s42 | DONE | 10 (9) | 0.7819 | 0.5657 | 0.2350 | 5 |
-| H1_eyepacs_full_s43 | DONE, early-stopped | 7 (3) | *pending* | | | not 1 |
-| H1_eyepacs_full_s44 | DONE | 10 (8) | *pending* | | | not 1 |
+| H1_eyepacs_full_s43 | DONE, early-stopped | 7 (3) | 0.7563 | 0.5373 | 0.2073 | 5 |
+| H1_eyepacs_full_s44 | DONE | 10 (8) | 0.7839 | 0.5646 | 0.2139 | 5 |
 | H1_eyepacs_ddr_full_s42 | DONE | 10 (7) | 0.7666 | 0.5583 | 0.2274 | 5 |
-| H1_eyepacs_ddr_full_s43 | DONE, early-stopped | 5 (1) | *pending* | | | not 1 |
+| H1_eyepacs_ddr_full_s43 | DONE, early-stopped | 5 (1) | 0.7455 | 0.5067 | 0.1668 | 5 |
 | H1_eyepacs_ddr_full_s44 | DONE | 10 (8) | 0.7816 | 0.5546 | 0.2377 | 5 |
 
-*Pending* rows were illegible in the screenshot they came from; nothing is entered
-that was not read. For an early-stopped run, epochs = best + patience + 1, so
-7 (3) and 5 (1) are each fixed by the one digit that was legible.
+| variant | val QWK mean | spread | macro-F1 mean | spread | g1-F1 mean | spread |
+|---|---|---|---|---|---|---|
+| eyepacs_full | 0.7740 | 0.0276 | 0.5559 | 0.0284 | 0.2187 | 0.0277 |
+| eyepacs_ddr_full | 0.7646 | 0.0361 | 0.5399 | 0.0516 | 0.2106 | 0.0709 |
+
+Paired by seed, `ddr − full` val QWK is −0.0153 / −0.0108 / −0.0023 (mean −0.0095):
+same sign three times, every one inside both the seed spread and B1's 0.0276 floor.
+**No in-domain difference is claimable, and none is claimed.** This is descriptive
+only — nothing is selected on it — and H3 is about *external* transfer, which this
+split cannot speak to. Adding a second domain costing a little in-domain is the
+ordinary expectation, not evidence against H3.
 
 ### Two seeds early-stopped, and neither is retrained
 
@@ -973,8 +981,22 @@ the wrong time and would be a code defect, not an outcome: `train_grading.py`
 restores `best_qwk`, `best_epoch`, `history`, optimiser, scheduler and scaler
 together. So this is the frozen rule — patience 3 on val QWK — doing what it says.
 
+**It is not bad luck — it is a mechanism.** The four runs that trained to the end found
+their best at epochs **9, 8, 7 and 8**: all in the low-learning-rate tail of the
+10-epoch cosine schedule. The two early-stopped runs were halted at epochs 6 and 4,
+before that tail arrived. Patience 3 on a noisy validation QWK can end a run during
+its plateau, which on this schedule means before the phase where every completed run
+peaked. Seed 43 is the worst run in *both* variants for that reason. The four
+full-length runs span 0.7666–0.7839 (spread 0.0173); the early stops account for most
+of the rest.
+
+Whether Stage B ever saw early stopping fire is not known: the register did not record
+its stopping epochs. So the interaction may simply have been invisible at the freeze.
+From now on the stopping epoch is recorded with every run.
+
 Retraining a seed because its result is worse is choosing seeds by outcome. The run
-stands. Its cost is honest and specific: it widens the DDR variant's seed spread, and
+stands. The mechanism is reported as a finding about the frozen recipe, not repaired
+after the fact. Its cost is honest and specific: it widens the DDR variant's seed spread, and
 §7 of the pre-registration forbids claiming any difference smaller than that spread,
 so H3 now needs a larger effect to be claimed.
 
@@ -990,6 +1012,10 @@ Batch 32 is `train_grading.py`'s default, the same class of leak as D7's 12 epoc
 It is not a deviation: `PREREGISTRATION.md` §2 lists batch size as *default*, not as
 selected, and Phase 6a ran what was registered. It belongs beside the data-scale
 difference as a condition selection did not test.
+
+Phase 6a's grade-1 F1 (0.21–0.24) **does not settle B2's open prediction**. ResNet50's
+0.180 and every Stage B figure were measured on `eyepacs_balanced_1000`; these are at
+12x the data. Different scale, different question.
 
 C4's comparison should now read against the final M1: the evidence path's 0.375
 against ~0.78, not 0.679. The premise test still passes — neither redundant nor at
@@ -1151,6 +1177,12 @@ Recovering the partition from the competition's own `trainLabels.csv` was weighe
 declined in D8: it would still not be protocol-matched (693 images missing
 non-randomly by grade, A0) and the winners' eye-pair ensembles are exactly what B5
 rejected.
+
+### The analysis plan — DRAFT 2026-09-22
+
+`preregistration/ANALYSIS_PLAN.md` pins every implementation choice left open, before
+any locked label exists. Not binding until the author marks it FINAL and records
+D9–D11 in `PREREGISTRATION.md`.
 
 ### Phase 7's code does not exist yet — and that changes the order
 
