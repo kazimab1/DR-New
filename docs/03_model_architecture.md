@@ -1,5 +1,21 @@
 # VERIFY-DR — Model Architecture
 
+> **As built (2026-09-22) — read this first.** This document is the *design*, kept as the
+> record of intent. What runs at the unblinding differs in these places; the diagram is in
+> the report's architecture section (`docs/report.html`), and the analysis choices in
+> `preregistration/ANALYSIS_PLAN.md`.
+>
+> - **M0:** the cache pads to square rather than centre-cropping (A0). **The quality head
+>   was never built**, so nothing is routed to REACQUIRE (D10, proposed).
+> - **M2a:** trained on DDR-seg only; IDRiD held out as C3's unseen domain (D2).
+> - **M2b:** 0.686 DD against a 0.5 gate — **never run**, so there are no quadrants (D1).
+> - **M3:** R1–R3* only, evidence grades 0–2, abstains above 2; R4 and R5 cannot fire (D1).
+> - **M4a:** a parameter-free sampling-prior correction precedes temperature scaling,
+>   because the frozen sampler trains on a uniform class prior (D11, proposed).
+> - **M4b/M4c:** faithfulness is a 19-draw randomisation test rather than a margin;
+>   `d_evidence` is 0 when M1's grade is above 2; `d_conf` uses p(ŷ), not max p; the two
+>   gate weights reduce to one ratio r.
+
 Five modules. The two prediction pathways are **trained on different supervision and
 never share weights or gradients** — that independence is the whole point, and it is
 what lets one pathway meaningfully dissent from the other.

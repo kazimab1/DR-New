@@ -363,6 +363,43 @@
     .queue .cost { grid-column: 2; }
   }
 
+  /* ---------- architecture diagram ---------- */
+  .diagram { overflow-x: auto; }
+  .diagram svg.arch { min-width: 760px; }
+  .diagram svg.tl   { min-width: 560px; }
+  .arch .bx     { fill: var(--surface); stroke: var(--line-2); stroke-width: 1.2; }
+  .arch .bx.in  { fill: var(--sunken); }
+  .arch .bx.acc { stroke: var(--accent); stroke-width: 1.8; }
+  .arch .bx.cut { fill: none; stroke: var(--muted); stroke-dasharray: 5 4; }
+  .arch .ln     { stroke: var(--ink-2); stroke-width: 1.3; fill: none; }
+  .arch .ln.acc { stroke: var(--accent); }
+  .arch .ln.cut { stroke: var(--muted); stroke-dasharray: 4 4; }
+  .arch .wall   { stroke: var(--line-2); stroke-width: 1; fill: none; }
+  .arch .mk     { fill: var(--ink-2); }
+  .arch .mk.acc { fill: var(--accent); }
+  .arch .mk.cut { fill: var(--muted); }
+  .arch .t1     { font-family: var(--sans); font-size: 13px; font-weight: 600; fill: var(--ink); }
+  .arch .t2     { font-family: var(--sans); font-size: 12px; fill: var(--ink-2); }
+  .arch .t2.act { font-weight: 600; fill: var(--ink); letter-spacing: 0.04em; }
+  .arch .tm     { font-family: var(--mono); font-size: 11px; fill: var(--ink-2); }
+  .arch .sg     { font-family: var(--mono); font-size: 12px; font-weight: 600; fill: var(--ink); }
+  .arch .ct1    { font-family: var(--sans); font-size: 12.5px; font-weight: 600; fill: var(--muted); }
+  .arch .ct2    { font-family: var(--sans); font-size: 11.5px; fill: var(--muted); }
+  .arch .lab    { font-family: var(--mono); font-size: 10.5px; fill: var(--muted); }
+  .arch .hd     { font-family: var(--sans); font-size: 10.5px; font-weight: 700; letter-spacing: 0.12em; fill: var(--muted); }
+  .arch .acc-t  { fill: var(--accent); }
+  table.words { font-family: var(--sans); font-size: 13.5px; font-variant-numeric: normal; }
+  table.words th, table.words td { text-align: left; vertical-align: top; }
+  table.words td:last-child { font-family: var(--mono); font-size: 12px; color: var(--muted); white-space: nowrap; }
+  /* ---------- epoch timeline ---------- */
+  .tl .bar  { fill: var(--line-2); }
+  .tl .best { fill: var(--accent); }
+  .tl .stop { fill: var(--warn); font-family: var(--mono); font-size: 10.5px; }
+  .tl .band { fill: var(--accent); fill-opacity: 0.09; }
+  .tl .lr   { fill: none; stroke: var(--ink-2); stroke-width: 1.5; }
+  .tl .lra  { fill: var(--ink-2); fill-opacity: 0.07; }
+  .tl .run  { font-family: var(--mono); font-size: 11.5px; fill: var(--ink-2); }
+
   footer {
     margin-top: 56px;
     padding-top: 18px;
@@ -385,10 +422,10 @@
       decides which automated gradings to trust.
     </p>
     <div class="stamp">
-      <span>Updated <b>16 Sep 2026</b></span>
-      <span>Stage <b>C closed</b> · both pathways built</span>
-      <span>Experiments closed <b>10 / 26</b></span>
-      <span>GPU spent <b>≈4.3 h</b></span>
+      <span>Updated <b>22 Sep 2026</b></span>
+      <span>Phase <b>6a trained</b> · 6 / 6 runs</span>
+      <span>Locked data read <b>none</b></span>
+      <span>Analysis plan <b>draft</b></span>
     </div>
   </header>
 
@@ -398,12 +435,199 @@
     <li class="done">2 · manifests</li>
     <li class="done">3 · grading pathway</li>
     <li class="done">4 · evidence</li>
-    <li class="live">5 · freeze</li>
-    <li>6 · final + unblinding</li>
+    <li class="done">5 · freeze</li>
+    <li class="live">6 · final + unblinding</li>
     <li>7 · calibration</li>
     <li>8 · error analysis</li>
     <li>9 · write-up</li>
   </ul>
+
+  <section>
+    <h2>Architecture · as it will run</h2>
+    <h3>Two pathways that never share a weight, meeting only at the gate</h3>
+    <p>
+      This is the system the unblinding will run, not the one first drawn. The grading and
+      evidence pathways survive as designed. Two designed parts were cut by the data — the
+      quality head was never built, and the disc-and-fovea network failed its gate — and they
+      sit in the right-hand column, beside the place they would have connected.
+    </p>
+    <p>
+      The split along the bottom is the thesis in one picture. The two signals on the left are
+      M1 judging itself; the two on the right are M1 checked against a network it shares nothing
+      with. Confidence-gating ranks cases by the left. The arm under test ranks them by the right.
+    </p>
+    <figure>
+      <div class="chart-shell">
+        <p class="chart-title">One fundus image, end to end</p>
+        <p class="chart-sub">Solid: runs at the unblinding. Dashed: designed, then cut. Amber: the arm under test.</p>
+        <div class="diagram">
+          <svg class="arch" viewBox="0 0 840 612" role="img" aria-label="Pipeline as built: a 512 px cached image feeds two independent pathways, the M1 grader and the M2a lesion segmenter. M2a's lesion counts feed the M3 rule-based reasoner. Four signals come out: two from M1 alone, confidence and out-of-distribution distance, and two from checking M1 against M2 and M3, evidence disagreement and faithfulness. The gate ranks cases on them and returns accept, adjacent grade set or defer. The quality head, the disc-and-fovea network, rules R4 and R5, and the reacquire action were designed but cut.">
+            <defs>
+              <marker id="arch-ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="mk" d="M0,0 L10,5 L0,10 z"/></marker>
+              <marker id="arch-ah-acc" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="mk acc" d="M0,0 L10,5 L0,10 z"/></marker>
+              <marker id="arch-ah-cut" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="mk cut" d="M0,0 L10,5 L0,10 z"/></marker>
+            </defs>
+            <text class="hd" x="728" y="14" text-anchor="middle">CUT FROM THE BUILD</text>
+
+            <!-- row 0: the image -->
+            <rect class="bx in" x="16" y="24" width="584" height="64" rx="3"/>
+            <text class="t1" x="30" y="48">Fundus image → 512 px cache</text>
+            <text class="t2" x="30" y="70">offline, once: retinal crop · pad to square · CLAHE on the L channel · JPEG q90</text>
+            <line class="ln cut" x1="600" y1="56" x2="630" y2="56" marker-end="url(#arch-ah-cut)"/>
+            <rect class="bx cut" x="632" y="24" width="192" height="64" rx="3"/>
+            <text class="ct1" x="644" y="46">M0 · quality head</text>
+            <text class="ct2" x="644" y="63">not built (D10)</text>
+            <text class="ct2" x="644" y="79">no gradability check</text>
+
+            <line class="ln" x1="153" y1="88" x2="153" y2="117" marker-end="url(#arch-ah)"/>
+            <text class="lab" x="160" y="107">image</text>
+            <line class="ln" x1="475" y1="88" x2="475" y2="117" marker-end="url(#arch-ah)"/>
+            <text class="lab" x="482" y="107">image</text>
+
+            <!-- row 1: the two pathways -->
+            <rect class="bx" x="16" y="118" width="274" height="110" rx="3"/>
+            <text class="t1" x="30" y="141">M1 · grading pathway</text>
+            <text class="t2" x="30" y="160">EfficientNet-B0 → 512-d neck</text>
+            <text class="t2" x="30" y="176">CORAL ordinal head + rDR, VTDR heads</text>
+            <text class="t2" x="30" y="192">trained on image grades</text>
+            <text class="tm" x="30" y="212">6 instances · 2 variants × 3 seeds</text>
+
+            <line class="wall" x1="312" y1="118" x2="312" y2="356"/>
+            <line class="wall" x1="328" y1="118" x2="328" y2="356"/>
+            <text class="lab" transform="translate(324 237) rotate(-90)" text-anchor="middle">no shared weights</text>
+
+            <rect class="bx" x="350" y="118" width="250" height="110" rx="3"/>
+            <text class="t1" x="364" y="141">M2a · lesion segmenter</text>
+            <text class="t2" x="364" y="160">ResNet18-UNet, 4 channels</text>
+            <text class="t2" x="364" y="176">MA · HE · hard EX · soft EX</text>
+            <text class="t2" x="364" y="192">trained on pixel masks</text>
+            <text class="tm" x="364" y="212">DDR only · IDRiD held out (D2)</text>
+
+            <rect class="bx cut" x="632" y="118" width="192" height="110" rx="3"/>
+            <text class="ct1" x="644" y="141">M2b · disc and fovea</text>
+            <text class="ct2" x="644" y="160">0.686 DD against a 0.5 gate</text>
+            <text class="ct2" x="644" y="176">failed, so never run (D1)</text>
+
+            <!-- row 1 -> row 2/3 -->
+            <line class="ln" x1="106" y1="228" x2="106" y2="259" marker-end="url(#arch-ah)"/>
+            <text class="lab" x="113" y="248">logits</text>
+            <line class="ln" x1="225" y1="228" x2="225" y2="387" marker-end="url(#arch-ah)"/>
+            <text class="lab" x="232" y="312">embedding</text>
+            <line class="ln" x1="410" y1="228" x2="410" y2="259" marker-end="url(#arch-ah)"/>
+            <text class="lab" x="417" y="248">lesion counts</text>
+            <line class="ln acc" x1="541" y1="228" x2="541" y2="387" marker-end="url(#arch-ah-acc)"/>
+            <text class="lab" x="548" y="248">lesion regions</text>
+            <line class="ln cut" x1="728" y1="228" x2="728" y2="259" marker-end="url(#arch-ah-cut)"/>
+            <text class="lab" x="735" y="248">quadrants</text>
+
+            <!-- row 2 -->
+            <rect class="bx" x="16" y="260" width="180" height="96" rx="3"/>
+            <text class="t1" x="30" y="283">M4a · calibration</text>
+            <text class="tm" x="30" y="303">0 prior correction (D11)</text>
+            <text class="tm" x="30" y="319">1 temperature T</text>
+            <text class="tm" x="30" y="335">2 EM on target images</text>
+
+            <rect class="bx" x="350" y="260" width="140" height="96" rx="3"/>
+            <text class="t1" x="362" y="283">M3 · ICDR rules</text>
+            <text class="t2" x="362" y="301">no learned weights</text>
+            <text class="tm" x="362" y="317">R1→0  R2→1</text>
+            <text class="tm" x="362" y="333">R3, R3*→2</text>
+            <text class="t2" x="362" y="349">abstains above 2</text>
+
+            <rect class="bx cut" x="632" y="260" width="192" height="96" rx="3"/>
+            <text class="ct1" x="644" y="283">R4 · R5</text>
+            <text class="ct2" x="644" y="301">severe needs quadrants</text>
+            <text class="ct2" x="644" y="317">PDR needs neovascularisation</text>
+            <text class="ct2" x="644" y="333">neither can fire, so M3</text>
+            <text class="ct2" x="644" y="349">stops at grade 2 (D1)</text>
+
+            <line class="ln" x1="81" y1="356" x2="81" y2="387" marker-end="url(#arch-ah)"/>
+            <text class="lab" x="88" y="376">p_cal</text>
+            <line class="ln acc" x1="410" y1="356" x2="410" y2="387" marker-end="url(#arch-ah-acc)"/>
+            <text class="lab" x="417" y="376">e</text>
+
+            <!-- row 3: the four signals -->
+            <rect class="bx" x="16" y="388" width="130" height="68" rx="3"/>
+            <text class="sg" x="28" y="410">d_conf</text>
+            <text class="tm" x="28" y="428">1 − p_cal(ŷ | x)</text>
+            <text class="t2" x="28" y="445">its own confidence</text>
+
+            <rect class="bx" x="160" y="388" width="130" height="68" rx="3"/>
+            <text class="sg" x="172" y="410">d_ood</text>
+            <text class="t2" x="172" y="428">Mahalanobis in</text>
+            <text class="t2" x="172" y="445">M1's embedding</text>
+
+            <rect class="bx acc" x="350" y="388" width="118" height="68" rx="3"/>
+            <text class="sg" x="362" y="410">d_evidence</text>
+            <text class="tm" x="362" y="428">|ŷ − e|</text>
+            <text class="t2" x="362" y="445">0 when ŷ above 2</text>
+
+            <rect class="bx acc" x="482" y="388" width="118" height="68" rx="3"/>
+            <text class="sg" x="494" y="410">d_faith</text>
+            <text class="t2" x="494" y="428">lesion removal</text>
+            <text class="tm" x="494" y="445">vs 19 controls</text>
+
+            <path class="wall" d="M16,461 V468 H290 V461"/>
+            <text class="t2" x="153" y="486" text-anchor="middle">M1 judging itself</text>
+            <line class="ln" x1="153" y1="492" x2="153" y2="509" marker-end="url(#arch-ah)"/>
+            <path class="ln acc" d="M350,461 V468 H600 V461"/>
+            <text class="t2 acc-t" x="475" y="486" text-anchor="middle">M1 checked against M2 and M3</text>
+            <line class="ln acc" x1="475" y1="492" x2="475" y2="509" marker-end="url(#arch-ah-acc)"/>
+
+            <!-- row 4: the gate -->
+            <rect class="bx acc" x="16" y="510" width="584" height="86" rx="3"/>
+            <text class="t1" x="30" y="533">M4c · the gate: five arms, one coverage–accuracy curve</text>
+            <text class="tm" x="30" y="553">none · confidence · OOD · disagreement · combined</text>
+            <text class="tm" x="30" y="570">disagreement = d_evidence + r · d_faith, r fitted on calibration</text>
+            <text class="t2 act" x="30" y="589">→ ACCEPT · ADJACENT GRADE SET · DEFER</text>
+            <line class="ln cut" x1="600" y1="553" x2="630" y2="553" marker-end="url(#arch-ah-cut)"/>
+            <rect class="bx cut" x="632" y="510" width="192" height="86" rx="3"/>
+            <text class="ct1" x="644" y="533">REACQUIRE</text>
+            <text class="ct2" x="644" y="551">the fourth action</text>
+            <text class="ct2" x="644" y="567">needs M0's quality check,</text>
+            <text class="ct2" x="644" y="583">so it is removed (D10)</text>
+          </svg>
+        </div>
+      </div>
+      <figcaption>
+        ŷ is M1's grade — the CORAL threshold count, identical in every arm. e is M3's evidence
+        grade. The two pathways meet only below the wall: in the signals, never in the weights.
+      </figcaption>
+    </figure>
+
+    <h4>What changed between the design and the build</h4>
+    <div class="scroller">
+      <table class="words">
+        <thead>
+          <tr><th>Module</th><th>Designed</th><th>As built</th><th>Record</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>M0 · preprocessing</td><td>crop, centre-crop to 512, CLAHE</td><td>crop, <strong>pad</strong> to square, 512, CLAHE (clip 2.0, 8×8)</td><td>A0</td></tr>
+          <tr><td>M0 · quality head</td><td>small CNN on DDR's ungradable class, routes to REACQUIRE</td><td>not built — every image is treated as gradable</td><td>D10 · proposed</td></tr>
+          <tr><td>M1 · grader</td><td>EfficientNet-B0, ordinal + rDR / VTDR heads</td><td>as designed, single-eye; six instances</td><td>B1–B5, D7</td></tr>
+          <tr><td>M2a · segmenter</td><td>ResNet18-UNet on DDR and IDRiD masks</td><td>DDR only; IDRiD kept as C3's unseen domain</td><td>D2</td></tr>
+          <tr><td>M2b · disc and fovea</td><td>quadrant frame for the 4-2-1 rule</td><td>0.686 DD against 0.5 — never run</td><td>D1</td></tr>
+          <tr><td>M3 · reasoner</td><td>R1–R5, grades 0–4</td><td>R1–R3*, grades 0–2, abstains above</td><td>D1</td></tr>
+          <tr><td>M4a · calibration</td><td>temperature, then EM</td><td>prior correction, then temperature, then EM</td><td>D11 · proposed</td></tr>
+          <tr><td>M4b · faithfulness</td><td>Δ lesion &gt; Δ random + a margin</td><td>lesion removal must beat all 19 random controls</td><td>plan §5.4</td></tr>
+          <tr><td>M4c · gate</td><td>w₁·d_evidence + w₂·d_faith; four actions</td><td>d_evidence is 0 above grade 2; one ratio r; three actions</td><td>plan §5, D10</td></tr>
+        </tbody>
+        <caption>
+          D1, D2 and D7 are recorded deviations. The rest come from the draft analysis plan.
+        </caption>
+      </table>
+    </div>
+
+    <div class="note caution">
+      <span class="tag">Still a proposal</span>
+      <p>
+        Four of these changes come from the draft analysis plan and bind nothing until it is
+        marked final: the prior correction (D11), removing REACQUIRE (D10), the 19-draw
+        faithfulness test, and d_evidence going to zero above grade 2. Each is argued there,
+        and each must be settled before any locked label is read.
+      </p>
+    </div>
+  </section>
 
   <section>
     <h2>Stage B closed</h2>
@@ -1181,6 +1405,135 @@
   </section>
 
   <section>
+    <h2>Phase 6a · final training</h2>
+    <h3>Six runs, none collapsed — and early stopping cut two short of where the rest peaked</h3>
+    <p>
+      The frozen recipe on both declared variants at three seeds each, split across Kaggle
+      sessions and resumed from per-epoch checkpoints. All six finished and every one emits all
+      five grades. These are <strong>validation</strong> numbers, from the split early stopping
+      read, so they check the runs rather than report anything.
+    </p>
+    <div class="scroller">
+      <table>
+        <thead>
+          <tr><th>Run</th><th>Epochs (best)</th><th>Val QWK</th><th>Macro-F1</th><th>Grade-1 F1</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>eyepacs_full · s42</td><td>10 (9)</td><td>0.7819</td><td>0.5657</td><td>0.2350</td></tr>
+          <tr><td>eyepacs_full · s43</td><td class="key">7 (3)</td><td>0.7563</td><td>0.5373</td><td>0.2073</td></tr>
+          <tr><td>eyepacs_full · s44</td><td>10 (8)</td><td>0.7839</td><td>0.5646</td><td>0.2139</td></tr>
+          <tr><td>eyepacs_ddr_full · s42</td><td>10 (7)</td><td>0.7666</td><td>0.5583</td><td>0.2274</td></tr>
+          <tr><td>eyepacs_ddr_full · s43</td><td class="key">5 (1)</td><td>0.7455</td><td>0.5067</td><td>0.1668</td></tr>
+          <tr><td>eyepacs_ddr_full · s44</td><td>10 (8)</td><td>0.7816</td><td>0.5546</td><td>0.2377</td></tr>
+        </tbody>
+        <caption>
+          Means: eyepacs_full 0.7740 QWK (spread 0.0276), eyepacs_ddr_full 0.7646 (spread
+          0.0361). Paired by seed, DDR minus full is −0.0153, −0.0108 and −0.0023: the same sign
+          each time, all inside the noise. Nothing is claimed from it, and H3 is about external
+          transfer, which this split cannot show.
+        </caption>
+      </table>
+    </div>
+
+    <figure>
+      <div class="chart-shell">
+        <p class="chart-title">Where each run stopped, against the learning-rate schedule</p>
+        <p class="chart-sub">Bar: epochs trained. Dot: the best epoch, whose checkpoint is kept. Line: the learning-rate multiplier — two warm-up epochs, then cosine decay.</p>
+        <div class="diagram">
+          <svg class="tl" viewBox="0 0 760 306" role="img" aria-label="Six runs on an epoch axis from 0 to 9. The four that trained all ten epochs had their best epoch at 9, 8, 7 and 8, where the learning rate is lowest. Both seed-43 runs were stopped early, at epochs 6 and 4, with best epochs 3 and 1, before the low learning-rate phase began.">
+            <rect class="band" x="570" y="90" width="180" height="172"/>
+            <line class="grid" x1="150" y1="92" x2="150" y2="260"/>
+            <line class="grid" x1="210" y1="92" x2="210" y2="260"/>
+            <line class="grid" x1="270" y1="92" x2="270" y2="260"/>
+            <line class="grid" x1="330" y1="92" x2="330" y2="260"/>
+            <line class="grid" x1="390" y1="92" x2="390" y2="260"/>
+            <line class="grid" x1="450" y1="92" x2="450" y2="260"/>
+            <line class="grid" x1="510" y1="92" x2="510" y2="260"/>
+            <line class="grid" x1="570" y1="92" x2="570" y2="260"/>
+            <line class="grid" x1="630" y1="92" x2="630" y2="260"/>
+            <line class="grid" x1="690" y1="92" x2="690" y2="260"/>
+            <line class="grid" x1="750" y1="92" x2="750" y2="260"/>
+            <line class="axis" x1="150" y1="78" x2="750" y2="78"/>
+            <polygon class="lra" points="180,78 180,48.0 240,18.0 300,18.0 360,20.3 420,26.8 480,36.5 540,48.0 600,59.5 660,69.2 720,75.7 720,78"/>
+            <polyline class="lr" points="180,48.0 240,18.0 300,18.0 360,20.3 420,26.8 480,36.5 540,48.0 600,59.5 660,69.2 720,75.7"/>
+            <text class="ax" x="138" y="52" text-anchor="end">learning rate</text>
+            <text class="ax" x="146" y="22" text-anchor="end">1.0</text>
+            <text class="ax" x="146" y="81" text-anchor="end">0</text>
+            <text class="run" x="138" y="112" text-anchor="end">full · s42</text>
+            <rect class="bar" x="150" y="103" width="600" height="10" rx="1.5"/>
+            <circle class="best" cx="720" cy="108" r="5.5"/>
+            <text class="run" x="138" y="136" text-anchor="end">full · s43</text>
+            <rect class="bar" x="150" y="127" width="420" height="10" rx="1.5"/>
+            <circle class="best" cx="360" cy="132" r="5.5"/>
+            <text class="stop" x="578" y="136">stopped</text>
+            <text class="run" x="138" y="160" text-anchor="end">full · s44</text>
+            <rect class="bar" x="150" y="151" width="600" height="10" rx="1.5"/>
+            <circle class="best" cx="660" cy="156" r="5.5"/>
+            <text class="run" x="138" y="194" text-anchor="end">ddr · s42</text>
+            <rect class="bar" x="150" y="185" width="600" height="10" rx="1.5"/>
+            <circle class="best" cx="600" cy="190" r="5.5"/>
+            <text class="run" x="138" y="218" text-anchor="end">ddr · s43</text>
+            <rect class="bar" x="150" y="209" width="300" height="10" rx="1.5"/>
+            <circle class="best" cx="240" cy="214" r="5.5"/>
+            <text class="stop" x="458" y="218">stopped</text>
+            <text class="run" x="138" y="242" text-anchor="end">ddr · s44</text>
+            <rect class="bar" x="150" y="233" width="600" height="10" rx="1.5"/>
+            <circle class="best" cx="660" cy="238" r="5.5"/>
+            <text class="ax" x="180" y="278" text-anchor="middle">0</text>
+            <text class="ax" x="240" y="278" text-anchor="middle">1</text>
+            <text class="ax" x="300" y="278" text-anchor="middle">2</text>
+            <text class="ax" x="360" y="278" text-anchor="middle">3</text>
+            <text class="ax" x="420" y="278" text-anchor="middle">4</text>
+            <text class="ax" x="480" y="278" text-anchor="middle">5</text>
+            <text class="ax" x="540" y="278" text-anchor="middle">6</text>
+            <text class="ax" x="600" y="278" text-anchor="middle">7</text>
+            <text class="ax" x="660" y="278" text-anchor="middle">8</text>
+            <text class="ax" x="720" y="278" text-anchor="middle">9</text>
+            <text class="ax" x="138" y="278" text-anchor="end">epoch</text>
+            <text class="ax" x="750" y="298" text-anchor="end">all four full runs peaked here</text>
+          </svg>
+        </div>
+      </div>
+      <figcaption>
+        The four runs that trained to the end peaked at epochs 9, 8, 7 and 8, where the learning
+        rate has fallen below a third of its peak. Patience 3 stopped both seed-43 runs, after
+        epochs 6 and 4, before that phase began, which is why seed 43 is the worst run in both
+        variants.
+      </figcaption>
+    </figure>
+
+    <div class="note decision">
+      <span class="tag">Decision · neither is retrained</span>
+      <p>
+        Retraining a seed because its result is worse is choosing seeds by outcome. The resume
+        path was checked first — it restores the best epoch, so this is the frozen rule, not a
+        bug. The cost is honest: seed 43 widens both variants' spread, and the pre-registration
+        forbids claiming any difference smaller than that spread, so H3 now needs a larger
+        effect.
+      </p>
+    </div>
+
+    <p>
+      <strong>Why ~0.78 and not Stage B's 0.679.</strong> Stage B selected the recipe on
+      <code>eyepacs_balanced_1000</code>, a few thousand balanced images; these runs train on
+      all <span class="num">59 842</span>. Both are scored on the same validation split, so
+      about twelve times the data is the difference, not leakage.
+    </p>
+
+    <div class="note bad">
+      <span class="tag">D8 · the leaderboard comparison is dropped</span>
+      <p>
+        The variants were built by regrouping all <span class="num">88 009</span> EyePACS
+        images into one patient-grouped split, ignoring the competition's partition — so about
+        80% of the official test set sits in these models' training, validation or calibration
+        data. The mirror's own split is a 70/15/15 re-split, so the official one cannot be
+        recovered. In-domain results use our <span class="num">17 615</span>-image test split,
+        labelled custom and never placed beside 0.8496. Recorded before any locked data was read.
+      </p>
+    </div>
+  </section>
+
+  <section>
     <h2>Method · a recurring failure shape</h2>
     <h3>Every serious bug so far produced a well-formed artefact</h3>
 
@@ -1265,6 +1618,28 @@
         </p>
         <span class="sig">Signal: a downstream stage with nothing to train on.</span>
       </li>
+      <li>
+        <h4>A notebook section that was a comment</h4>
+        <p>
+          The training notebook was assembled by copying cells from an earlier one by index,
+          and the clone step sat one cell later than assumed. Its markdown heading landed in a
+          code cell, where <code>## 1 · Clone the repo</code> is a Python comment: it ran,
+          succeeded, and cloned nothing. The generator had checked that every cell parsed — and
+          a comment parses. Every notebook is now checked for inert code cells, and for names
+          used before any cell defines them.
+        </p>
+        <span class="sig">Signal: a NameError six sections later, on paid GPU.</span>
+      </li>
+      <li>
+        <h4>A check that printed its own contradiction</h4>
+        <p>
+          "Mirror marks 13,202 images as test (the official test set is 53,576)" — and on the
+          next line, "OPTION C is possible". The check had tested that a
+          <code>source_split</code> column existed, never that it held the competition's
+          partition. It now compares the counts before it offers anything.
+        </p>
+        <span class="sig">Signal: two adjacent lines that cannot both be true.</span>
+      </li>
     </ul>
 
     <div class="note decision">
@@ -1313,6 +1688,18 @@
         mid-run and improvising.
       </p>
     </div>
+    <div class="note decision">
+      <span class="tag">Resolved at the freeze</span>
+      <p>
+        Neither trim was needed. Epochs stayed at <span class="num">10</span>: the frozen
+        config's 12 was the training script's default leaking in, while every Stage B arm ran
+        10 (D7). The six runs were split across sessions instead, each resumable from its last
+        epoch. The 21.7 h figure was itself low — it priced both variants at
+        <code>eyepacs_full</code>'s rows, while <code>eyepacs_ddr_full</code> also carries all
+        <span class="num">12 522</span> DDR images — for about <span class="num">24</span> h in
+        all, before early stopping saved some of it.
+      </p>
+    </div>
   </section>
 
   <section>
@@ -1348,14 +1735,17 @@
     <p>
       Stage B selects a recipe; it does not produce findings. The checkpoints are discarded and
       Phase 6 retrains from scratch. QWK on this custom patient-grouped split is never comparable
-      to the Kaggle leaderboard — the only comparable figure is H1, on the official test split,
-      reported beside the <span class="num">0.8496</span> reference.
+      to the Kaggle leaderboard — and after D8 no figure in this project is. The variants
+      regrouped every EyePACS image, so most of the official test set is in the training data;
+      the comparison with <span class="num">0.8496</span> was dropped before any locked data
+      was read.
     </p>
 
     <h4>The grade-1 weakness is the mechanism, not a defect</h4>
     <p>
       Grade-1 F1 sits near <span class="num">0.15</span> under every configuration tried, and
-      Stage B is now closed with that unchanged. It says the grader cannot reliably see
+      Stage B closed with that unchanged. On the full training set in Phase 6a it rises only to
+      <span class="num">0.17–0.24</span>. It says the grader cannot reliably see
       microaneurysms — which is exactly the case this thesis is built to exploit. The evidence
       pathway segments microaneurysms directly and independently. A grader blind to grade 1,
       paired with an evidence path that is not, is precisely where disagreement should fire.
