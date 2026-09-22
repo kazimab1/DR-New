@@ -174,20 +174,33 @@ quota.
 **Finish a session with Quick Save, never "Save & Run All".** Save & Run All
 re-executes the whole notebook in a fresh container and would retrain from scratch.
 
-### Before the unblinding — two blockers found 2026-09-22
+### Phase 6a DONE (2026-09-22) — all six runs complete, none collapsed
 
-**The leaderboard benchmark cannot run as registered.** Variants were built with
-`--eyepacs-split regroup` (all 88,009 images, official train and test mixed), yet
-`frozen_config.yaml` says `split: official_eyepacs`. About two-thirds of the official
-test images are in the six models' training data. Only that one secondary outcome is
-lost; F2, H2, H3 and in-domain triage are unaffected. Decide A (drop the comparison,
-0 GPU-h) or C (one official-split model, ~1.8 GPU-h/seed, needs `source_split`) and
-record it as **D8 before any locked data is read**. `notebooks/06_check_runs.ipynb` measures the overlap and says whether C is possible.
+Val QWK ~0.77-0.78 against Stage B's 0.679: Stage B selected on
+`eyepacs_balanced_1000` (a few thousand images, batch 24); Phase 6a trains on all
+59,842 rows. Same val split. Not leakage. Both `s43` runs early-stopped
+(`eyepacs_ddr_full_s43` peaked at epoch 1); the resume path was verified to restore
+`best_epoch`, so it is the frozen patience-3 rule, and **they are not retrained** --
+retraining a seed for a worse result is choosing seeds by outcome. It widens the DDR
+seed spread, so H3 needs a larger effect.
 
-**Phase 7 code does not exist** (`calibration/`, `triage/` are empty). Build and test
-it on internal data *first*; then one pass over the locked sets writes a label-free
-prediction table, and labels are joined once. Unblinding first would mean writing the
-analysis after seeing the answer.
+**D8 (option A): the leaderboard comparison is dropped.** The variants were built with
+`--eyepacs-split regroup`, so ~80% of the official test set sits in train/val/
+calibration; `frozen_config.yaml`'s `split: official_eyepacs` is wrong and D8
+supersedes it. Option C was impossible: the mirror's `source_split` is its own
+70/15/15 re-split. `06_check_runs.ipynb` had announced "OPTION C is possible" one line
+after printing the mismatch -- it tested that the column existed, not what it held.
+It now checks the counts. In-domain results use our 17,615-image test split, labelled
+custom, never beside 0.8496.
+
+**Next: the analysis plan, then the code.** `calibration/` and `triage/` are empty,
+and docs/03 fixes the *formulas* but not every choice inside them -- e.g. what
+`|grade_M1 - evidence_grade_M3|` means when M3 cannot reach grades 3-4, which
+embeddings OOD-z is measured against, how the gate weights are fitted, what
+"accuracy" the primary coverage curve counts. Pin each in writing and commit it
+before the unblinding, then implement to it and test on internal val/calibration.
+**M0 (the quality head) was never built**, so REACQUIRE cannot fire and G2 cannot
+run; the plan must say so.
 
 **Section 1 once shipped as a comment.** The notebook was built by copying cells from
 `04_phase4.ipynb` by index, and the clone step is cell 2 there, not cell 1. The

@@ -947,14 +947,53 @@ says nothing about real lesions, and the fixture's numbers must never reach the 
 Six runs: the frozen recipe on both declared variants at three seeds. Executed by
 `notebooks/06_final_training.ipynb`.
 
-| run | variant | seed | Status | QWK | macro-F1 | g1-F1 | distinct |
-|---|---|---|---|---|---|---|---|
-| H1_eyepacs_full_s42 | eyepacs_full | 42 | TODO | | | | |
-| H1_eyepacs_full_s43 | eyepacs_full | 43 | TODO | | | | |
-| H1_eyepacs_full_s44 | eyepacs_full | 44 | TODO | | | | |
-| H1_eyepacs_ddr_full_s42 | eyepacs_ddr_full | 42 | TODO | | | | |
-| H1_eyepacs_ddr_full_s43 | eyepacs_ddr_full | 43 | TODO | | | | |
-| H1_eyepacs_ddr_full_s44 | eyepacs_ddr_full | 44 | TODO | | | | |
+**DONE 2026-09-22 — all six complete, none collapsed.** Metrics are on the
+**validation** split, the one early stopping read, so they are optimistic by
+construction; they are recorded to check the runs, not to report.
+
+| run | Status | epochs (best) | val QWK | macro-F1 | g1-F1 | distinct |
+|---|---|---|---|---|---|---|
+| H1_eyepacs_full_s42 | DONE | 10 (9) | 0.7819 | 0.5657 | 0.2350 | 5 |
+| H1_eyepacs_full_s43 | DONE, early-stopped | 7 (3) | *pending* | | | not 1 |
+| H1_eyepacs_full_s44 | DONE | 10 (8) | *pending* | | | not 1 |
+| H1_eyepacs_ddr_full_s42 | DONE | 10 (7) | 0.7666 | 0.5583 | 0.2274 | 5 |
+| H1_eyepacs_ddr_full_s43 | DONE, early-stopped | 5 (1) | *pending* | | | not 1 |
+| H1_eyepacs_ddr_full_s44 | DONE | 10 (8) | 0.7816 | 0.5546 | 0.2377 | 5 |
+
+*Pending* rows were illegible in the screenshot they came from; nothing is entered
+that was not read. For an early-stopped run, epochs = best + patience + 1, so
+7 (3) and 5 (1) are each fixed by the one digit that was legible.
+
+### Two seeds early-stopped, and neither is retrained
+
+`s43` stopped early in both variants; `eyepacs_ddr_full_s43` peaked at **epoch 1**,
+inside the two-epoch warmup, and stopped at epoch 4. The resume path was checked
+first, because a resume bug that lost `best_epoch` would make early stopping fire at
+the wrong time and would be a code defect, not an outcome: `train_grading.py`
+restores `best_qwk`, `best_epoch`, `history`, optimiser, scheduler and scaler
+together. So this is the frozen rule — patience 3 on val QWK — doing what it says.
+
+Retraining a seed because its result is worse is choosing seeds by outcome. The run
+stands. Its cost is honest and specific: it widens the DDR variant's seed spread, and
+§7 of the pre-registration forbids claiming any difference smaller than that spread,
+so H3 now needs a larger effect to be claimed.
+
+### Why these score ~0.78 when Stage B scored 0.679
+
+Not a red flag, and not leakage. Stage B selected the recipe on
+`eyepacs_balanced_1000` — a few thousand balanced training images — at batch 24.
+Phase 6a trains on all 59,842 `eyepacs_full` rows at the frozen batch 32. Both are
+scored on the same validation split (held-out rows are identical across variants, A0).
+~12x the data is the difference.
+
+Batch 32 is `train_grading.py`'s default, the same class of leak as D7's 12 epochs.
+It is not a deviation: `PREREGISTRATION.md` §2 lists batch size as *default*, not as
+selected, and Phase 6a ran what was registered. It belongs beside the data-scale
+difference as a condition selection did not test.
+
+C4's comparison should now read against the final M1: the evidence path's 0.375
+against ~0.78, not 0.679. The premise test still passes — neither redundant nor at
+chance — with the evidence path relatively weaker than C4 suggested.
 
 ### The budget was priced wrong, and by 10%
 
@@ -1076,22 +1115,42 @@ cannot be scored on it:
 - `frozen_config.yaml` nonetheless reads `split: official_eyepacs  # 35,126 train /
   53,576 test`. It describes a split the six models were **not** trained on. The
   train-row count gives it away: 59,842 rows cannot come from a 35,126-image train set.
-- With 68% of all images in train, roughly two-thirds of the official test images are
-  in the six models' training data, and more in val (early stopping) and calibration.
+- The regroup ignored the competition's partition, so any independently chosen subset
+  shares the whole cache's proportions: **about 80% of the official test set is in the
+  six models' train (68%), val (8%) or calibration (4%) splits.** An earlier note here
+  said "roughly two-thirds"; that counted train alone.
 
 **Scope.** This removes one *secondary* outcome. The primary outcome (F2, APTOS and
 Messidor-2), H2 (external calibration), H3 (DDR transfer) and in-domain triage on our
 own patient-grouped test split are all untouched: none depends on the official split.
 
-**Options, to be decided and recorded as D8 before anything locked is read:**
+**RESOLVED — D8, option A (2026-09-22): the leaderboard comparison is dropped.** In-domain
+results use our own patient-grouped EyePACS test split (17,615 images), labelled
+custom-split, never beside 0.8496.
 
-| | what | cost |
-|---|---|---|
-| A | drop the leaderboard comparison; report our own EyePACS test split, labelled custom, never beside 0.8496 | 0 GPU-h |
-| C | train the frozen recipe once on the official train split only (`--eyepacs-split source`), score it on the official test set | ~1.8 GPU-h per seed; needs the mirror to have recorded `source_split` |
+Option C — train one model on the official split and score it on the official test —
+turned out to be impossible, and the check that was meant to establish that said the
+opposite. The mirror's `source_split` is its **own** 70/15/15 re-split:
 
-`notebooks/06_check_runs.ipynb` measures the real overlap from the manifests and
-says whether C is possible.
+| mirror's split | train | val | test |
+|---|---|---|---|
+| mirror | 61,606 | 13,201 | 13,202 |
+| competition | 35,126 | — | 53,576 |
+
+`06_check_runs.ipynb` printed that mismatch — "mirror marks 13,202 images as test (the
+official test set is 53,576)" — and on the next line announced "OPTION C is possible",
+because it had tested only that a `source_split` column *existed*, never that it was
+the competition's partition. It now compares the counts first, and is verified against
+the real crosstab cell for cell: the old version repeats the false claim, the new one
+refuses it and still offers C for a mirror that does ship the official partition.
+
+Same failure shape as C1's empty geometry column: a check that cannot answer its
+question still printed an answer.
+
+Recovering the partition from the competition's own `trainLabels.csv` was weighed and
+declined in D8: it would still not be protocol-matched (693 images missing
+non-randomly by grade, A0) and the winners' eye-pair ensembles are exactly what B5
+rejected.
 
 ### Phase 7's code does not exist yet — and that changes the order
 
