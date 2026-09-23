@@ -1186,6 +1186,31 @@ with no choice changed, and binding from then: D9 (the plan), D10 (REACQUIRE rem
 and D11 (the sampling-prior correction) are recorded in `PREREGISTRATION.md`. No locked
 label had been read.
 
+### Step 1 of the plan: the internal pass — code built, ready to run
+
+`scripts/predict.py` is the single pass the plan's §9 describes, and the same script
+will run the locked sets in Phase 6b. `notebooks/07_internal_pass.ipynb` runs it over
+internal data only: 5,000-image OOD references per variant, then calibration and val.
+
+- **Label-free by construction.** Label columns go on reading; a static test finds
+  every place a label is named or a manifest is read, and was checked against a
+  mutated copy of the script that reads `grade` — both checks fired.
+- **Locked data refused** without `--locked`, before any image is opened; tested with
+  an image loader that fails if called.
+- **Faithfulness exactly as §5.4 pins it**, in `src/verify_dr/triage/faithfulness.py`:
+  the inpainted region is the components M3 counted (`lesion_region_mask`, beside the
+  counting rule in `facts.py`), dilated 3 px; 19 seeded controls move each connected
+  region of that dilated union intact, so area is equal even where channels overlap. A
+  simulated lesion-blind network passes 1 time in 20, as the plan claims.
+- **Resumable** by shard, and a stopped run resumes to byte-identical output.
+- **It checks itself against training.** The notebook recomputes each model's val QWK
+  from the pass's own grades and compares it with `metrics.json`; a mismatch means the
+  pass is not scoring the model it thinks it is.
+
+Rehearsed end to end by executing the notebook's own cells against a fake `/kaggle`
+tree: dataset mounts, a cache needing repathing, six checkpoints, a decoy empty
+`results/`, and the verification cell tested both ways.
+
 ### Phase 7's code does not exist yet — and that changes the order
 
 `src/verify_dr/calibration/` and `src/verify_dr/triage/` are empty files. Temperature

@@ -97,6 +97,37 @@ def _components(mask: np.ndarray, min_px: int) -> Tuple[int, List[Tuple[float, f
     return len(centroids), centroids
 
 
+def lesion_region_mask(
+    probs: np.ndarray,
+    threshold: float = 0.5,
+    min_lesion_px: int = MIN_LESION_PX,
+) -> np.ndarray:
+    """Pixels of every lesion M3 counted, across all channels, as one [H, W] mask.
+
+    Faithfulness (ANALYSIS_PLAN.md section 5.4) inpaints "the lesion regions M2
+    detected and M3 cited". Under count-only M3 the fired rule cites every channel
+    present, so that is the union of the components `extract_facts` counts: the same
+    `probs >= threshold`, the same 8-connectivity, the same minimum size. Specks
+    below `min_lesion_px` are excluded here exactly as they are from the counts --
+    `Facts.areas` includes them, which is why this cannot be rebuilt from areas.
+    """
+    import cv2
+
+    probs = np.asarray(probs)
+    if probs.ndim != 3:
+        raise ValueError(f"expected [C, H, W], got {probs.shape}")
+    region = np.zeros(probs.shape[1:], dtype=bool)
+    for channel in probs >= threshold:
+        binary = channel.astype(np.uint8)
+        if not binary.any():
+            continue
+        n, labels, stats, _ = cv2.connectedComponentsWithStats(binary, connectivity=8)
+        keep = np.zeros(n, dtype=bool)
+        keep[1:] = stats[1:, cv2.CC_STAT_AREA] >= min_lesion_px
+        region |= keep[labels]
+    return region
+
+
 def extract_facts(
     probs: np.ndarray,
     threshold: float = 0.5,

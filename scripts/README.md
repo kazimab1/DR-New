@@ -287,3 +287,32 @@ Runs a trained model over a manifest and emits the decision record in
 **Guard rail:** refuse to run against a manifest marked `locked: true` unless
 `--unblind` is passed *and* `preregistration/frozen_config.yaml` exists. Cheap
 insurance against accidentally burning the external sets.
+
+---
+
+## `predict.py` — Phase 6b / 7, the single pass ✅ implemented
+
+One label-free prediction table per split (`preregistration/ANALYSIS_PLAN.md` §9).
+Everything downstream — calibration, the four gate signals, every curve — is computed
+from what it writes, so no analysis ever reads an image again.
+
+```
+--manifest PATH  --split NAME              rows whose split column equals NAME
+--grading-checkpoints best.pt ...          M1 instances; run name = parent directory
+--evidence-checkpoint best.pt              M2 (C2); required unless --embeddings-only
+--embeddings-only  --sample N  --sample-seed S     the OOD reference (plan §5.3)
+--cache-root ROOT ...  --out-dir DIR
+--locked                                   required for the EyePACS test split,
+                                           APTOS and Messidor-2 -- Phase 6b only
+--shard-size 512  --batch-size 16  --variant-batch 2  --workers 4
+--max-minutes M                            stop between shards; exit 3; re-run resumes
+```
+
+Writes `images.csv` (per image: M2 counts and areas, M3's verdict, faithfulness
+status), `m1.csv` (per image × model: cumulative logits, ŷ, rDR/VTDR logits, expected
+grade on the original, the lesion-removed copy and each of 19 controls), `emb/<run>.npy`
+(512-d float16) and `run.json` (checkpoint SHA-256s, constants, code commit).
+
+**No label is ever written**: label columns are dropped on reading, before any row is
+selected. **Locked data is refused** without `--locked`, before any image is opened.
+Exit codes: 0 done · 2 refused · 3 stopped at `--max-minutes`.

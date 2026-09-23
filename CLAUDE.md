@@ -199,10 +199,17 @@ existing code, (3) otherwise the reading that does not favour our own hypotheses
 D9-D11 are recorded. Changing it now means a dated deviation, never an edit -- the
 code is written *to* it, not the other way round.
 
-**Next: implement to the plan**, in its §10 order: the internal pass (training
-references, calibration, val), fit on calibration, rehearse every table on val, commit
-the code and `fitted_params.json`, then one label-free pass over the locked sets, and
-labels joined once.
+**Step 1 (internal pass) is built and ready:** `scripts/predict.py` +
+`notebooks/07_internal_pass.ipynb`. Label-free by construction (labels dropped on
+reading, statically tested), refuses locked data without `--locked`, resumable by
+shard, and it verifies itself: section 9 recomputes each model's val QWK from the
+pass and compares it with `metrics.json`. Faithfulness lives in
+`src/verify_dr/triage/faithfulness.py`; the region it inpaints comes from
+`lesion_region_mask` in `facts.py`, beside the rule that defines a lesion.
+
+**Next after it runs:** step 2 -- fit T, the OOD statistics, tau_ood, tau_conf and r on
+the calibration split (CPU), rehearse every table on val, commit the code and
+`fitted_params.json`, then the locked pass and one label join.
 
 Three things it found that change the analysis, not just pin it:
 - **The six models were trained on a uniform class prior** (`stratified_exposure`
