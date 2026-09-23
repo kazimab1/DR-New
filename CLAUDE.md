@@ -193,12 +193,16 @@ after printing the mismatch -- it tested that the column existed, not what it he
 It now checks the counts. In-domain results use our 17,615-image test split, labelled
 custom, never beside 0.8496.
 
-**Next: review `preregistration/ANALYSIS_PLAN.md` (DRAFT, 2026-09-22).** It pins every
+**`preregistration/ANALYSIS_PLAN.md` is FINAL (2026-09-23) and binding.** It pins every
 choice the pre-registration left open, resolving each by (1) the frozen text, (2) the
-existing code, (3) otherwise the reading that does not favour our own hypotheses. It
-becomes binding when the author marks it FINAL and records D9-D11 -- before any locked
-data is read. Then: implement to it, rehearse on internal val, commit the fitted
-parameters, one label-free pass over the locked sets, labels joined once.
+existing code, (3) otherwise the reading that does not favour our own hypotheses.
+D9-D11 are recorded. Changing it now means a dated deviation, never an edit -- the
+code is written *to* it, not the other way round.
+
+**Next: implement to the plan**, in its §10 order: the internal pass (training
+references, calibration, val), fit on calibration, rehearse every table on val, commit
+the code and `fitted_params.json`, then one label-free pass over the locked sets, and
+labels joined once.
 
 Three things it found that change the analysis, not just pin it:
 - **The six models were trained on a uniform class prior** (`stratified_exposure`

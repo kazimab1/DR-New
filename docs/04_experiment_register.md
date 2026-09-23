@@ -1178,11 +1178,13 @@ declined in D8: it would still not be protocol-matched (693 images missing
 non-randomly by grade, A0) and the winners' eye-pair ensembles are exactly what B5
 rejected.
 
-### The analysis plan — DRAFT 2026-09-22
+### The analysis plan — FINAL 2026-09-23
 
-`preregistration/ANALYSIS_PLAN.md` pins every implementation choice left open, before
-any locked label exists. Not binding until the author marks it FINAL and records
-D9–D11 in `PREREGISTRATION.md`.
+`preregistration/ANALYSIS_PLAN.md` pins every implementation choice the
+pre-registration left open. Drafted 2026-09-22, marked final by the author 2026-09-23
+with no choice changed, and binding from then: D9 (the plan), D10 (REACQUIRE removed)
+and D11 (the sampling-prior correction) are recorded in `PREREGISTRATION.md`. No locked
+label had been read.
 
 ### Phase 7's code does not exist yet — and that changes the order
 

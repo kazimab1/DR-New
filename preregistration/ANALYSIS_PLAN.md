@@ -1,10 +1,16 @@
 # VERIFY-DR — Analysis plan for Phase 6b and Phase 7
 
-> **Status: DRAFT, 2026-09-22 — for the author and supervisor to review.**
-> It becomes binding when the author marks it FINAL, commits it, and records D9–D11
-> (§12) in `PREREGISTRATION.md` — **before any locked data is read**. Until then every
-> choice below is a proposal and can be changed freely. After that, changes follow the
-> pre-registration's stopping rule (§9 there): recorded, never silent.
+> **Status: FINAL — marked final by the author on 2026-09-23, before any locked data
+> was read.** Binding from the commit that first contains this line. D9–D11 (§12) are
+> recorded in `PREREGISTRATION.md`. From here, changes follow the pre-registration's
+> stopping rule (§9 there): dated deviations, never silent edits.
+>
+> **Finalising commit:** _recorded by the commit after it_ — a commit cannot contain its
+> own hash, the same reason the freeze's hash is recorded one commit later.
+>
+> Drafted 2026-09-22. Finalising changed no choice in it: only this status, and three
+> sentences whose tense or wording would otherwise have been wrong (§5.4, §10, and the
+> list at the end).
 
 ---
 
@@ -177,8 +183,8 @@ with one random draw a model that ignores lesions entirely passes about half the
   (nothing cited, nothing to test), or if undetermined. Undetermined cases are counted
   and reported.
 
-Cost: ~1 GPU-hour across all splits. K = 9 halves it at α = 0.10 — a legitimate
-trade *if made now*.
+Cost: ~1 GPU-hour across all splits. K = 9 would have halved it at α = 0.10; K = 19 was
+kept when this plan was finalised.
 
 ### 5.5 The disagreement score and its one parameter
 
@@ -312,7 +318,9 @@ not require reading the locked images again.
 2. **Fit** on the calibration split: T, the OOD statistics and τ_ood, τ_conf, r — per
    model. **Rehearse every table and figure end to end on val**, labelled as rehearsal.
 3. **Commit** the analysis code and `fitted_params.json`; record the commit hash in
-   `PREREGISTRATION.md`. This is the last commit made before any locked label exists.
+   `PREREGISTRATION.md`. This is the last commit before the locked pass, so the code and
+   every fitted value that produce the results are fixed before any locked image or label
+   is read.
 4. **Locked pass:** the same script over the EyePACS test split, APTOS and Messidor-2.
    Label-free. Published as a Kaggle dataset.
 5. **Unblinding:** labels joined in one step; every outcome in §§4–8 computed and
@@ -335,7 +343,9 @@ Estimated GPU: ~30 minutes for steps 1–2, ~1–1.5 hours for step 4, dominated
 - **Wider seed spreads** from seed 43's early stops (§8).
 - **The EyePACS cache is 693 images short**, non-randomly by grade (A0).
 
-## 12. Deviations to record when this plan is committed
+## 12. Deviations recorded with this plan
+
+Recorded in `PREREGISTRATION.md` on 2026-09-23.
 
 | | Change | Why |
 |---|---|---|
@@ -345,10 +355,10 @@ Estimated GPU: ~30 minutes for steps 1–2, ~1–1.5 hours for step 4, dominated
 
 ---
 
-## Where review matters most
+## The choices that matter most
 
-Five choices here shape the headline result more than the rest. Each is argued above;
-each is still open until this is committed.
+Five choices here shape the headline result more than the rest. Each is argued above,
+and each was settled when this plan was marked final.
 
 1. **§5.1 — d_evidence is 0 for M1 grades above 2.** The literal formula would defer
    them all; this plan says M3's blind spot is not evidence.

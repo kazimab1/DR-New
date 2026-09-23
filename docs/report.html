@@ -425,7 +425,7 @@
       <span>Updated <b>22 Sep 2026</b></span>
       <span>Phase <b>6a trained</b> · 6 / 6 runs</span>
       <span>Locked data read <b>none</b></span>
-      <span>Analysis plan <b>draft</b></span>
+      <span>Analysis plan <b>final</b></span>
     </div>
   </header>
 
@@ -603,28 +603,28 @@
         </thead>
         <tbody>
           <tr><td>M0 · preprocessing</td><td>crop, centre-crop to 512, CLAHE</td><td>crop, <strong>pad</strong> to square, 512, CLAHE (clip 2.0, 8×8)</td><td>A0</td></tr>
-          <tr><td>M0 · quality head</td><td>small CNN on DDR's ungradable class, routes to REACQUIRE</td><td>not built — every image is treated as gradable</td><td>D10 · proposed</td></tr>
+          <tr><td>M0 · quality head</td><td>small CNN on DDR's ungradable class, routes to REACQUIRE</td><td>not built — every image is treated as gradable</td><td>D10</td></tr>
           <tr><td>M1 · grader</td><td>EfficientNet-B0, ordinal + rDR / VTDR heads</td><td>as designed, single-eye; six instances</td><td>B1–B5, D7</td></tr>
           <tr><td>M2a · segmenter</td><td>ResNet18-UNet on DDR and IDRiD masks</td><td>DDR only; IDRiD kept as C3's unseen domain</td><td>D2</td></tr>
           <tr><td>M2b · disc and fovea</td><td>quadrant frame for the 4-2-1 rule</td><td>0.686 DD against 0.5 — never run</td><td>D1</td></tr>
           <tr><td>M3 · reasoner</td><td>R1–R5, grades 0–4</td><td>R1–R3*, grades 0–2, abstains above</td><td>D1</td></tr>
-          <tr><td>M4a · calibration</td><td>temperature, then EM</td><td>prior correction, then temperature, then EM</td><td>D11 · proposed</td></tr>
+          <tr><td>M4a · calibration</td><td>temperature, then EM</td><td>prior correction, then temperature, then EM</td><td>D11</td></tr>
           <tr><td>M4b · faithfulness</td><td>Δ lesion &gt; Δ random + a margin</td><td>lesion removal must beat all 19 random controls</td><td>plan §5.4</td></tr>
           <tr><td>M4c · gate</td><td>w₁·d_evidence + w₂·d_faith; four actions</td><td>d_evidence is 0 above grade 2; one ratio r; three actions</td><td>plan §5, D10</td></tr>
         </tbody>
         <caption>
-          D1, D2 and D7 are recorded deviations. The rest come from the draft analysis plan.
+          D-numbers are recorded deviations. Plan references are choices pinned by the analysis plan.
         </caption>
       </table>
     </div>
 
-    <div class="note caution">
-      <span class="tag">Still a proposal</span>
+    <div class="note decision">
+      <span class="tag">Binding since 23 Sep</span>
       <p>
-        Four of these changes come from the draft analysis plan and bind nothing until it is
-        marked final: the prior correction (D11), removing REACQUIRE (D10), the 19-draw
-        faithfulness test, and d_evidence going to zero above grade 2. Each is argued there,
-        and each must be settled before any locked label is read.
+        The analysis plan was marked final before any locked label was read, so four of these
+        changes are now fixed: the prior correction (D11), removing REACQUIRE (D10), the
+        19-draw faithfulness test, and d_evidence going to zero above grade 2. From here a
+        change is a dated deviation, never an edit.
       </p>
     </div>
   </section>
