@@ -5,8 +5,8 @@
 > recorded in `PREREGISTRATION.md`. From here, changes follow the pre-registration's
 > stopping rule (§9 there): dated deviations, never silent edits.
 >
-> **Finalising commit:** _recorded by the commit after it_ — a commit cannot contain its
-> own hash, the same reason the freeze's hash is recorded one commit later.
+> **Finalising commit:** `1f2f9c1` (full: `1f2f9c15c565d64024006ad45d75495713c2fe51`) — recorded one commit later,
+> because a commit cannot contain its own hash; the freeze's was recorded the same way.
 >
 > Drafted 2026-09-22. Finalising changed no choice in it: only this status, and three
 > sentences whose tense or wording would otherwise have been wrong (§5.4, §10, and the

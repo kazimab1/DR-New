@@ -193,7 +193,7 @@ after printing the mismatch -- it tested that the column existed, not what it he
 It now checks the counts. In-domain results use our 17,615-image test split, labelled
 custom, never beside 0.8496.
 
-**`preregistration/ANALYSIS_PLAN.md` is FINAL (2026-09-23) and binding.** It pins every
+**`preregistration/ANALYSIS_PLAN.md` is FINAL (2026-09-23, commit `1f2f9c1`) and binding.** It pins every
 choice the pre-registration left open, resolving each by (1) the frozen text, (2) the
 existing code, (3) otherwise the reading that does not favour our own hypotheses.
 D9-D11 are recorded. Changing it now means a dated deviation, never an edit -- the
