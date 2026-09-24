@@ -1,0 +1,477 @@
+{
+ "code_commit": "8242f21116399e51ac6c1189de6d995b990c9c72",
+ "constants": {
+  "auc_tie": 1e-12,
+  "bootstrap_resamples": 2000,
+  "bootstrap_seed": 42,
+  "conf_percentile": 90.0,
+  "controls": 19,
+  "coverage_points": [0.8, 0.9],
+  "ece_bins": 15,
+  "em_max_iter": 1000,
+  "em_tol": 1e-06,
+  "max_excludable_grade": 2,
+  "min_controls_ok": 15,
+  "ood_percentile": 95.0,
+  "ood_reference_seed": 0,
+  "ood_reference_size": 5000,
+  "ood_sd_ddof": 1,
+  "r_grid": [0.0, 0.5, 1.5, 2.5],
+  "temperature_bounds": [0.05, 20.0]
+ },
+ "created_at": "2026-09-24T03:55:11+00:00",
+ "digest": "8fc2b5f83fe28a982ab44e0437e61438498003cfb66a58a45cbab121e312046f",
+ "evidence_checkpoint_sha256": "8e6874d79f8b899f8df20ed1187cc12e07983a53c091eb0035fc18dfceabca59",
+ "inputs": {
+  "calibration": {
+   "emb/H1_eyepacs_ddr_full_s42.npy": "1fb5170a392280c06ac526d31fe498348c6101389269867dfc32b0db81afc9e5",
+   "emb/H1_eyepacs_ddr_full_s43.npy": "94d90e326581681ca48c776de824ca579163bbffc0f9716a40445769a4ec596d",
+   "emb/H1_eyepacs_ddr_full_s44.npy": "0e0907d48c53785e37769755ff398ef4ca78bb48a064113423356a2d5cd9f1be",
+   "emb/H1_eyepacs_full_s42.npy": "9952b79b3042da691e7b0f5521d6a9664d64e48e714c6bf5a21531bc988e4eb3",
+   "emb/H1_eyepacs_full_s43.npy": "0b6846bd030c474c0f6f00d8a5df6fc7c11e1b7fdaad6b899b3b8a79da36ac50",
+   "emb/H1_eyepacs_full_s44.npy": "8b89026c19c3dc47052ba281caa319e9c8c7747c2b60c0e494643aef84c48678",
+   "images.csv": "94db38e5ff592bff794d92702ce465f9fbcb2332d397a46b5bc1066cd64b7d91",
+   "m1.csv": "197144dbdaae1a0157e4a07a9442bf8eeda92620dd04a9f5be172c9d2c992c5f",
+   "run.json": "d8c9948c1bf1729af935263ce8a5afc8edd435c6699655311b328f647ae1b256"
+  },
+  "manifests": {
+   "eyepacs_ddr_full.csv": "385fea7d1706e3498d7bdd26494de3a8eb0384c552133fac499726532f0b34e2",
+   "eyepacs_full.csv": "fa97f49540769c28076da070ce1c8bee34230dc986c972b6375870882be397dc"
+  },
+  "reference_eyepacs_ddr_full": {
+   "emb/H1_eyepacs_ddr_full_s42.npy": "20eda99db7ac4e9375b7a7b86cc817ea840d967ed769f1958fc9d1c134d3f5e1",
+   "emb/H1_eyepacs_ddr_full_s43.npy": "356cf7287428f95cbd4f1bffebbb2c74e36f606c4b45fb5005f4c68810cc607d",
+   "emb/H1_eyepacs_ddr_full_s44.npy": "6b7e8dd02b2c13afa7f20973b7197573e893ba4a3ddc8f8d90af280a13225ae0",
+   "images.csv": "a963327e7fcc9440eb967ed708931c94466bb9429bf9b97e1bf8bf30b3aa9d38",
+   "m1.csv": "21fa870011fe93b96e7a3bcc053cb5812fb37a4d4e93391d4c88263b40a72a60",
+   "run.json": "c6c7fb3f778fa313000ac33a1cf1de715192471b1e00187803a425b13419cf9b"
+  },
+  "reference_eyepacs_full": {
+   "emb/H1_eyepacs_full_s42.npy": "975306a6decac0fa6f2380d0ba2f92130ea75e1203379f4441f336d14a7e080a",
+   "emb/H1_eyepacs_full_s43.npy": "2bbff3ec09b0d6b9512d82e0d7095824f6b377cd84a23c26aa83f6d1b395c15f",
+   "emb/H1_eyepacs_full_s44.npy": "063b978bc47e90501b00096a2b7e26b0bb44e26258634bd9e84b455e5ab807f9",
+   "images.csv": "d8cf49b71d919bcdd904d6b6b4d6008b6f49dcb38d3969af5d44c79491897c8b",
+   "m1.csv": "47a06f24a1d2e2af2894f958ed5f52eeb8402a8e3e8096e6cb06e60c5890f702",
+   "run.json": "b1b835a77628a5f2d6da4d360f8a54929bc3b987305854c778f8ca0774e6ece0"
+  }
+ },
+ "models": {
+  "H1_eyepacs_ddr_full_s42": {
+   "calibration_fit": {
+    "brier": {
+     "raw": 0.4008757842472014,
+     "stage01": 0.2696291182438828,
+     "stage1": 0.3866556532154288
+    },
+    "ece": {
+     "raw": 0.26588417924452656,
+     "stage01": 0.03251520747028513,
+     "stage1": 0.23116324051640008
+    },
+    "em_premise": {
+     "em_converged": true,
+     "em_iterations": 71,
+     "em_prior_no_shift": [0.8510717753041928, 7.766366433726006e-08, 0.13625797724212732, 7.702129291269751e-06, 0.012662467660724269],
+     "mean_posterior": [0.7922036884684462, 0.05787638464823282, 0.12578942268351703, 0.012602614273668702, 0.011527889926135163],
+     "true_prior": [0.7440205011389521, 0.0683371298405467, 0.14236902050113895, 0.02334851936218679, 0.021924829157175398]
+    },
+    "n": 3512,
+    "nll": {
+     "raw": 0.7989165866788585,
+     "stage01": 0.5735538428852464,
+     "stage1": 0.7385084061388796
+    }
+   },
+   "calibration_signals": {
+    "accuracy": 0.6944760820045558,
+    "d_evidence": {
+     "0": 1179,
+     "1": 926,
+     "2": 1407,
+     "3": 0,
+     "4": 0
+    },
+    "faith": {
+     "faithful": 1673,
+     "no_lesion": 651,
+     "undetermined": 12,
+     "unfaithful": 1176
+    }
+   },
+   "checkpoint_sha256": "d4c551482cba55f5717cf3d7cd4df02ba11fedbe5574719d0ce8b9ae2b38c43f",
+   "ood": {
+    "calibration_flagged": 0.05011389521640091,
+    "class_counts": [3433, 337, 935, 120, 175],
+    "digest": "a4b25c3ff8519681e9a96025cd1087494031bcdb129c86fb62607edd5a092066",
+    "distance_mean": 16.857564482087863,
+    "distance_sd": 8.353713775256827,
+    "file": "ood/H1_eyepacs_ddr_full_s42.npz",
+    "reference_rows": 5000,
+    "shrinkage": 0.002528634399169746,
+    "tau_ood": 1.8581654732692967
+   },
+   "r": 2.5,
+   "r_auc": {
+    "0.0": 0.6727661061183902,
+    "0.5": 0.6787658237554972,
+    "1.5": 0.6884901078657351,
+    "2.5": 0.6916603144176473
+   },
+   "seed": 42,
+   "tau_conf": 0.9162132470842024,
+   "temperature": 0.4800620900289936,
+   "temperature_stage1_only": 0.5193343928046792,
+   "variant": "eyepacs_ddr_full"
+  },
+  "H1_eyepacs_ddr_full_s43": {
+   "calibration_fit": {
+    "brier": {
+     "raw": 0.4081555688830064,
+     "stage01": 0.2991066795166152,
+     "stage1": 0.379813382252555
+    },
+    "ece": {
+     "raw": 0.23199697905537195,
+     "stage01": 0.059101072420170694,
+     "stage1": 0.16377294975215057
+    },
+    "em_premise": {
+     "em_converged": true,
+     "em_iterations": 46,
+     "em_prior_no_shift": [0.895022602024007, 3.6809189658638557e-06, 0.08227312331724233, 0.012829598376295237, 0.0098709953634896],
+     "mean_posterior": [0.8197330386031858, 0.05327924088680959, 0.1021605590004754, 0.013886737447572517, 0.010940424061956671],
+     "true_prior": [0.7440205011389521, 0.0683371298405467, 0.14236902050113895, 0.02334851936218679, 0.021924829157175398]
+    },
+    "n": 3512,
+    "nll": {
+     "raw": 0.8371916272793298,
+     "stage01": 0.6181128330199166,
+     "stage1": 0.7298288273234648
+    }
+   },
+   "calibration_signals": {
+    "accuracy": 0.7158314350797267,
+    "d_evidence": {
+     "0": 1122,
+     "1": 796,
+     "2": 1594,
+     "3": 0,
+     "4": 0
+    },
+    "faith": {
+     "faithful": 1985,
+     "no_lesion": 651,
+     "undetermined": 12,
+     "unfaithful": 864
+    }
+   },
+   "checkpoint_sha256": "82637b5dab8a2aae1a084517ca4347395745f2cc747261ef39890596954318c5",
+   "ood": {
+    "calibration_flagged": 0.05011389521640091,
+    "class_counts": [3433, 337, 935, 120, 175],
+    "digest": "ef71b3db18a679fa193c997e7871f8aa91616bb370f195194f0337de1ad2b158",
+    "distance_mean": 17.80411108496166,
+    "distance_sd": 8.834961784788893,
+    "file": "ood/H1_eyepacs_ddr_full_s43.npz",
+    "reference_rows": 5000,
+    "shrinkage": 0.0009842715586689161,
+    "tau_ood": 2.0372731778744844
+   },
+   "r": 2.5,
+   "r_auc": {
+    "0.0": 0.6917215306573924,
+    "0.5": 0.6960614669726853,
+    "1.5": 0.7062418837685446,
+    "2.5": 0.7098598278383909
+   },
+   "seed": 43,
+   "tau_conf": 0.896086104417138,
+   "temperature": 0.43747206865404065,
+   "temperature_stage1_only": 0.42818965167298617,
+   "variant": "eyepacs_ddr_full"
+  },
+  "H1_eyepacs_ddr_full_s44": {
+   "calibration_fit": {
+    "brier": {
+     "raw": 0.3701009580016114,
+     "stage01": 0.2710502975736993,
+     "stage1": 0.3385498333359413
+    },
+    "ece": {
+     "raw": 0.2588903063365643,
+     "stage01": 0.043980453595169944,
+     "stage1": 0.17833859503118765
+    },
+    "em_premise": {
+     "em_converged": true,
+     "em_iterations": 37,
+     "em_prior_no_shift": [0.8721632919631742, 1.0778191981318619e-07, 0.11620184823111122, 2.1166252948115146e-06, 0.011632635398499786],
+     "mean_posterior": [0.8140227003596257, 0.048277153816469895, 0.11625298590479165, 0.010536940783197342, 0.01091021913591556],
+     "true_prior": [0.7440205011389521, 0.0683371298405467, 0.14236902050113895, 0.02334851936218679, 0.021924829157175398]
+    },
+    "n": 3512,
+    "nll": {
+     "raw": 0.7463556647433458,
+     "stage01": 0.5823739481457793,
+     "stage1": 0.6651994715619145
+    }
+   },
+   "calibration_signals": {
+    "accuracy": 0.7582574031890661,
+    "d_evidence": {
+     "0": 1175,
+     "1": 706,
+     "2": 1631,
+     "3": 0,
+     "4": 0
+    },
+    "faith": {
+     "faithful": 1786,
+     "no_lesion": 651,
+     "undetermined": 12,
+     "unfaithful": 1063
+    }
+   },
+   "checkpoint_sha256": "46c3cad7136f5932364413f30336065ba54e9920ed11c7e46874c9081664f0c2",
+   "ood": {
+    "calibration_flagged": 0.05011389521640091,
+    "class_counts": [3433, 337, 935, 120, 175],
+    "digest": "d4a0cbabe2b105182150c618df0a7cab9e8b610885dd42506f27ecf431f411b6",
+    "distance_mean": 16.696802444401637,
+    "distance_sd": 8.989666119670375,
+    "file": "ood/H1_eyepacs_ddr_full_s44.npz",
+    "reference_rows": 5000,
+    "shrinkage": 0.0015256379481611909,
+    "tau_ood": 2.0799269846775097
+   },
+   "r": 2.5,
+   "r_auc": {
+    "0.0": 0.7294802193807459,
+    "0.5": 0.7335509613953356,
+    "1.5": 0.7401384424941201,
+    "2.5": 0.7430314984895648
+   },
+   "seed": 44,
+   "tau_conf": 0.9003191051809366,
+   "temperature": 0.507362656778683,
+   "temperature_stage1_only": 0.4828017027721746,
+   "variant": "eyepacs_ddr_full"
+  },
+  "H1_eyepacs_full_s42": {
+   "calibration_fit": {
+    "brier": {
+     "raw": 0.37874987301536517,
+     "stage01": 0.27073692391116433,
+     "stage1": 0.3444804967955449
+    },
+    "ece": {
+     "raw": 0.2701648154677241,
+     "stage01": 0.04246140788710737,
+     "stage1": 0.1735258175025827
+    },
+    "em_premise": {
+     "em_converged": true,
+     "em_iterations": 45,
+     "em_prior_no_shift": [0.8690126069489867, 6.665706100932443e-09, 0.12153595401536228, 3.16740933183653e-06, 0.009448264960612934],
+     "mean_posterior": [0.8123947687553265, 0.04882695597548533, 0.11816716880895893, 0.011340384100975107, 0.009270722359254156],
+     "true_prior": [0.7440205011389521, 0.0683371298405467, 0.14236902050113895, 0.02334851936218679, 0.021924829157175398]
+    },
+    "n": 3512,
+    "nll": {
+     "raw": 0.7638347820753344,
+     "stage01": 0.5852366635028572,
+     "stage1": 0.6762193917437397
+    }
+   },
+   "calibration_signals": {
+    "accuracy": 0.7625284738041003,
+    "d_evidence": {
+     "0": 1161,
+     "1": 703,
+     "2": 1648,
+     "3": 0,
+     "4": 0
+    },
+    "faith": {
+     "faithful": 1801,
+     "no_lesion": 651,
+     "undetermined": 12,
+     "unfaithful": 1048
+    }
+   },
+   "checkpoint_sha256": "54bd618b85d045e2a288c9e3d9b21b0a3df6c47245e3da19822fa1576b80ae20",
+   "ood": {
+    "calibration_flagged": 0.05011389521640091,
+    "class_counts": [3655, 358, 774, 106, 107],
+    "digest": "87d76fb5ef4d25ab739651c9e9a8610e98a34f8080353d2d33015fc3b6467b44",
+    "distance_mean": 17.56136749384566,
+    "distance_sd": 11.172128252280968,
+    "file": "ood/H1_eyepacs_full_s42.npz",
+    "reference_rows": 5000,
+    "shrinkage": 0.0010020215731354355,
+    "tau_ood": 1.9894261724984303
+   },
+   "r": 2.5,
+   "r_auc": {
+    "0.0": 0.7360258149576595,
+    "0.5": 0.7406878786363313,
+    "1.5": 0.747374360271345,
+    "2.5": 0.7509894990207429
+   },
+   "seed": 42,
+   "tau_conf": 0.897134644881765,
+   "temperature": 0.49381957827587414,
+   "temperature_stage1_only": 0.4621350190939765,
+   "variant": "eyepacs_full"
+  },
+  "H1_eyepacs_full_s43": {
+   "calibration_fit": {
+    "brier": {
+     "raw": 0.42262058462114876,
+     "stage01": 0.286998789236347,
+     "stage1": 0.4084012396160684
+    },
+    "ece": {
+     "raw": 0.24854396202980977,
+     "stage01": 0.03508657198283815,
+     "stage1": 0.25002491787721437
+    },
+    "em_premise": {
+     "em_converged": true,
+     "em_iterations": 81,
+     "em_prior_no_shift": [0.8886144617925259, 8.522961582100148e-06, 0.0683069470600899, 0.027686382855084034, 0.015383685330718131],
+     "mean_posterior": [0.8030907164553351, 0.05956811267784839, 0.10472725598229357, 0.01663560831062952, 0.015978306573893354],
+     "true_prior": [0.7440205011389521, 0.0683371298405467, 0.14236902050113895, 0.02334851936218679, 0.021924829157175398]
+    },
+    "n": 3512,
+    "nll": {
+     "raw": 0.8534938130509092,
+     "stage01": 0.5840909075761082,
+     "stage1": 0.765968577645479
+    }
+   },
+   "calibration_signals": {
+    "accuracy": 0.701879271070615,
+    "d_evidence": {
+     "0": 1115,
+     "1": 903,
+     "2": 1494,
+     "3": 0,
+     "4": 0
+    },
+    "faith": {
+     "faithful": 2000,
+     "no_lesion": 651,
+     "undetermined": 12,
+     "unfaithful": 849
+    }
+   },
+   "checkpoint_sha256": "7ec79928319673b43ddecbd91b6961aba990fb062f13fce81ad71f6894da677c",
+   "ood": {
+    "calibration_flagged": 0.05011389521640091,
+    "class_counts": [3655, 358, 774, 106, 107],
+    "digest": "a01289ac37eb05dd51a7daef356c352e70af6b0bc41dcdcabc737a850d8c1e99",
+    "distance_mean": 15.737545677273282,
+    "distance_sd": 9.251359562670624,
+    "file": "ood/H1_eyepacs_full_s43.npz",
+    "reference_rows": 5000,
+    "shrinkage": 0.0020330231623046703,
+    "tau_ood": 1.8514951624306375
+   },
+   "r": 2.5,
+   "r_auc": {
+    "0.0": 0.6829316565683613,
+    "0.5": 0.6873248473868666,
+    "1.5": 0.6964171736030105,
+    "2.5": 0.6995792706858134
+   },
+   "seed": 43,
+   "tau_conf": 0.9059244485501108,
+   "temperature": 0.41377614820192327,
+   "temperature_stage1_only": 0.4408668211766341,
+   "variant": "eyepacs_full"
+  },
+  "H1_eyepacs_full_s44": {
+   "calibration_fit": {
+    "brier": {
+     "raw": 0.38356632305268695,
+     "stage01": 0.26716904791018337,
+     "stage1": 0.35375783517761805
+    },
+    "ece": {
+     "raw": 0.2724779927874345,
+     "stage01": 0.037283274964622054,
+     "stage1": 0.20345885510186854
+    },
+    "em_premise": {
+     "em_converged": true,
+     "em_iterations": 42,
+     "em_prior_no_shift": [0.8562126470675941, 1.5239969059360734e-07, 0.12944659916253456, 2.9172373158777812e-06, 0.014337684132864716],
+     "mean_posterior": [0.8011567741605431, 0.0511001618571381, 0.1230471711590851, 0.0117692839738679, 0.012926608849365815],
+     "true_prior": [0.7440205011389521, 0.0683371298405467, 0.14236902050113895, 0.02334851936218679, 0.021924829157175398]
+    },
+    "n": 3512,
+    "nll": {
+     "raw": 0.7725425283687147,
+     "stage01": 0.5669982845855377,
+     "stage1": 0.6897992282229578
+    }
+   },
+   "calibration_signals": {
+    "accuracy": 0.7545558086560364,
+    "d_evidence": {
+     "0": 1195,
+     "1": 735,
+     "2": 1582,
+     "3": 0,
+     "4": 0
+    },
+    "faith": {
+     "faithful": 1823,
+     "no_lesion": 651,
+     "undetermined": 12,
+     "unfaithful": 1026
+    }
+   },
+   "checkpoint_sha256": "8942e8296a3193c8ac273a440620ad3978cf073b7b83e7f6962371c9335681fc",
+   "ood": {
+    "calibration_flagged": 0.05011389521640091,
+    "class_counts": [3655, 358, 774, 106, 107],
+    "digest": "e3b15875d57a511ecf47ec575e7cdf0ea46e0c92dcbffb07851e9291ac4b2efa",
+    "distance_mean": 17.853820989854892,
+    "distance_sd": 11.397424472571121,
+    "file": "ood/H1_eyepacs_full_s44.npz",
+    "reference_rows": 5000,
+    "shrinkage": 0.0011214879944510348,
+    "tau_ood": 1.9353932054595142
+   },
+   "r": 2.5,
+   "r_auc": {
+    "0.0": 0.7326266825286846,
+    "0.5": 0.7389309453350675,
+    "1.5": 0.7486453679311807,
+    "2.5": 0.7523643013965348
+   },
+   "seed": 44,
+   "tau_conf": 0.8982814969424444,
+   "temperature": 0.4825763861762813,
+   "temperature_stage1_only": 0.4727790994170077,
+   "variant": "eyepacs_full"
+  }
+ },
+ "pass_constants": {
+  "controls": 19,
+  "dilate_px": 3,
+  "evidence_threshold": 0.5,
+  "fov_threshold": 10,
+  "image_size": 512,
+  "inpaint_radius": 5,
+  "max_attempts": 200,
+  "min_controls_ok": 15,
+  "min_lesion_px": 4
+ },
+ "pi_src": [0.7374085090738945, 0.07035192674041643, 0.1476722034691354, 0.023428361351559106, 0.021138999364994485],
+ "pi_src_counts": [44128, 4210, 8837, 1402, 1265],
+ "pi_src_source": "eyepacs_full.csv: dataset == EyePACS, split == train",
+ "plan": "preregistration/ANALYSIS_PLAN.md -- FINAL 2026-09-23, commit 1f2f9c1"
+}

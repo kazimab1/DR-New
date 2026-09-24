@@ -1307,6 +1307,73 @@ drift on the externals and H2 fails for that reason, not for the shift.
 **At real scale** (3,512 / 7,040 / 5,000 × 512-d, 2,000 resamples) the fit takes seconds
 and the rehearsal about four minutes, CPU only.
 
+### Step 2: the rehearsal — DONE 2026-09-24. The frozen analysis fails in-domain, for two diagnosed reasons
+
+**The fit (calibration split, per model).** Digest `8fc2b5f8…`; the parameters are kept
+as a record in `docs/rehearsal/2026-09-24_fitted_params_frozen.json`. They are not
+`preregistration/fitted_params.json`, because nothing is committed for the unblinding yet.
+
+| | range over the six models |
+|---|---|
+| T (stages 0+1) | 0.41–0.51. Below 1: the prior-corrected posteriors are under-confident |
+| ECE raw → stage 1 alone → stages 0+1 | 0.23–0.27 → 0.16–0.25 → **0.03–0.06**. D11's correction does most of the work |
+| τ_ood | 1.85–2.08 (5.0% of calibration flagged, by construction) |
+| τ_conf | 0.90–0.92 |
+| r | **2.5 for all six**. Calibration AUC rises monotonically with r |
+
+π_src comes from 59,842 EyePACS training rows: 0.737 / 0.070 / 0.148 / 0.023 / 0.021.
+
+**The rehearsal on val (7,040 images).** Coverage–accuracy AUC per arm:
+
+| model | none | confidence | OOD | disagreement | combined |
+|---|---|---|---|---|---|
+| eyepacs_full s42 | 0.7719 | **0.9195** | 0.8606 | 0.7677 | 0.8322 |
+| eyepacs_full s43 | 0.7169 | **0.9015** | 0.8483 | 0.7189 | 0.7875 |
+| eyepacs_full s44 | 0.7541 | **0.9167** | 0.8463 | 0.7536 | 0.8221 |
+| eyepacs_ddr_full s42 | 0.7153 | **0.9106** | 0.8130 | 0.7163 | 0.7936 |
+| eyepacs_ddr_full s43 | 0.7205 | **0.8978** | 0.8482 | 0.7167 | 0.7887 |
+| eyepacs_ddr_full s44 | 0.7659 | **0.9189** | 0.8608 | 0.7623 | 0.8257 |
+
+**Disagreement is indistinguishable from no gate at all** (within ±0.005 of "none" for
+every model), and confidence beats it by 0.15–0.19. The rehearsal verdicts are "not
+supported" for everything. For H2 and H3 that is expected on val, since there is no
+shift and no external set. **For H1 it is decisive.**
+
+**Why, from the d_evidence blocks** (eyepacs_full s42; the other five match):
+
+| d_evidence | share of images | M1 correct |
+|---|---|---|
+| 0 | 35% | 81% |
+| 1 | 19% | **35%** |
+| 2 | 47% | **91%** |
+
+The signal exists: a one-grade disagreement picks out M1's errors. **But the ordering is
+inverted.** The largest disagreement is mostly M3 reporting grade 2 on healthy eyes that
+M1 correctly calls 0, so the arm defers M1's safest calls first.
+
+**M3 against the truth on val**, descriptive:
+
+| true grade | evidence 0 | evidence 1 | evidence 2 |
+|---|---|---|---|
+| 0 | 1,243 | 363 | 3,560 |
+| 1 | 53 | 84 | 364 |
+| 2 | 27 | 24 | 1,013 |
+| 3 | 2 | 0 | 153 |
+| 4 | 1 | 1 | 152 |
+
+Evidence is found in **75.9% of grade-0 images** and missing in only 2.2% of referable
+ones: very sensitive, almost unspecific. M3's QWK on val is **0.138**, against 0.375 on
+DDR in C4. EyePACS's larger healthy share exposes the false positives that DDR's mix hid.
+
+**EM's premise fails.** The mean stage 0+1 posterior for grade 0 is 0.79–0.82 against a
+true 0.744. EM run on the calibration split, where nothing has shifted, drives grade 1 to
+~0 and grade 0 to 0.85–0.90 in every model. Temperature and a fixed prior correction match
+the probability of the predicted grade (ECE 0.03–0.06) but not the grade mix, and EM needs
+the grade mix. H2 would fail for that reason, not because of any shift.
+
+Faithfulness: 59–72% of determined lesion images are faithful. 28 undetermined, 20 of them
+with no control placeable.
+
 ### Phase 7's code was written before the unblinding — the order this required
 
 Before step 1, `src/verify_dr/calibration/` and `src/verify_dr/triage/` were empty.
