@@ -133,6 +133,11 @@ def fit_temperature(z: np.ndarray, y: np.ndarray, pi_src: Optional[Sequence[floa
         p = stage01(z, t, pi_src) if pi_src is not None else coral_probs(z, t)
         return nll(p, y)
 
+    return _search_temperature(loss, bounds)
+
+
+def _search_temperature(loss: Callable[[float], float], bounds: Tuple[float, float]) -> float:
+    """Minimise `loss(log T)` on [bounds]: a log-spaced grid, then golden section."""
     lo, hi = math.log(bounds[0]), math.log(bounds[1])
     grid = np.linspace(lo, hi, _GRID)
     values = np.array([loss(g) for g in grid])
@@ -142,6 +147,119 @@ def fit_temperature(z: np.ndarray, y: np.ndarray, pi_src: Optional[Sequence[floa
     if loss(best) > values[i]:           # never worse than the grid point
         best = grid[i]
     return float(math.exp(best))
+
+
+# ------------------------------------------------------------------ D13
+
+
+@dataclass(frozen=True)
+class BCTS:
+    """Bias-corrected temperature scaling: q(y|x) ~ p_T(y|x) * exp(bias_y), bias_0 = 0."""
+    temperature: float
+    bias: np.ndarray
+
+
+def bcts_probs(z: np.ndarray, fit: BCTS) -> np.ndarray:
+    p = coral_probs(z, fit.temperature)
+    w = np.exp(np.asarray(fit.bias, dtype=np.float64) - np.max(fit.bias))
+    q = p * w
+    return q / np.clip(q.sum(axis=1, keepdims=True), 1e-300, None)
+
+
+def _log_probs(p: np.ndarray) -> np.ndarray:
+    return np.log(np.clip(p, 1e-300, None))
+
+
+def _bias_nll(logp: np.ndarray, y: np.ndarray, bias: np.ndarray) -> float:
+    s = logp + bias
+    top = s.max(axis=1, keepdims=True)
+    lse = (top + np.log(np.exp(s - top).sum(axis=1, keepdims=True)))[:, 0]
+    return float((lse - s[np.arange(len(y)), y]).mean())
+
+
+def fit_bias(p: np.ndarray, y: np.ndarray, max_iter: int = 200) -> np.ndarray:
+    """The per-grade log-biases (bias_0 = 0) minimising the NLL of q ~ p * exp(bias).
+
+    The NLL is convex in the biases, so a descent method finds the global minimum.
+    At it, the gradient -- the sum over images of q(c | x) minus the count of grade
+    c -- is zero: the mean fitted posterior equals the observed grade mix, which is
+    exactly EM's premise.
+
+    Newton's step, damped Levenberg-Marquardt style when it does not descend: at an
+    extreme temperature some grades' probabilities saturate at zero and the Hessian
+    is near-singular, and an undamped step there goes nowhere useful.
+    """
+    p = np.asarray(p, dtype=np.float64)
+    y = np.asarray(y).astype(int)
+    n, k = p.shape
+    counts = np.bincount(y, minlength=k).astype(np.float64)
+    if (counts == 0).any():
+        raise ValueError(f"every grade needs calibration images; counts {counts.tolist()}")
+    logp = _log_probs(p)
+    bias = np.zeros(k)
+    current = _bias_nll(logp, y, bias)
+    for _ in range(max_iter):
+        s = logp + bias
+        q = np.exp(s - s.max(axis=1, keepdims=True))
+        q /= q.sum(axis=1, keepdims=True)
+        grad = (q.sum(axis=0) - counts)[1:] / n
+        if np.abs(grad).max() < 1e-12:
+            break
+        hess = (np.diag(q.sum(axis=0)) - q.T @ q)[1:, 1:] / n
+        moved = False
+        for damping in (0.0, 1e-8, 1e-6, 1e-4, 1e-2, 1.0, 100.0):
+            try:
+                step = np.linalg.solve(hess + damping * np.eye(k - 1), grad)
+            except np.linalg.LinAlgError:
+                continue                # exactly singular: the damped system is not
+            t = 1.0
+            while t > 1e-6:
+                trial = bias.copy()
+                trial[1:] -= t * step
+                value = _bias_nll(logp, y, trial)
+                if value < current:
+                    bias, current, moved = trial, value, True
+                    break
+                t /= 2.0
+            if moved:
+                break
+        if not moved:
+            break                       # no descent in any direction tried: optimal
+    return bias
+
+
+def _bias_gradient(p: np.ndarray, y: np.ndarray, bias: np.ndarray) -> float:
+    s = _log_probs(p) + bias
+    q = np.exp(s - s.max(axis=1, keepdims=True))
+    q /= q.sum(axis=1, keepdims=True)
+    counts = np.bincount(np.asarray(y).astype(int), minlength=p.shape[1])
+    return float(np.abs(q.sum(axis=0) - counts).max() / len(y))
+
+
+def fit_bcts(z: np.ndarray, y: np.ndarray, bounds: Tuple[float, float] = T_BOUNDS) -> BCTS:
+    """D13: T and the per-grade biases jointly minimising the NLL on calibration.
+
+    T is found by the same bounded search as `fit_temperature`, on the profile NLL:
+    at every candidate T the biases are solved from scratch, so the search is over
+    one variable and every value it compares is a true minimum over the biases.
+    Refuses to return a fit whose biases have not converged: EM's premise is only
+    as good as the bias equations are solved.
+    """
+    z = np.asarray(z, dtype=np.float64)
+    y = np.asarray(y).astype(int)
+
+    def profile(log_t: float) -> float:
+        p = coral_probs(z, math.exp(log_t))
+        return _bias_nll(_log_probs(p), y, fit_bias(p, y))
+
+    t = _search_temperature(profile, bounds)
+    p = coral_probs(z, t)
+    bias = fit_bias(p, y)
+    gap = _bias_gradient(p, y, bias)
+    if gap > 1e-8:
+        raise ValueError(f"BCTS biases did not converge at T={t:.4f} (mean moment gap "
+                         f"{gap:.2e}); the fitted posteriors would not match the grade mix")
+    return BCTS(t, bias)
 
 
 @dataclass(frozen=True)

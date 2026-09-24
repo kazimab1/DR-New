@@ -18,6 +18,12 @@ and the training rows of the OOD reference sample. Per model it fits
 and writes `fitted_params.json` (every value, pi_src, the sha256 of every input, and a
 digest over all of it) plus `ood/<model>.npz`, whose digests the JSON records.
 Nothing here reads val, the EyePACS test split, APTOS or Messidor-2.
+
+It also fits the **amended analysis** (D12, D13; the plan's addendum), beside the
+registered one and on the same calibration split: M3's per-type area minimums by M3's
+QWK (never consulting M1), bias-corrected temperature scaling per model, and the r
+that goes with the amended evidence. The registered values are computed exactly as
+before and stay the primary analysis.
 """
 
 from __future__ import annotations
@@ -36,9 +42,10 @@ import torch
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
 from verify_dr.calibration import (  # noqa: E402
-    EM_MAX_ITER, EM_TOL, T_BOUNDS, coral_probs, em_prior, fit_temperature, grade_prior, nll,
-    predicted_confidence, stage01,
+    EM_MAX_ITER, EM_TOL, T_BOUNDS, bcts_probs, coral_probs, em_prior, fit_bcts,
+    fit_temperature, grade_prior, nll, predicted_confidence, stage01,
 )
+from verify_dr.reasoning import operating_point as OP  # noqa: E402
 from verify_dr.evaluation.metrics import brier_score, expected_calibration_error  # noqa: E402
 from verify_dr.models.grading import cumulative_to_grade  # noqa: E402
 from verify_dr.triage import claims as C  # noqa: E402
@@ -89,6 +96,23 @@ def calibration_quality(z: np.ndarray, yhat: np.ndarray, y: np.ndarray, t01: flo
                          "em_prior_no_shift": em.prior.tolist(),
                          "em_iterations": em.iterations, "em_converged": em.converged}
     return out
+
+
+def bcts_quality(z: np.ndarray, yhat: np.ndarray, y: np.ndarray, fit,
+                 pi_cal: np.ndarray) -> Dict[str, object]:
+    """D13 on calibration: fit quality, and EM's premise -- which holds by construction
+    here (the bias equations make the mean posterior the grade mix), so this records
+    that it does rather than assuming it."""
+    q = bcts_probs(z, fit)
+    conf = predicted_confidence(q, yhat)
+    em = em_prior(q, pi_cal)
+    return {"nll": nll(q, y),
+            "ece": expected_calibration_error(conf, (yhat == y).astype(float), ECE_BINS),
+            "brier": brier_score(q, y),
+            "em_premise": {"mean_posterior": q.mean(axis=0).tolist(),
+                           "true_prior": grade_prior(y).tolist(),
+                           "em_prior_no_shift": em.prior.tolist(),
+                           "em_iterations": em.iterations, "em_converged": em.converged}}
 
 
 def choose_r(d_ev: np.ndarray, d_fa: np.ndarray, correct: np.ndarray) -> tuple:
@@ -158,6 +182,15 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     e = images["evidence_grade"].to_numpy().astype(int)
     ctrl_cols = [f"e_c{j:02d}" for j in range(F.CONTROLS)]
 
+    # D12: M3's operating point, on M3 and the grades alone -- M1 is not consulted.
+    frozen_e, _ = OP.evidence(images, OP.FROZEN_AREA_MIN)
+    if not np.array_equal(frozen_e, e):
+        raise SystemExit("error: the stored counts do not reproduce M3's evidence grade at "
+                         "the frozen operating point; the pass and the rules disagree")
+    d12 = OP.fit_area_minimums(images, y)
+    e_amended, _ = OP.evidence(images, d12["area_min"])
+    pi_cal = grade_prior(y)
+
     out = args.out
     (out / "ood").mkdir(parents=True, exist_ok=True)
     models: Dict[str, dict] = {}
@@ -205,6 +238,12 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         d_ev = G.d_evidence(yhat, e, images["max_excludable_grade"].to_numpy())
         r, aucs = choose_r(d_ev, d_fa, correct)
 
+        # The amended analysis (D12, D13). d_conf, tau_conf and the OOD values are shared.
+        bcts = fit_bcts(z, y)
+        d_ev_a = G.d_evidence(yhat, e_amended, images["max_excludable_grade"].to_numpy())
+        d_fa_a = d_fa * (e_amended >= 1)          # nothing cited, nothing tested (A.1)
+        r_a, aucs_a = choose_r(d_ev_a, d_fa_a, correct)
+
         models[name] = {
             "variant": variant, "seed": seed,
             "checkpoint_sha256": cal.checkpoint_sha256(name),
@@ -223,6 +262,15 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
                           (("faithful", G.FAITHFUL), ("unfaithful", G.UNFAITHFUL),
                            ("undetermined", G.UNDETERMINED), ("no_lesion", G.NO_LESION))},
                 "d_evidence": {str(v): int((d_ev == v).sum()) for v in range(5)},
+            },
+            "amended": {
+                "bcts": {"temperature": bcts.temperature, "bias": bcts.bias.tolist()},
+                "calibration_fit": bcts_quality(z, yhat, y, bcts, pi_cal),
+                "r": r_a, "r_auc": {str(k): v for k, v in aucs_a.items()},
+                "calibration_signals": {
+                    "d_evidence": {str(v): int((d_ev_a == v).sum()) for v in range(5)},
+                    "d_faith_counted": int(d_fa_a.sum()),
+                },
             },
         }
         print(f"{name:<26}{t01:>7.3f}{t1:>7.3f}{quality['nll']['raw']:>9.4f}"
@@ -243,7 +291,31 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
                    **{REFERENCES[v]: refs[v].fingerprint() for v in REFERENCES},
                    "manifests": {p.name: sha256_file(p) for p in manifests.values()}},
         "models": models,
+        "amended": {
+            "deviations": ["D12", "D13"],
+            "specification": "preregistration/ANALYSIS_PLAN.md, addendum A.1-A.3",
+            "evidence": {**d12, "qwk_tie": OP.QWK_TIE,
+                         "distribution": {str(v): int((e_amended == v).sum()) for v in range(3)}},
+            "pi_cal": pi_cal.tolist(),
+            "pi_cal_counts": np.bincount(y, minlength=5).tolist(),
+        },
     }
+
+    print("\nAmended analysis (D12, D13), fitted on the same calibration split:")
+    print(f"  D12 M3 area minimums {d12['area_min']}")
+    print(f"      M3 QWK on calibration {d12['qwk_frozen']:.4f} (frozen) -> {d12['qwk']:.4f}; "
+          f"evidence grades 0/1/2: {np.bincount(e, minlength=3).tolist()} -> "
+          f"{np.bincount(e_amended, minlength=3).tolist()}")
+    head = f"  {'model':<26}{'T (BCTS)':>9}{'ECE':>8}{'EM drift':>10}{'r':>5}"
+    print(head)
+    for name, m in models.items():
+        a = m["amended"]
+        premise = a["calibration_fit"]["em_premise"]
+        drift = max(abs(u - v) for u, v in zip(premise["em_prior_no_shift"],
+                                                premise["true_prior"]))
+        print(f"  {name:<26}{a['bcts']['temperature']:>9.3f}{a['calibration_fit']['ece']:>8.4f}"
+              f"{drift:>10.2e}{a['r']:>5}")
+
     digest = write_params(params, out / PARAMS_NAME)
     print(f"\nwrote {out / PARAMS_NAME}\n  digest {digest}")
     print("  r chosen per model:", {m: v["r"] for m, v in models.items()})

@@ -198,6 +198,26 @@ with their date; the sections above are never edited.
 | D9 · 2026-09-23 | 5–7 · outcomes and analysis | `ANALYSIS_PLAN.md` added and marked FINAL. It pins every implementation choice §§5–7 left open: the four gate signals, tie handling on the coverage–accuracy curve, the claim rule, the role of every split, and the order of execution. | Settled before any locked label was read, each choice resolved by the frozen text, then the existing code, then the reading that does not favour the project's own hypotheses. It changes no registered outcome; it fixes how each one is computed. |
 | D10 · 2026-09-23 | `frozen_config` · `triage.actions` | **REACQUIRE removed**; G2 not run | REACQUIRE is reached only through M0's gradability check, and M0 — the quality head — was never built. Every image is treated as gradable, and the triage policy has three actions, not four. |
 | D11 · 2026-09-23 | `frozen_config` · `calibration` | A parameter-free **sampling-prior correction** now precedes temperature scaling | The frozen sampler (`stratified_exposure`, no `--epoch-samples`) draws every grade equally often, so M1's posteriors are expressed under a uniform prior rather than EyePACS's. Temperature scaling cannot re-weight classes, and the Saerens–Decock step needs posteriors calibrated under a known prior. Nothing is fitted: the correction uses the training split's grade counts. D1 reports the temperature-only variant beside it. |
+| D12 · 2026-09-24 | 2 · reasoner — M3's operating point | **Amended analysis only.** A lesion type counts as present for M3 when it has a component of ≥ 4 px (the frozen rule) *and* its total predicted area reaches a per-type minimum from {4, 16, 64, 256, 1,024} px, fitted on the calibration split by M3's QWK against the true grade. All-4 px is the frozen rule, which stays the registered primary. | The step-2 rehearsal on val (development data) found M3 reporting evidence of disease in 75.9% of grade-0 images, QWK 0.138. Its operating point was set for pixel segmentation (C2), never for image-level presence. So the largest disagreement marks M1's safest calls (M1 correct 91% where d_evidence = 2), and the disagreement arm ranked no better than no gate. The criterion consults only M3 and the grades, never M1, so it cannot be chosen for H1. It uses the per-type counts and areas the pass already stored; no image is read again. Decided before any locked image or label was read. |
+| D13 · 2026-09-24 | `frozen_config` · `calibration`; H2 | **Amended analysis only.** Bias-corrected temperature scaling (Alexandari et al., 2020) replaces stages 0+1 for the calibration outcomes (D1–D4) and H2: one temperature plus one log-bias per grade, fitted by NLL on the calibration split. EM's reference prior becomes the calibration split's grade mix. d_conf, τ_conf and the confidence arm stay on stages 0+1, so H1's baseline is unchanged. | At the rehearsal, EM run on the calibration split itself, where nothing has shifted, drove grade 1 to ~0 in all six models: the mean stage-0+1 posterior for grade 0 was 0.79–0.82 against a true 0.744. Temperature scaling calibrates confidence, not the grade mix, and EM needs the grade mix. With a free bias per grade, the fitted mean posterior equals the calibration grade mix exactly (the bias score equations), which is EM's premise. Decided before any locked image or label was read. |
+
+### The pre-unblinding amendment (D12, D13) · 2026-09-24
+
+The step-2 rehearsal on val showed the registered analysis failing in-domain for two
+reasons, each traced to a component rather than to the hypothesis: M3's image-level
+specificity, and EM's premise. The author chose, from three options (proceed as frozen;
+amend with the frozen analysis primary; amend with the amended analysis primary), to
+**amend with the frozen analysis primary**:
+
+- **The registered analysis is unchanged and stays primary** for H1, H1′, H2 and H3.
+  The amended analysis (the registered one plus D12 and D13) is reported beside it,
+  labelled as a deviation analysis, under the same claim rule (`ANALYSIS_PLAN.md` §8).
+- **Both come from one locked pass and one label join.** Nothing else changes: M1, ŷ,
+  M2's detections and the faithfulness regions, the OOD statistics, τ_ood, τ_conf, the
+  confidence arm, the bootstrap and the data roles.
+- **One round.** D12 and D13 are specified in `ANALYSIS_PLAN.md`'s addendum and committed
+  before the amended rehearsal runs. After it, `fitted_params.json` is committed and the
+  locked pass runs, whatever that rehearsal shows. No further amendment before unblinding.
 
 > **Not a deviation, but decide it here:** Phase 6 at the frozen recipe projects to
 > **21.7 GPU-hours** against a ~20 h plan, on 59 842 real training rows. Trim seeds or

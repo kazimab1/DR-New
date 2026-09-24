@@ -370,3 +370,54 @@ and each was settled when this plan was marked final.
    test pure; it is also why its curve will look coarse.
 5. **§8 — the claim rule.** Strict by design: all three seeds, every interval, and
    larger than its own spread.
+
+---
+
+## Addendum · 2026-09-24 · the amended analysis (D12, D13)
+
+Everything above is unchanged and defines the **registered, primary** analysis. This
+addendum specifies a second analysis, recorded as D12 and D13 in `PREREGISTRATION.md`.
+It was fixed after the step-2 rehearsal on val and before any locked image or label was
+read. It is reported beside the primary, labelled as a deviation analysis, under the same
+§8 claim rule. One round: after its rehearsal, the parameters are committed and the
+locked pass runs, whatever that rehearsal shows.
+
+### A.1 · D12 — M3's image-level operating point
+
+- A lesion type (microaneurysm, haemorrhage, hard exudate, soft exudate) is **present**
+  iff it has at least one component of ≥ 4 px (the frozen rule) **and** its total
+  predicted area, the pass's `area_<type>` (pixels at probability ≥ 0.5), is at least
+  a_type.
+- a_type ∈ {4, 16, 64, 256, 1024} px for each type: 625 combinations. All four at 4 px is
+  the frozen rule.
+- Chosen on the **calibration split** by **M3's QWK against the true grade** (five
+  grades, as C4). QWKs within 1e-12 are ties. A tie goes to the smallest sum of grid
+  positions, then lexicographically in the order above. **M1 is not consulted.**
+- M3's ladder (R1, R2, R3, R3\*) is unchanged; only "present" changes. The amended
+  evidence grade e′ replaces e in d_evidence and in the combined arm's e = 0 clause.
+- d_faith′ = d_faith where e′ ≥ 1, else 0: §5.4's rule that where nothing is cited,
+  nothing is tested. The regions tested are M2's detections as frozen, so no image is
+  read again.
+- r′ is re-chosen on calibration by §5.5's rule for d_evidence′ + r′ · d_faith′.
+
+### A.2 · D13 — bias-corrected temperature scaling (Alexandari et al., 2020)
+
+- q(y | x) ∝ p_T(y | x) · exp(b_y), where p_T are the CORAL probabilities of z / T and
+  b_0 = 0. T and b_1…b_4 minimise the NLL of the true grades on the **calibration
+  split**. T is searched as in §4.2 (log grid on [0.05, 20], refined by golden section),
+  and b is solved exactly at each T by Newton's method; the NLL is convex in b.
+- At the optimum, the sum of q(y | x) over calibration equals the calibration count of
+  every grade: EM's premise holds on calibration by construction.
+- EM (§4.2, stage 2) runs on q with **reference prior π_cal**, the calibration split's
+  grade mix, and starts there. Same tolerance and cap.
+- The amended D1–D4 and H2 use q. H2′'s effect is ECE(q) − ECE(q after EM), with EM
+  re-run inside every resample, as in the primary. **d_conf, τ_conf, and the confidence
+  and combined arms keep stages 0+1**, so H1's baseline is the registered one.
+
+### A.3 · What the amendment does not touch
+
+M1 and ŷ; M2's detections, the faithfulness regions and the 19 controls; the OOD
+statistics and τ_ood; τ_conf; the arms' definitions; ties by expectation; the bootstrap
+(2,000, seed 42, indices shared by every arm, model and analysis); the claim rule; the
+data roles; the order of execution in §10.
+

@@ -65,6 +65,34 @@ class World:
         self.e = e
         self.rng = rng
         self.centres = np.random.default_rng(99).normal(0, 1.5, (5, DIM))
+        self.counts, self.areas, self.rules = self.lesions(np.random.default_rng(seed + 1000))
+
+    def lesions(self, rng):
+        """Per-type counts and areas consistent with M3's grade, as the pass stores them.
+
+        Healthy eyes that M3 calls diseased carry small spurious exudate (4-40 px);
+        truly diseased eyes carry large haemorrhages -- so D12 has something to find.
+        Sub-4 px specks (area without a counted component) appear everywhere.
+        """
+        n, names = self.n, ("microaneurysm", "haemorrhage", "hard_exudate", "soft_exudate")
+        counts = {k: np.zeros(n, dtype=int) for k in names}
+        areas = {k: rng.integers(0, 4, n) * (rng.random(n) < 0.3) for k in names}
+        healthy = self.y == 0
+        mild = self.e == 1
+        counts["microaneurysm"][mild] = rng.integers(1, 4, mild.sum())
+        areas["microaneurysm"][mild] = np.where(healthy[mild], rng.integers(4, 16, mild.sum()),
+                                                rng.integers(30, 200, mild.sum()))
+        spurious = (self.e == 2) & healthy
+        counts["hard_exudate"][spurious] = 1
+        areas["hard_exudate"][spurious] = rng.integers(4, 40, spurious.sum())
+        real = (self.e == 2) & ~healthy
+        counts["microaneurysm"][real] = rng.integers(2, 7, real.sum())
+        areas["microaneurysm"][real] = rng.integers(30, 200, real.sum())
+        counts["haemorrhage"][real] = rng.integers(1, 6, real.sum())
+        areas["haemorrhage"][real] = rng.integers(100, 2000, real.sum())
+        rules = np.where(self.e == 0, "R1", np.where(self.e == 1, "R2",
+                                                     np.where(spurious, "R3*", "R3")))
+        return counts, areas, rules
 
     def model(self, name):
         rng = np.random.default_rng(zlib.crc32(f"{name}|{self.split}|{self.n}".encode()))
@@ -97,15 +125,20 @@ class World:
     def images(self):
         ok = np.where(self.e > 0, F.CONTROLS, 0)
         ok[:7] = np.where(self.e[:7] > 0, F.CONTROLS - 8, 0)
-        rules = np.where(self.e == 0, "R1", np.where(self.e == 1, "R2", "R3"))
-        return pd.DataFrame({
+        frame = pd.DataFrame({
             "image_id": self.ids, "dataset": self.dataset, "image_path": self.paths,
             "split": self.split, "evidence_grade": self.e, "max_excludable_grade": 2,
-            "rule": rules, "lesion_px": np.where(self.e > 0, 40, 0),
-            "region_px": np.where(self.e > 0, 90, 0), "controls_ok": ok,
-            "faith_status": np.where(self.e == 0, "none",
-                                     np.where(ok >= F.MIN_CONTROLS_OK, "determined",
-                                              "undetermined"))})
+            "rule": self.rules, "lesion_px": np.where(self.e > 0, 40, 0)})
+        for name in self.counts:
+            frame[f"n_{name}"] = self.counts[name]
+        for name in self.areas:
+            frame[f"area_{name}"] = self.areas[name]
+        frame["region_px"] = np.where(self.e > 0, 90, 0)
+        frame["controls_ok"] = ok
+        frame["faith_status"] = np.where(self.e == 0, "none",
+                                         np.where(ok >= F.MIN_CONTROLS_OK, "determined",
+                                                  "undetermined"))
+        return frame
 
     def write_pass(self, out, models, embeddings_only=False, locked=False, sample=0):
         out.mkdir(parents=True)
@@ -256,8 +289,63 @@ class FitAndRehearse(unittest.TestCase):
                                        "--out", str(verdict_dir)]), 0)
         verdicts = json.loads((verdict_dir / "verdicts.json").read_text())
         self.assertTrue(verdicts["rehearsal"])
-        self.assertEqual(set(verdicts), {"rehearsal", "in_domain", "external", "primary",
-                                         "replication", "H3"})
+        self.assertEqual(set(verdicts), {"rehearsal", "in_domain", "external", "registered",
+                                         "amended"})
+        for key in ("registered", "amended"):
+            self.assertEqual(set(verdicts[key]), {"primary", "replication", "H3"})
+
+    # ---------------------------------------------------------------- amended (D12, D13)
+
+    def test_d12_finds_the_planted_false_positives_without_consulting_m1(self):
+        d12 = self.params["amended"]["evidence"]
+        self.assertEqual(self.params["amended"]["deviations"], ["D12", "D13"])
+        # the fixture's healthy eyes carry 4-40 px of spurious hard exudate
+        self.assertGreaterEqual(d12["area_min"]["hard_exudate"], 64)
+        self.assertGreater(d12["qwk"], d12["qwk_frozen"] + 0.2)
+        # the same minimums for every model: M3 is model-independent
+        with mock.patch.object(fit_params.OP, "fit_area_minimums",
+                               wraps=fit_params.OP.fit_area_minimums) as spy:
+            fit_params.main(["--internal", str(self.pred), "--manifest-full",
+                             str(self.full_manifest), "--manifest-ddr", str(self.ddr_manifest),
+                             "--out", str(self.tmp / "refit")])
+        self.assertEqual(spy.call_count, 1)
+        images_arg, y_arg = spy.call_args[0]
+        self.assertNotIn("yhat", images_arg.columns)       # M1's output is not in reach
+
+    def test_d13_makes_em_stay_put_on_calibration(self):
+        for name, m in self.params["models"].items():
+            premise = m["amended"]["calibration_fit"]["em_premise"]
+            np.testing.assert_allclose(premise["mean_posterior"], premise["true_prior"],
+                                       atol=1e-8, err_msg=name)
+            np.testing.assert_allclose(premise["em_prior_no_shift"], premise["true_prior"],
+                                       atol=1e-5, err_msg=name)
+            frozen = m["calibration_fit"]["em_premise"]
+            self.assertGreater(np.abs(np.array(frozen["em_prior_no_shift"])
+                                      - np.array(frozen["true_prior"])).max(), 0.01, name)
+
+    def test_the_amended_analysis_sits_beside_the_registered_one(self):
+        out = self.tmp / "analysis_amended"
+        self.assertEqual(self.rehearse(out), 0)
+        res = json.loads((out / "results.json").read_text())
+        amended = res["amended"]
+        self.assertEqual(amended["deviations"], ["D12", "D13"])
+        self.assertEqual(set(amended["models"]), set(res["models"]))
+        for name in res["models"]:
+            reg, amd = res["models"][name], amended["models"][name]
+            # shared: M1's accuracy, the confidence and OOD arms (H1's baseline untouched)
+            self.assertEqual(reg["accuracy"], amd["accuracy"])
+            for arm in ("none", "confidence", "ood"):
+                self.assertEqual(reg["arms"][arm]["auc"], amd["arms"][arm]["auc"], arm)
+            # changed: the calibration H2 is computed on
+            self.assertEqual(reg["calibration"]["h2_base"], "stage01")
+            self.assertEqual(amd["calibration"]["h2_base"], "bcts")
+        # the planted false positives are gone from the amended evidence
+        grade0_reg = res["evidence"]["evidence_any_given_grade0"]
+        grade0_amd = amended["evidence"]["evidence_any_given_grade0"]
+        self.assertLess(grade0_amd, grade0_reg / 2)
+        self.assertIn("eyepacs_full", amended["claims_on_this_dataset"])
+        curves = np.load(out / "curves.npz")
+        self.assertIn(f"amended__{MODELS[0]}__disagreement", curves.files)
 
     def test_the_rehearsal_is_deterministic(self):
         a, b = self.tmp / "det_a", self.tmp / "det_b"

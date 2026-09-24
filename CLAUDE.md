@@ -220,9 +220,25 @@ deviation before unblinding, chosen by a criterion other than the H1 outcome.
 unmodified. The fit also records **EM run on the calibration split itself**: if EM
 drifts where nothing shifted, H2 fails for that reason, not for the shift.
 
-**Next:** the user runs 08 and pastes sections 4, 6, 7 and `fitted_params.json`. Then
-decide on M3 (frozen vs a pre-unblinding deviation), commit `fitted_params.json` beside
-the plan and record the commit in `PREREGISTRATION.md` (step 3), then the locked pass.
+**Step 2 rehearsal DONE 2026-09-24 -- the registered analysis fails in-domain.** On val,
+disagreement's AUC equals the no-gate arm's for every model (0.7677 vs 0.7719 for s42)
+while confidence reaches 0.90-0.92. Where d_evidence = 1, M1 is right 35% of the time (the
+signal is real); where d_evidence = 2 (47% of images) M1 is right 91%, mostly M3 flagging
+healthy eyes. M3 finds evidence in 75.9% of grade-0 val images (QWK 0.138). EM run on the
+unshifted calibration split drives grade 1 to ~0 in every model.
+
+**Decision (author, 2026-09-24): amend, with the registered analysis PRIMARY.** D12 (M3's
+per-type area minimums, fitted on calibration by M3's QWK, M1 never consulted) and D13
+(bias-corrected temperature scaling for D1-D4 and H2; d_conf and the confidence arm
+untouched) are in `PREREGISTRATION.md` and the plan's addendum A.1-A.3. Both analyses come
+from one locked pass and one label join. **One round:** after the amended rehearsal,
+commit `fitted_params.json` and run the locked pass whatever it shows. The registered
+analysis was proven unchanged to the last digit against the pre-amendment code.
+
+**Next:** the user re-runs 08 (now fits and rehearses both analyses) and pastes sections
+4, 6, 7 and `fitted_params.json`. Then step 3: commit it as
+`preregistration/fitted_params.json`, record the commit in `PREREGISTRATION.md`, then the
+locked pass notebook and the unblinding notebook.
 
 Three things it found that change the analysis, not just pin it:
 - **The six models were trained on a uniform class prior** (`stratified_exposure`

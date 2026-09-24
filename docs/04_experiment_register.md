@@ -1374,6 +1374,43 @@ the grade mix. H2 would fail for that reason, not because of any shift.
 Faithfulness: 59–72% of determined lesion images are faithful. 28 undetermined, 20 of them
 with no control placeable.
 
+### The decision: amend, with the registered analysis primary — D12, D13 · 2026-09-24
+
+Three options were put to the author: proceed as frozen; amend with the frozen analysis
+primary; amend with the amended analysis primary. **Chosen: amend, with the frozen analysis
+primary.** Both deviations are recorded in `PREREGISTRATION.md` and specified in the
+plan's addendum (A.1–A.3), written *before* the code that implements them and before any
+locked image or label was read.
+
+| | Changes | Criterion | Does not touch |
+|---|---|---|---|
+| **D12** | A lesion type is present for M3 only if its total predicted area reaches a per-type minimum from {4, 16, 64, 256, 1024} px (all-4 is the frozen rule) | M3's own QWK against the true grade on calibration; M1 never consulted | M2's detections, the faithfulness regions |
+| **D13** | Bias-corrected temperature scaling (one T plus a bias per grade) for D1–D4 and H2; EM's reference prior becomes the calibration grade mix | NLL on calibration; at the optimum the mean posterior *is* the grade mix | d_conf, τ_conf, the confidence arm (H1's baseline) |
+
+**One round.** The amended analysis is rehearsed once. Then `fitted_params.json` is
+committed and the locked pass runs, whatever that rehearsal shows. Both analyses come
+from one locked pass and one label join; the registered one decides the registered
+verdicts.
+
+**Built and checked:**
+
+- **The registered analysis is unchanged, to the last digit.** The pre-amendment code
+  (`aef5d12`) and the amended code, run on the same fixture, give identical fitted values,
+  per-model tables, claims and evidence table for the registered analysis.
+- **D13's premise holds by construction:** on synthetic data where a fixed prior
+  correction makes EM drift by more than 0.05 with no shift at all, BCTS drifts by less than
+  1e-6. The mean fitted posterior matches the grade mix to 1e-9. A mutant with the biases
+  forced to zero fails the test.
+- **D12 is M3 plus one condition, nothing else.** The vectorised ladder agrees with
+  `rules.grade` on all 16 presence patterns, and the frozen setting reproduces the real
+  pipeline's evidence grade exactly (`extract_facts` → `grade`). `fit_params.py` refuses
+  to run if the stored counts do not reproduce M3's stored grade. On the fixture, whose
+  healthy eyes carry planted 4–40 px exudate, the fit chose a 64 px exudate minimum and
+  M3's QWK rose from 0.32 to 0.81.
+- **A bug found by running it:** at the search's extreme temperatures the bias Hessian is
+  exactly singular and the undamped solve raised. The damped fallback now takes over, and
+  a test pins the case.
+
 ### Phase 7's code was written before the unblinding — the order this required
 
 Before step 1, `src/verify_dr/calibration/` and `src/verify_dr/triage/` were empty.

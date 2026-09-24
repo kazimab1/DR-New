@@ -22,6 +22,10 @@ git and unmodified -- the order s10 fixes: commit, then unblind.
 Scores never see a label: every signal is computed from the pass and the fitted
 parameters; labels enter only to score the result. y-hat is M1's threshold count on
 raw logits in every arm (s3).
+
+**Two analyses, one label join.** The registered analysis is the primary. The amended
+one (D12, D13; the plan's addendum) is computed from the same pass and labels, with
+the same bootstrap indices, and reported beside it as a deviation analysis.
 """
 
 from __future__ import annotations
@@ -41,8 +45,10 @@ import numpy as np
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
 
 from verify_dr.calibration import (  # noqa: E402
-    coral_probs, em_prior, grade_prior, nll, predicted_confidence, prior_correct, stage01,
+    BCTS, bcts_probs, coral_probs, em_prior, grade_prior, nll, predicted_confidence,
+    prior_correct, stage01,
 )
+from verify_dr.reasoning import operating_point as OP  # noqa: E402
 from verify_dr.evaluation.metrics import (  # noqa: E402
     brier_score, expected_calibration_error, quadratic_weighted_kappa,
 )
@@ -167,7 +173,11 @@ def blocks(d_ev: np.ndarray, d_fa: np.ndarray, correct: np.ndarray) -> Dict[str,
 
 
 def analyse_model(name: str, rows, emb: np.ndarray, images, y: np.ndarray, params: dict,
-                  gauss: O.ClassGaussian, external: bool) -> tuple:
+                  gauss: O.ClassGaussian, external: bool, amended: bool = False) -> tuple:
+    """Every per-model table. `amended` switches exactly three things (addendum A.1-A.2):
+    M3's evidence grade (D12), the d_faith gate and r that go with it, and the
+    probabilities the calibration outcomes and H2 are computed on (D13). d_conf,
+    tau_conf and the OOD values are the registered ones in both analyses."""
     m = params["models"][name]
     pi_src = np.asarray(params["pi_src"])
     z = rows[[f"z{j}" for j in range(4)]].to_numpy(dtype=np.float64)
@@ -179,13 +189,22 @@ def analyse_model(name: str, rows, emb: np.ndarray, images, y: np.ndarray, param
              "stage1": calibration_row(coral_probs(z, m["temperature_stage1_only"]), yhat, y),
              "stage01": {**calibration_row(p01, yhat, y),
                          "mean_posterior": p01.mean(axis=0).tolist()}}
+    if amended:
+        a = m["amended"]
+        base = bcts_probs(z, BCTS(a["bcts"]["temperature"], np.asarray(a["bcts"]["bias"])))
+        base_key, pi_ref = "bcts", np.asarray(params["amended"]["pi_cal"])
+        calib["bcts"] = {**calibration_row(base, yhat, y),
+                         "mean_posterior": base.mean(axis=0).tolist()}
+    else:
+        base, base_key, pi_ref = p01, "stage01", pi_src
+    calib["h2_base"] = base_key
     if external:
-        em = em_prior(p01, pi_src)
+        em = em_prior(base, pi_ref)
         oracle = grade_prior(y)
-        calib["em"] = {**calibration_row(prior_correct(p01, em.prior, pi_src), yhat, y),
+        calib["em"] = {**calibration_row(prior_correct(base, em.prior, pi_ref), yhat, y),
                        "prior": em.prior.tolist(), "iterations": em.iterations,
                        "converged": em.converged}
-        calib["oracle"] = {**calibration_row(prior_correct(p01, oracle, pi_src), yhat, y),
+        calib["oracle"] = {**calibration_row(prior_correct(base, oracle, pi_ref), yhat, y),
                            "prior": oracle.tolist()}
         d4 = {}
         for size in D4_SIZES:
@@ -194,8 +213,8 @@ def analyse_model(name: str, rows, emb: np.ndarray, images, y: np.ndarray, param
             eces = []
             for draw in range(D4_DRAWS):
                 sub = np.random.default_rng([size, draw]).choice(len(y), size, replace=False)
-                prior = em_prior(p01[sub], pi_src).prior
-                eces.append(calibration_row(prior_correct(p01, prior, pi_src), yhat, y)["ece"])
+                prior = em_prior(base[sub], pi_ref).prior
+                eces.append(calibration_row(prior_correct(base, prior, pi_ref), yhat, y)["ece"])
             d4[str(size)] = {"mean": float(np.mean(eces)), "sd": float(np.std(eces, ddof=1)),
                              "min": float(np.min(eces)), "max": float(np.max(eces))}
         d4["all"] = {"mean": calib["em"]["ece"], "sd": 0.0}
@@ -209,9 +228,14 @@ def analyse_model(name: str, rows, emb: np.ndarray, images, y: np.ndarray, param
     e_ctrl = rows[ctrl_cols].to_numpy(dtype=np.float64)
     outcome = G.faith_outcome(e_orig, e_lesion, e_ctrl)
     d_fa = G.d_faith(outcome)
-    e = images["evidence_grade"].to_numpy().astype(int)
+    if amended:
+        e, _ = OP.evidence(images, params["amended"]["evidence"]["area_min"])
+        d_fa = d_fa * (e >= 1)                  # nothing cited, nothing tested (A.1)
+        r = m["amended"]["r"]
+    else:
+        e = images["evidence_grade"].to_numpy().astype(int)
+        r = m["r"]
     d_ev = G.d_evidence(yhat, e, images["max_excludable_grade"].to_numpy())
-    r = m["r"]
     level = G.combined_level(d_ev, d_fa, z_ood, m["ood"]["tau_ood"], e, d_conf, m["tau_conf"])
 
     ranks = {"none": S.dense_rank(np.zeros(len(y))),
@@ -240,18 +264,19 @@ def analyse_model(name: str, rows, emb: np.ndarray, images, y: np.ndarray, param
     }
     curves = {arm: S.accuracy_curve(rank, correct).astype(np.float32)
               for arm, rank in ranks.items()}
-    boot = {"ranks": ranks, "correct": correct, "p01": p01, "yhat": yhat,
+    boot = {"ranks": ranks, "correct": correct, "p_h2": base, "pi_ref": pi_ref, "yhat": yhat,
             "sizes": {arm: int(rank.max()) + 1 for arm, rank in ranks.items()}}
     return result, curves, boot
 
 
-def evidence_table(images, y: np.ndarray) -> Dict[str, object]:
+def evidence_table(e: np.ndarray, rules, y: np.ndarray) -> Dict[str, object]:
     """Descriptive, not registered: M3's evidence grade against the true grade.
 
     The disagreement signal is only as specific as M3. This says how often M3 finds
     evidence of disease in images graded 0, and misses it in referable ones.
     """
-    e = images["evidence_grade"].to_numpy().astype(int)
+    e = np.asarray(e).astype(int)
+    rules = np.asarray(rules).astype(str)
     confusion = np.zeros((5, 3), dtype=int)
     np.add.at(confusion, (y, np.clip(e, 0, 2)), 1)
     grade0, referable = y == 0, y >= 2
@@ -262,16 +287,15 @@ def evidence_table(images, y: np.ndarray) -> Dict[str, object]:
         "evidence_any_given_grade0": float((e[grade0] >= 1).mean()) if grade0.any() else None,
         "evidence2_given_grade0": float((e[grade0] == 2).mean()) if grade0.any() else None,
         "evidence0_given_referable": float((e[referable] == 0).mean()) if referable.any() else None,
-        "rules": {str(k): int(v) for k, v in images["rule"].value_counts().items()},
-        "evidence_distribution": {str(k): int(v) for k, v in
-                                  images["evidence_grade"].value_counts().sort_index().items()},
+        "rules": {str(k): int((rules == k).sum()) for k in sorted(set(rules))},
+        "evidence_distribution": {str(v): int((e == v).sum()) for v in range(3)},
     }
 
 
 # ------------------------------------------------------------------ bootstrap
 
 
-def bootstrap(models: Dict[str, dict], y: np.ndarray, pi_src: np.ndarray, external: bool,
+def bootstrap(models: Dict[str, dict], y: np.ndarray, external: bool,
               resamples: int, seed: int) -> Dict[str, dict]:
     """One set of resample indices, shared by every arm and model (s8).
 
@@ -298,11 +322,11 @@ def bootstrap(models: Dict[str, dict], y: np.ndarray, pi_src: np.ndarray, extern
             yh = m["yhat"][idx]
             out[name]["qwk"][b] = quadratic_weighted_kappa(yb, yh)
             if external:
-                pb = m["p01"][idx]
-                prior = em_prior(pb, pi_src).prior
+                pb, pi_ref = m["p_h2"][idx], m["pi_ref"]
+                prior = em_prior(pb, pi_ref).prior
                 before = expected_calibration_error(predicted_confidence(pb, yh), c, ECE_BINS)
                 after = expected_calibration_error(
-                    predicted_confidence(prior_correct(pb, prior, pi_src), yh), c, ECE_BINS)
+                    predicted_confidence(prior_correct(pb, prior, pi_ref), yh), c, ECE_BINS)
                 out[name]["ece_gain"][b] = before - after
         if (b + 1) % 250 == 0:
             print(f"  bootstrap {b + 1}/{resamples}  ({time.time() - started:.0f}s)", flush=True)
@@ -331,7 +355,7 @@ def effects(results: Dict[str, dict], boot: Dict[str, dict], external: bool) -> 
             ece_gain = {}
             for seed, name in sorted(seeds.items()):
                 cal = results[name]["calibration"]
-                ece_gain[seed] = (cal["stage01"]["ece"] - cal["em"]["ece"],
+                ece_gain[seed] = (cal[cal["h2_base"]]["ece"] - cal["em"]["ece"],
                                   C.interval(boot[name]["ece_gain"]))
             entry["ece_gain"] = {"per_seed": {str(s): {"effect": e, "interval": list(iv)}
                                               for s, (e, iv) in ece_gain.items()},
@@ -406,18 +430,25 @@ def run_dataset(args) -> int:
     # ---- the one label join -------------------------------------------------------
     y = labels_for(p.ids, args.labels, split=args.split)
 
-    results, curves, boot_in = {}, {}, {}
-    for name in p.models:
-        res, cur, bt = analyse_model(name, p.model_rows(name), p.embeddings(name), p.images, y,
-                                     params, gaussians[name], external)
-        results[name], boot_in[name] = res, bt
-        curves.update({f"{name}__{arm}": c for arm, c in cur.items()})
-
-    print(f"bootstrap: {args.resamples} resamples over {len(y)} images, seed {C.SEED}", flush=True)
-    boot = bootstrap(boot_in, y, np.asarray(params["pi_src"]), external, args.resamples, C.SEED)
-    for name, res in results.items():
-        for arm in ARMS:
-            res["arms"][arm]["auc_interval"] = list(C.interval(boot[name]["auc"][arm]))
+    analyses = {"registered": False}
+    if "amended" in params:
+        analyses["amended"] = True
+    per, curves = {}, {}
+    for label, amended in analyses.items():
+        results, boot_in = {}, {}
+        for name in p.models:
+            res, cur, bt = analyse_model(name, p.model_rows(name), p.embeddings(name), p.images,
+                                         y, params, gaussians[name], external, amended)
+            results[name], boot_in[name] = res, bt
+            prefix = "amended__" if amended else ""
+            curves.update({f"{prefix}{name}__{arm}": c for arm, c in cur.items()})
+        print(f"bootstrap, {label} analysis: {args.resamples} resamples over {len(y)} images, "
+              f"seed {C.SEED}", flush=True)
+        boot = bootstrap(boot_in, y, external, args.resamples, C.SEED)
+        for name, res in results.items():
+            for arm in ARMS:
+                res["arms"][arm]["auc_interval"] = list(C.interval(boot[name]["auc"][arm]))
+        per[label] = {"models": results, "claims_on_this_dataset": effects(results, boot, external)}
 
     out = {
         "name": args.name, "role": args.role, "rehearsal": bool(args.rehearsal),
@@ -427,10 +458,16 @@ def run_dataset(args) -> int:
         "params_digest": params["digest"], "pass": str(args.pass_dir),
         "pass_fingerprint": p.fingerprint(), "resamples": args.resamples,
         "true_grade_distribution": np.bincount(y, minlength=5).tolist(),
-        "evidence": evidence_table(p.images, y),
-        "models": results,
-        "claims_on_this_dataset": effects(results, boot, external),
+        "evidence": evidence_table(p.images["evidence_grade"].to_numpy(),
+                                   p.images["rule"].to_numpy(), y),
+        **per["registered"],
     }
+    if "amended" in per:
+        area_min = params["amended"]["evidence"]["area_min"]
+        e_a, rule_a = OP.evidence(p.images, area_min)
+        out["amended"] = {"deviations": params["amended"]["deviations"],
+                          "evidence_area_min": area_min,
+                          "evidence": evidence_table(e_a, rule_a, y), **per["amended"]}
     args.out.mkdir(parents=True, exist_ok=True)
     (args.out / "results.json").write_text(json.dumps(out, indent=1, default=float))
     np.savez_compressed(args.out / "curves.npz", **curves)
@@ -439,22 +476,14 @@ def run_dataset(args) -> int:
     return 0
 
 
-def run_verdicts(args) -> int:
-    inside = json.loads(Path(args.in_domain).read_text())
-    outside = {json.loads(Path(f).read_text())["name"]: json.loads(Path(f).read_text())
-               for f in args.external}
-    rehearsal = inside["rehearsal"] or any(r["rehearsal"] for r in outside.values())
-
-    def claim(res, variant, key):
-        return res["claims_on_this_dataset"].get(variant, {}).get(key)
-
-    verdicts = {"rehearsal": rehearsal, "in_domain": inside["name"],
-                "external": list(outside)}
+def verdict_table(inside: dict, outside: Dict[str, dict]) -> dict:
+    """The s8 verdicts from one analysis's per-dataset claims."""
+    table = {}
     for variant, label in ((PRIMARY_VARIANT, "primary"), (REPLICATION_VARIANT, "replication")):
-        h1 = claim(inside, variant, "auc_gain")
-        h1p = {n: claim(r, variant, "auc_gain") for n, r in outside.items()}
-        h2 = {n: claim(r, variant, "ece_gain") for n, r in outside.items()}
-        verdicts[label] = {
+        h1 = inside.get(variant, {}).get("auc_gain")
+        h1p = {n: c.get(variant, {}).get("auc_gain") for n, c in outside.items()}
+        h2 = {n: c.get(variant, {}).get("ece_gain") for n, c in outside.items()}
+        table[label] = {
             "variant": variant,
             "H1": {"supported": bool(h1 and h1["supported"]), "detail": h1},
             "H1_prime": {"supported": C.on_every_dataset({k: v for k, v in h1p.items() if v})
@@ -462,35 +491,59 @@ def run_verdicts(args) -> int:
             "H2": {"supported": C.on_every_dataset({k: v for k, v in h2.items() if v})
                    and all(h2.values()), "detail": h2},
         }
-    h3 = {n: r["claims_on_this_dataset"].get("H3_qwk_gain") for n, r in outside.items()}
-    verdicts["H3"] = {"supported": C.on_every_dataset({k: v for k, v in h3.items() if v})
-                      and all(h3.values()), "detail": h3}
+    h3 = {n: c.get("H3_qwk_gain") for n, c in outside.items()}
+    table["H3"] = {"supported": C.on_every_dataset({k: v for k, v in h3.items() if v})
+                   and all(h3.values()), "detail": h3}
+    return table
+
+
+def run_verdicts(args) -> int:
+    inside = json.loads(Path(args.in_domain).read_text())
+    outside = {}
+    for f in args.external:
+        res = json.loads(Path(f).read_text())
+        outside[res["name"]] = res
+    rehearsal = inside["rehearsal"] or any(r["rehearsal"] for r in outside.values())
+
+    verdicts = {"rehearsal": rehearsal, "in_domain": inside["name"], "external": list(outside),
+                "registered": verdict_table(inside["claims_on_this_dataset"],
+                                            {n: r["claims_on_this_dataset"]
+                                             for n, r in outside.items()}),
+                "amended": None}
+    if "amended" in inside and all("amended" in r for r in outside.values()):
+        verdicts["amended"] = verdict_table(
+            inside["amended"]["claims_on_this_dataset"],
+            {n: r["amended"]["claims_on_this_dataset"] for n, r in outside.items()})
     args.out.mkdir(parents=True, exist_ok=True)
     (args.out / "verdicts.json").write_text(json.dumps(verdicts, indent=1, default=float))
 
     tag = "REHEARSAL -- not a result. " if rehearsal else ""
     print(f"{tag}Verdicts under the s8 claim rule "
-          f"(in-domain: {inside['name']}; external: {', '.join(outside)})\n")
-    for label in ("primary", "replication"):
-        v = verdicts[label]
-        print(f"  {label} ({v['variant']}):")
-        for key, text in (("H1", "H1  disagreement beats confidence in-domain"),
-                          ("H1_prime", "H1' ...and on every external set (the thesis)"),
-                          ("H2", "H2  EM improves external calibration")):
-            print(f"    {text:<48} {'SUPPORTED' if v[key]['supported'] else 'not supported'}")
-    print(f"  H3  DDR in training improves external QWK        "
-          f"{'SUPPORTED' if verdicts['H3']['supported'] else 'not supported'}")
+          f"(in-domain: {inside['name']}; external: {', '.join(outside)})")
+    for key, title in (("registered", "REGISTERED ANALYSIS -- the primary result"),
+                       ("amended", "AMENDED ANALYSIS -- deviations D12, D13, reported beside it")):
+        table = verdicts[key]
+        if table is None:
+            continue
+        print(f"\n{title}")
+        for label in ("primary", "replication"):
+            v = table[label]
+            print(f"  {label} variant ({v['variant']}):")
+            for h, text in (("H1", "H1  disagreement beats confidence in-domain"),
+                            ("H1_prime", "H1' ...and on every external set (the thesis)"),
+                            ("H2", "H2  EM improves external calibration")):
+                print(f"    {text:<48} {'SUPPORTED' if v[h]['supported'] else 'not supported'}")
+        print(f"  H3  DDR in training improves external QWK        "
+              f"{'SUPPORTED' if table['H3']['supported'] else 'not supported'}")
     return 0
 
 
 # ------------------------------------------------------------------ printing
 
 
-def print_dataset(out: dict) -> None:
-    tag = "REHEARSAL -- not a result. " if out["rehearsal"] else ""
-    print(f"\n{tag}{out['name']}: {out['n']} images, role {out['role']}, "
-          f"true grades {out['true_grade_distribution']}")
-    ev = out["evidence"]
+def print_analysis(block: dict, role: str, calibrated: str) -> None:
+    """One analysis's tables: M3 against the truth, the arms, calibration, the claims."""
+    ev = block["evidence"]
     print("\nM3's evidence grade against the true grade (descriptive, not registered):")
     print("  true \\ evidence      0       1       2")
     for g, row in enumerate(ev["confusion_true_by_evidence"]):
@@ -500,39 +553,42 @@ def print_dataset(out: dict) -> None:
           f"of grade-0 images; none found in {pct(ev['evidence0_given_referable'])} of "
           "referable ones")
 
-    print("\nCoverage-accuracy AUC per arm (95% interval), and what the ranking is made of:")
+    print("\nCoverage-accuracy AUC per arm, and what the ranking is made of:")
     head = f"  {'model':<26}" + "".join(f"{a:>14}" for a in ARMS) + f"{'dis - conf':>12}"
     print(head)
-    for name, r in out["models"].items():
+    for name, r in block["models"].items():
         a = r["arms"]
         print(f"  {name:<26}" + "".join(f"{a[x]['auc']:>14.4f}" for x in ARMS)
               + f"{a['disagreement']['auc'] - a['confidence']['auc']:>+12.4f}")
-    for name, r in out["models"].items():
+    for name, r in block["models"].items():
         b = r["signals"]["blocks"]["d_evidence"]
         parts = ", ".join(f"d_ev={k}: {v['share']:.0%} (M1 acc {v['m1_accuracy']:.2f})"
                           for k, v in b.items())
         print(f"  {name:<26} r={r['r']:<4} {parts}")
 
-    print("\nCalibration: ECE raw -> stage 1 -> stages 0+1" +
-          (" -> EM (oracle)" if out["role"] == "external" else ""))
-    for name, r in out["models"].items():
+    print("\nCalibration: ECE raw -> stage 1 -> stages 0+1"
+          + (" -> BCTS" if calibrated == "bcts" else "")
+          + (" -> EM (oracle)" if role == "external" else ""))
+    for name, r in block["models"].items():
         c = r["calibration"]
         line = f"  {name:<26} {c['raw']['ece']:.4f} -> {c['stage1']['ece']:.4f} -> " \
                f"{c['stage01']['ece']:.4f}"
+        if calibrated == "bcts":
+            line += f" -> {c['bcts']['ece']:.4f}"
         if "em" in c:
             line += f" -> {c['em']['ece']:.4f} ({c['oracle']['ece']:.4f})"
         print(line)
-    if out["role"] == "external":
+    if role == "external":
         print("\nEM's estimate of the grade mix against the truth (EM needs the mean calibrated")
         print("posterior to match the prior; where it does not, EM drifts even with no shift):")
-        for name, r in out["models"].items():
+        fmt = lambda v: "[" + " ".join(f"{x:.3f}" for x in v) + "]"  # noqa: E731
+        for name, r in block["models"].items():
             c = r["calibration"]
-            fmt = lambda v: "[" + " ".join(f"{x:.3f}" for x in v) + "]"  # noqa: E731
             print(f"  {name:<26} EM {fmt(c['em']['prior'])} true {fmt(c['oracle']['prior'])}"
                   f"  ({c['em']['iterations']} iterations)")
 
     print("\nClaim rule on this dataset (s8): per-seed effect [95% interval] -> verdict")
-    for variant, entry in out["claims_on_this_dataset"].items():
+    for variant, entry in block["claims_on_this_dataset"].items():
         items = [("qwk_gain", entry)] if variant == "H3_qwk_gain" else list(entry.items())
         for key, v in items:
             seeds = "  ".join(f"s{s} {d['effect']:+.4f} [{d['interval'][0]:+.4f}, "
@@ -541,6 +597,19 @@ def print_dataset(out: dict) -> None:
                 "not supported (" + ", ".join(k for k in ("direction", "precision", "stability")
                                               if not v[k]) + " failed)")
             print(f"  {variant:<18} {key:<9} {seeds}  -> {verdict}")
+
+
+def print_dataset(out: dict) -> None:
+    tag = "REHEARSAL -- not a result. " if out["rehearsal"] else ""
+    print(f"\n{tag}{out['name']}: {out['n']} images, role {out['role']}, "
+          f"true grades {out['true_grade_distribution']}")
+    print("\n" + "=" * 30 + " REGISTERED ANALYSIS (primary) " + "=" * 30)
+    print_analysis(out, out["role"], "stage01")
+    if "amended" in out:
+        a = out["amended"]
+        print("\n" + "=" * 22 + " AMENDED ANALYSIS (deviations D12, D13) " + "=" * 22)
+        print(f"M3 area minimums (D12): {a['evidence_area_min']}")
+        print_analysis(a, out["role"], "bcts")
 
 
 def main(argv: Optional[Sequence[str]] = None) -> int:

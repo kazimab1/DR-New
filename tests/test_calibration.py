@@ -15,8 +15,8 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from verify_dr.calibration import (  # noqa: E402
-    coral_probs, em_prior, fit_temperature, grade_prior, nll, predicted_confidence,
-    prior_correct, stage01,
+    BCTS, bcts_probs, coral_probs, em_prior, fit_bcts, fit_bias, fit_temperature, grade_prior,
+    nll, predicted_confidence, prior_correct, stage01,
 )
 from verify_dr.models.grading import cumulative_to_probs  # noqa: E402
 
@@ -127,6 +127,70 @@ class EM(unittest.TestCase):
         p_src, _ = self.world(pi_src, np.full(5, 0.2), 5000, 10)
         result = em_prior(p_src, pi_src, tol=0.0, max_iter=7)
         self.assertEqual((result.iterations, result.converged), (7, False))
+
+
+class BiasCorrectedTemperature(unittest.TestCase):
+    """D13 (ANALYSIS_PLAN.md addendum A.2): one temperature plus a bias per grade."""
+
+    BIAS = np.array([0.0, -1.2, 0.4, -2.0, -2.5])
+
+    @classmethod
+    def setUpClass(cls):
+        z = coral_logits(10000, 21)
+        q = coral_probs(z) * np.exp(cls.BIAS)
+        cls.y = sample(q / q.sum(axis=1, keepdims=True), 22)
+        cls.z = z * 1.7                                    # over-confident on purpose
+        cls.fit = fit_bcts(cls.z, cls.y)
+
+    def test_recovers_the_temperature_and_biases_it_was_given(self):
+        self.assertAlmostEqual(self.fit.temperature / 1.7, 1.0, delta=0.05)
+        np.testing.assert_allclose(self.fit.bias, self.BIAS, atol=0.15)
+        self.assertEqual(self.fit.bias[0], 0.0)
+
+    def test_the_mean_posterior_is_the_grade_mix_exactly(self):
+        q = bcts_probs(self.z, self.fit)
+        np.testing.assert_allclose(q.mean(axis=0), grade_prior(self.y), atol=1e-9)
+
+    def test_em_does_not_drift_where_nothing_shifted(self):
+        """EM's premise, which stages 0+1 broke on the real calibration split."""
+        q = bcts_probs(self.z, self.fit)
+        result = em_prior(q, grade_prior(self.y))
+        self.assertTrue(result.converged)
+        np.testing.assert_allclose(result.prior, grade_prior(self.y), atol=1e-6)
+
+    def test_where_a_fixed_prior_correction_breaks_the_premise_bcts_does_not(self):
+        """The rehearsal's failure in miniature: the model's implicit prior is not the
+        uniform one stage 0 assumes, so stage 0+1 posteriors average to the wrong grade
+        mix and EM, run with no shift at all, walks away from the truth."""
+        pi = grade_prior(self.y)
+        p01 = stage01(self.z, fit_temperature(self.z, self.y, pi), pi)
+        drift_01 = np.abs(em_prior(p01, pi).prior - pi).max()
+        q = bcts_probs(self.z, self.fit)
+        drift_bcts = np.abs(em_prior(q, pi).prior - pi).max()
+        self.assertGreater(drift_01, 0.05)
+        self.assertLess(drift_bcts, 1e-6)
+
+    def test_bias_fit_refuses_a_grade_with_no_images(self):
+        z = coral_logits(200, 23)
+        y = np.zeros(200, dtype=int)
+        with self.assertRaises(ValueError):
+            fit_bias(coral_probs(z), y)
+
+    def test_saturated_probabilities_do_not_break_the_bias_fit(self):
+        """At the search's extreme temperatures some grades' probabilities are exactly 0
+        for every image, the Hessian is singular, and an undamped solve raises. Found by
+        running the fit on the fixture; the damped fallback must take over instead."""
+        z = coral_logits(400, 25) * 50.0
+        p = coral_probs(z, 0.05)
+        y = np.argmax(p, axis=1)
+        y[:5] = np.arange(5)                              # every grade present
+        bias = fit_bias(p, y)
+        self.assertTrue(np.all(np.isfinite(bias)))
+
+    def test_zero_biases_reduce_to_temperature_scaling(self):
+        z = coral_logits(50, 24)
+        np.testing.assert_allclose(bcts_probs(z, BCTS(0.8, np.zeros(5))), coral_probs(z, 0.8),
+                                   atol=1e-12)
 
 
 if __name__ == "__main__":

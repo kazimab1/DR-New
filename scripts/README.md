@@ -332,6 +332,12 @@ digest over the file's canonical form — plus `ood/<model>.npz` (grade means an
 Ledoit–Wolf shared precision), whose content digests the JSON records. Reads internal
 labels only. Refuses a reference sample not drawn as §5.3 pins it (5,000, seed 0).
 
+It also fits the **amended analysis** (D12, D13; the plan's addendum), under `"amended"`:
+M3's per-type area minimums (dataset-level; M3's QWK on calibration, M1 never consulted),
+and per model bias-corrected temperature scaling and the r that goes with the amended
+evidence. It refuses to run if the stored per-type counts do not reproduce M3's stored
+evidence grade.
+
 ## `analyse.py` — Phase 7, plan steps 2 and 5 ✅ implemented
 
 ```
@@ -347,6 +353,11 @@ and accuracy at 80/90% with ties by expectation, F3–F5, E1–E3, QWK, a descri
 M3-vs-truth table, and the per-seed effects with paired bootstrap intervals (2,000,
 seed 42, indices shared by every arm and model; EM re-run inside each resample).
 `verdicts` applies the §8 claim rule across datasets.
+
+**Two analyses from one label join.** The registered analysis fills the top level of
+`results.json` and is the primary; the amended one (D12, D13) sits under `"amended"`,
+computed from the same pass with the same bootstrap indices. `verdicts` reports both,
+registered first.
 
 **Locked data needs `--unblind`, and `--unblind` needs committed parameters**: the
 EyePACS test split, APTOS and Messidor-2 are refused before any label is read, and

@@ -22,7 +22,7 @@ which number. A notebook should pull the repo, call a script, and show the outpu
 | `06_final_training.ipynb` | 6a | Yes | Done — the six final runs |
 | `06_check_runs.ipynb` | 6a | No | Done — run status, the official-split check (D8) |
 | `07_internal_pass.ipynb` | 7, step 1 | Yes | Done 2026-09-24 — `verify-dr-internal` |
-| `08_fit_and_rehearse.ipynb` | 7, step 2 | **No** | **Ready** — fit on calibration, rehearse on val |
+| `08_fit_and_rehearse.ipynb` | 7, step 2 | **No** | Run once 2026-09-24; **re-run** for the amended analysis (D12, D13), the one round before the lock |
 | locked pass + unblinding | 6b | Yes / No | Not written — only after `fitted_params.json` is committed |
 
 Each remaining notebook gets written **in the same commit as the script it drives** —
