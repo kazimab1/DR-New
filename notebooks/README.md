@@ -11,18 +11,19 @@ which number. A notebook should pull the repo, call a script, and show the outpu
 
 | Notebook | Phase | GPU? | Status |
 |---|---|---|---|
-| `00_verify_inputs.ipynb` | 0 | No | **Ready** — answers the five verification questions |
-| `01_build_cache.ipynb` | 1 | **No** | **Ready** — builds the 512 px cache, runs A0 |
-| `01b_idrid_masks.ipynb` | 1 | **No** | **Ready** — IDRiD Part A masks top-up, publishes a separate dataset |
-| `02_manifests.ipynb` | 2 | No | **Ready** — manifests, patient-grouped splits, variants |
-| `03_grading_sweeps.ipynb` | 3 | Yes | **Ready** — B1–B5 sweep, smoke test, B1 verdict |
-| `03b_stage_b_batch.ipynb` | 3 | Yes | **Ready** — runs B4 and B5 back to back, one session |
-| `04_geometry.ipynb` | 4 | Yes | **Ready** — C1, disc/fovea regressor. Checks the Part A/C split first |
-| `04b_evidence.ipynb` | 4 | Yes | Blocked on `train_evidence.py` (C2–C4) |
-| `05_final_training.ipynb` | 6 | Yes | Blocked on the above |
-| `06_unblinding.ipynb` | 6 | Yes | Blocked on `evaluate.py` + checkpoints |
-| `07_calibration_triage.ipynb` | 7 | Yes | Blocked on M3 + M4 |
-| `08_error_analysis.ipynb` | 8 | No | Blocked on results |
+| `00_verify_inputs.ipynb` | 0 | No | Done — answers the verification questions |
+| `01_build_cache.ipynb` | 1 | **No** | Done — the 512 px cache, A0 |
+| `01b_idrid_masks.ipynb` | 1 | **No** | Done — IDRiD Part A masks top-up |
+| `01c_idrid_grading.ipynb` | 1 | **No** | Done — IDRiD Part B, for C1 |
+| `02_manifests.ipynb` | 2 | No | Done — manifests, patient-grouped splits, variants |
+| `03_grading_sweeps.ipynb` | 3 | Yes | Done — B1–B3 |
+| `03b_stage_b_batch.ipynb` | 3 | Yes | Done — B4 and B5 in one session |
+| `04_phase4.ipynb` | 4 | Yes | Done — C1–C4 |
+| `06_final_training.ipynb` | 6a | Yes | Done — the six final runs |
+| `06_check_runs.ipynb` | 6a | No | Done — run status, the official-split check (D8) |
+| `07_internal_pass.ipynb` | 7, step 1 | Yes | Done 2026-09-24 — `verify-dr-internal` |
+| `08_fit_and_rehearse.ipynb` | 7, step 2 | **No** | **Ready** — fit on calibration, rehearse on val |
+| locked pass + unblinding | 6b | Yes / No | Not written — only after `fitted_params.json` is committed |
 
 Each remaining notebook gets written **in the same commit as the script it drives** —
 a notebook and its script are tested together or neither works.

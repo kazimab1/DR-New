@@ -279,14 +279,11 @@ Per `docs/03_model_architecture.md` § M2a. Not yet built. It loads the encoder
 `train_geometry.py` fitted and trains the UNet decoder on DDR-seg + IDRiD-seg with
 `0.5·Dice + 0.5·BCE`.
 
-## `evaluate.py` — Phases 6–7
+## `evaluate.py` — superseded
 
-Runs a trained model over a manifest and emits the decision record in
-`docs/03_model_architecture.md` § M4, plus aggregate metrics.
-
-**Guard rail:** refuse to run against a manifest marked `locked: true` unless
-`--unblind` is passed *and* `preregistration/frozen_config.yaml` exists. Cheap
-insurance against accidentally burning the external sets.
+Planned as one script that predicted and scored at once. The analysis plan split it in
+two so no image is read after the labels are: `predict.py` (label-free pass) and
+`fit_params.py` + `analyse.py` (fit and score), below.
 
 ---
 
@@ -316,3 +313,44 @@ grade on the original, the lesion-removed copy and each of 19 controls), `emb/<r
 **No label is ever written**: label columns are dropped on reading, before any row is
 selected. **Locked data is refused** without `--locked`, before any image is opened.
 Exit codes: 0 done · 2 refused · 3 stopped at `--max-minutes`.
+
+## `fit_params.py` — Phase 7, plan step 2 ✅ implemented
+
+Fits every free parameter on the **calibration split**, per model
+(`preregistration/ANALYSIS_PLAN.md` §§4.2, 5.3, 5.5, 6.1).
+
+```
+--internal DIR                 the internal pass: reference_eyepacs_full/,
+                               reference_eyepacs_ddr_full/, calibration/
+--manifest-full eyepacs_full.csv  --manifest-ddr eyepacs_ddr_full.csv
+--out DIR
+```
+
+Writes `fitted_params.json` — T (stage 0+1) and T (stage 1 alone), the OOD scale and
+τ_ood, τ_conf, r with every candidate's AUC, π_src, the SHA-256 of every input, and a
+digest over the file's canonical form — plus `ood/<model>.npz` (grade means and the
+Ledoit–Wolf shared precision), whose content digests the JSON records. Reads internal
+labels only. Refuses a reference sample not drawn as §5.3 pins it (5,000, seed 0).
+
+## `analyse.py` — Phase 7, plan steps 2 and 5 ✅ implemented
+
+```
+dataset  --pass-dir DIR --labels MANIFEST [--split NAME] --fitted fitted_params.json
+         --ood-dir DIR --name NAME --role {in_domain,external} --out DIR
+         [--rehearsal] [--unblind] [--resamples 2000]
+verdicts --in-domain results.json --external results.json ... --out DIR
+```
+
+`dataset` computes every table in §§4–8 for one dataset: D1–D4 calibration (EM,
+oracle and sample-size study under `external`), the five arms' coverage–accuracy AUC
+and accuracy at 80/90% with ties by expectation, F3–F5, E1–E3, QWK, a descriptive
+M3-vs-truth table, and the per-seed effects with paired bootstrap intervals (2,000,
+seed 42, indices shared by every arm and model; EM re-run inside each resample).
+`verdicts` applies the §8 claim rule across datasets.
+
+**Locked data needs `--unblind`, and `--unblind` needs committed parameters**: the
+EyePACS test split, APTOS and Messidor-2 are refused before any label is read, and
+`--unblind` is refused unless `fitted_params.json` is tracked by git and unmodified. The
+pass must come from the fitted checkpoints and constants. Fewer than 2,000 resamples
+only with `--rehearsal`. Exit codes: 0 done · 1 inconsistent inputs · 2 refused.
+

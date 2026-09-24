@@ -1186,7 +1186,7 @@ with no choice changed, and binding from then: D9 (the plan), D10 (REACQUIRE rem
 and D11 (the sampling-prior correction) are recorded in `PREREGISTRATION.md`. No locked
 label had been read.
 
-### Step 1 of the plan: the internal pass — code built, ready to run
+### Step 1 of the plan: the internal pass — DONE 2026-09-24
 
 `scripts/predict.py` is the single pass the plan's §9 describes, and the same script
 will run the locked sets in Phase 6b. `notebooks/07_internal_pass.ipynb` runs it over
@@ -1211,11 +1211,107 @@ Rehearsed end to end by executing the notebook's own cells against a fake `/kagg
 tree: dataset mounts, a cache needing repathing, six checkpoints, a decoy empty
 `results/`, and the verification cell tested both ways.
 
-### Phase 7's code does not exist yet — and that changes the order
+**Result: the pass reproduces training exactly.** Section 9 recomputed each model's val
+QWK from the pass's own grades:
 
-`src/verify_dr/calibration/` and `src/verify_dr/triage/` are empty files. Temperature
-scaling, prior-shift EM, OOD-z, disagreement gating and the coverage–accuracy curves
-are all unwritten.
+| model | n | QWK (pass) | QWK (training) | difference | distinct |
+|---|---|---|---|---|---|
+| H1_eyepacs_full_s42 | 7040 | 0.7823 | 0.7819 | +0.0004 | 5 |
+| H1_eyepacs_full_s43 | 7040 | 0.7563 | 0.7563 | +0.0001 | 5 |
+| H1_eyepacs_full_s44 | 7040 | 0.7840 | 0.7839 | +0.0001 | 5 |
+| H1_eyepacs_ddr_full_s42 | 7040 | 0.7665 | 0.7666 | −0.0001 | 5 |
+| H1_eyepacs_ddr_full_s43 | 7040 | 0.7455 | 0.7455 | 0.0000 | 5 |
+| H1_eyepacs_ddr_full_s44 | 7040 | 0.7820 | 0.7816 | +0.0004 | 5 |
+
+Every model within 0.0004, against a 0.005 tolerance: same weights, same transform,
+same decision rule. The residue is float16 autocast on a different batch composition.
+
+Section 10, what the evidence pathway found:
+
+| | calibration (3,512) | val (7,040) |
+|---|---|---|
+| evidence grade 0 / 1 / 2 | 651 / 243 / 2,618 | 1,326 / 472 / 5,242 |
+| rules R1 / R2 / R3 / R3\* | 651 / 243 / 1,532 / 1,086 | 1,326 / 472 / 3,134 / 2,108 |
+| with lesions | 2,861 (81%) | 5,714 (81%) |
+| faithfulness determined / undetermined / none | 2,849 / 12 / 651 | 5,686 / 28 / 1,326 |
+| controls placed | median 19 of 19, min 0 | median 19 of 19, min 0 |
+
+The machinery works: the randomisation test decided 99.6% of the images it was asked
+about, and the median image got all 19 controls.
+
+### M3 calls three in four EyePACS images diseased
+
+**Evidence grade 2 goes to 74.5% of the calibration split. About 19% of EyePACS is
+truly grade ≥ 2** (19.23% after A0's 693-image loss). No label is needed to see the
+gap, only the known prevalence: with ~73.5% of images grade 0 and 81.5% carrying
+evidence, **at least 74% of grade-0 images get evidence of disease**, and at least
+two thirds of non-referable images get evidence grade 2.
+
+**It is not a bug in the pass.** C4 on DDR gave the same split — R1 22.1%, R2 5.4%,
+R3 + R3\* 72.5% — on a dataset that is 50% grade 0, against 18.5% / 6.9% / 74.5% on
+EyePACS at ~73% grade 0. M3's output barely moves with the true prevalence. C4's QWK
+of 0.375 was read as "informative but weaker", and R3\* (35%) was attributed to the
+MA channel missing lesions. The other reading was never tested: **the haemorrhage and
+exudate channels fire on healthy retinas.** The likely cause is M2's training set: the
+757 DDR segmentation images were annotated *for* their lesions, so M2 has probably
+never seen a healthy fundus, and a 4-pixel component counts as a finding.
+
+**Why it matters: disagreement is only as specific as M3.** Where M1 correctly calls
+grade 0 and M3 reports grade 2, d_evidence = 2 — the strongest disagreement there is —
+and the disagreement arm defers exactly the cases M1 gets most reliably right. H1 and
+H1′ are at risk for a reason unrelated to M1.
+
+**Nothing is changed.** The frozen M2 operating point (threshold 0.5, ≥ 4 px) stands
+until the rehearsal on val measures the consequence with val's labels (step 2, below).
+Any change after that is a dated deviation made before the locked data are read, and
+must be chosen by a criterion other than the H1 outcome.
+
+### Step 2 of the plan: fit and rehearsal — code built, ready to run
+
+`scripts/fit_params.py` fits T (and T for stage 1 alone), the OOD statistics, τ_ood,
+τ_conf and r on the calibration split; `scripts/analyse.py` computes every table in
+§§4–8 for one dataset and the §8 verdicts across datasets.
+`notebooks/08_fit_and_rehearse.ipynb` runs both on CPU and rehearses on val.
+
+- **numpy only.** Ledoit–Wolf is written out and matches scikit-learn to 1e-9; the
+  temperature search is a log grid refined by golden section. The same numbers come out
+  on Kaggle and in the tests.
+- **Ties by expectation, exactly.** The coverage–accuracy AUC replaces each case's
+  correctness by its tie block's mean; tests check it against brute-force enumeration of
+  every ordering, and that the "none" arm scores exactly the overall accuracy.
+- **The unblinding cannot come early.** `analyse.py` refuses locked data without
+  `--unblind`, before any label is read, and `--unblind` refuses a `fitted_params.json`
+  that git does not track unmodified. The file carries a digest over its canonical form,
+  so it can be pasted through a chat and re-indented, but not edited.
+- **Every guard was mutated and caught:** ties broken by position, `>` loosened to `≥`
+  in the faithfulness rule, the prior correction removed from the temperature fit (T
+  then doubles, 1.8 → 3.65 — D11 in miniature).
+
+Details the plan left open, pinned in code now, before any locked label:
+
+| | Pinned as | Why |
+|---|---|---|
+| H2's bootstrap | EM re-run inside every resample | its uncertainty belongs in the interval; holding it fixed would favour H2 (rule 3) |
+| a coverage point | k = ⌈c·n⌉, the smallest k with coverage ≥ c | 80% of 17,615 = 14,092 exactly |
+| F4's binary form | [d_evidence > 0] + r · d_faith, same r | F4 varies the evidence term only |
+| E2 | images with no successful control excluded, counted | a mean of zero controls is undefined |
+| D4's draws | `default_rng([size, draw])` | reproducible, independent of order |
+| r's tie | AUCs within 1e-12 | identical rankings give bit-identical AUCs |
+
+**One new diagnostic: EM's premise.** EM assumes the mean calibrated posterior equals
+the prior it was calibrated under. The synthetic fixture shows what happens when it
+does not: EM run on unshifted data drove grades 1–3 to zero. So the fit records EM run
+on the calibration split itself, where nothing has shifted; if it drifts there, it will
+drift on the externals and H2 fails for that reason, not for the shift.
+
+**At real scale** (3,512 / 7,040 / 5,000 × 512-d, 2,000 resamples) the fit takes seconds
+and the rehearsal about four minutes, CPU only.
+
+### Phase 7's code was written before the unblinding — the order this required
+
+Before step 1, `src/verify_dr/calibration/` and `src/verify_dr/triage/` were empty.
+Temperature scaling, prior-shift EM, OOD-z, disagreement gating and the
+coverage–accuracy curves were all unwritten.
 
 If the unblinding runs first, every one of those is implemented *after* the external
 labels have been seen. The pre-registration froze the procedures (gating arms,

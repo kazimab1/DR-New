@@ -199,17 +199,30 @@ existing code, (3) otherwise the reading that does not favour our own hypotheses
 D9-D11 are recorded. Changing it now means a dated deviation, never an edit -- the
 code is written *to* it, not the other way round.
 
-**Step 1 (internal pass) is built and ready:** `scripts/predict.py` +
-`notebooks/07_internal_pass.ipynb`. Label-free by construction (labels dropped on
-reading, statically tested), refuses locked data without `--locked`, resumable by
-shard, and it verifies itself: section 9 recomputes each model's val QWK from the
-pass and compares it with `metrics.json`. Faithfulness lives in
-`src/verify_dr/triage/faithfulness.py`; the region it inpaints comes from
-`lesion_region_mask` in `facts.py`, beside the rule that defines a lesion.
+**Step 1 (internal pass) DONE 2026-09-24** -- `scripts/predict.py` +
+`notebooks/07_internal_pass.ipynb`, published as `verify-dr-internal`. It reproduces
+training: every model's val QWK within 0.0004 of `metrics.json`. The faithfulness test
+decided 99.6% of the lesion images it was given, with 19 of 19 controls at the median.
 
-**Next after it runs:** step 2 -- fit T, the OOD statistics, tau_ood, tau_conf and r on
-the calibration split (CPU), rehearse every table on val, commit the code and
-`fitted_params.json`, then the locked pass and one label join.
+**The finding that matters: M3 is not specific.** It gives evidence grade 2 to 74.5% of
+EyePACS calibration images against ~19% truly referable; at least 74% of grade-0 images
+get evidence of disease. Not a pass bug -- C4 on DDR had the same split (22/5/72%) at
+50% grade 0. Likely cause: M2 trained only on DDR's 757 lesion-annotated images, with
+4-px components counting. Consequence: where M1 correctly says 0 and M3 says 2,
+d_evidence = 2, so the disagreement arm defers M1's safest calls first. **Nothing
+changed yet**; the rehearsal measures it with val's labels, and any change is a dated
+deviation before unblinding, chosen by a criterion other than the H1 outcome.
+
+**Step 2 (fit + rehearsal) is built and ready:** `scripts/fit_params.py`,
+`scripts/analyse.py`, `notebooks/08_fit_and_rehearse.ipynb` (CPU, ~5 min), code in
+`src/verify_dr/{calibration,triage}/`. `analyse.py` refuses locked data without
+`--unblind`, and `--unblind` refuses a `fitted_params.json` git does not track
+unmodified. The fit also records **EM run on the calibration split itself**: if EM
+drifts where nothing shifted, H2 fails for that reason, not for the shift.
+
+**Next:** the user runs 08 and pastes sections 4, 6, 7 and `fitted_params.json`. Then
+decide on M3 (frozen vs a pre-unblinding deviation), commit `fitted_params.json` beside
+the plan and record the commit in `PREREGISTRATION.md` (step 3), then the locked pass.
 
 Three things it found that change the analysis, not just pin it:
 - **The six models were trained on a uniform class prior** (`stratified_exposure`
