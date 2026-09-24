@@ -422,8 +422,8 @@
       decides which automated gradings to trust.
     </p>
     <div class="stamp">
-      <span>Updated <b>22 Sep 2026</b></span>
-      <span>Phase <b>6a trained</b> · 6 / 6 runs</span>
+      <span>Updated <b>24 Sep 2026</b></span>
+      <span>Internal pass <b>done</b> · reproduces training</span>
       <span>Locked data read <b>none</b></span>
       <span>Analysis plan <b>final</b></span>
     </div>
@@ -437,7 +437,7 @@
     <li class="done">4 · evidence</li>
     <li class="done">5 · freeze</li>
     <li class="live">6 · final + unblinding</li>
-    <li>7 · calibration</li>
+    <li class="live">7 · calibration</li>
     <li>8 · error analysis</li>
     <li>9 · write-up</li>
   </ul>
@@ -1529,6 +1529,65 @@
         data. The mirror's own split is a 70/15/15 re-split, so the official one cannot be
         recovered. In-domain results use our <span class="num">17 615</span>-image test split,
         labelled custom and never placed beside 0.8496. Recorded before any locked data was read.
+      </p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Phase 7 · the internal pass</h2>
+    <h3>The pass reproduces training exactly, and shows the evidence pathway is not specific</h3>
+    <p>
+      Step 1 of the analysis plan runs the frozen pipeline once over internal data only (the
+      OOD reference samples, the calibration split and the validation split) and records
+      everything the analysis needs. It writes no label and refuses locked data. Recomputing each
+      model's validation QWK from the pass's own grades gives <strong>every model within
+      <span class="num">0.0004</span></strong> of the number training recorded, so the pass scores
+      the models it claims to. The faithfulness test decided <span class="num">99.6%</span> of the
+      lesion images it was given, with all 19 random controls placed for the median image.
+    </p>
+    <p>
+      What the evidence pathway found is the problem. M3 gives evidence grade 2 to three images in
+      four. In EyePACS, about one in five is truly referable.
+    </p>
+    <div class="scroller">
+      <table>
+        <thead>
+          <tr><th>Dataset</th><th>Truly grade 0 / 1 / ≥2</th><th>M3 evidence 0 / 1 / 2</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>EyePACS calibration (3,512)</td><td class="num">~73 / 7 / 19%</td><td class="num">18.5 / 6.9 / 74.5%</td></tr>
+          <tr><td>DDR, experiment C4 (11,767)</td><td class="num">~50 / 5 / 45%</td><td class="num">22.1 / 5.4 / 72.5%</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>
+      M3's output barely moves when the true prevalence moves from half to three quarters
+      healthy. From the marginals alone, <strong>at least 74% of grade-0 EyePACS images get
+      evidence of disease</strong>. C4's QWK of 0.375 was read as informative but weaker, and its
+      35% of fallback R3* rulings as the microaneurysm channel missing lesions. The other reading
+      was never tested: the haemorrhage and exudate channels fire on healthy retinas. The likely
+      cause is M2's training set: DDR's 757 segmentation images were annotated for their lesions,
+      so M2 has probably never seen a healthy fundus, and a 4-pixel component counts as a finding.
+    </p>
+    <div class="note bad">
+      <span class="tag">Disagreement is only as specific as M3</span>
+      <p>
+        Where M1 correctly says grade 0 and M3 says grade 2, the disagreement is as large as it gets,
+        so the arm under test defers M1's safest calls first. H1 and H1′ are at risk for a reason
+        that has nothing to do with M1. Nothing has been changed. Step 2 fits the thresholds on
+        calibration and rehearses every table on validation, which measures the consequence with
+        validation labels. Any change after that is a dated deviation, made before the locked data
+        are read and chosen by a criterion other than the H1 outcome.
+      </p>
+    </div>
+    <div class="note caution">
+      <span class="tag">A second check: EM's premise</span>
+      <p>
+        EM estimates a new site's grade mix from its unlabelled images, assuming the average
+        calibrated posterior equals the prior it was calibrated under. On synthetic data where that
+        fails, EM run on data with <em>no</em> shift drove three grades to zero. The fit now runs EM
+        on the calibration split itself. If it drifts there, H2 fails for that reason and not
+        because of any shift.
       </p>
     </div>
   </section>
