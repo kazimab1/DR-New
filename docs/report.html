@@ -423,7 +423,7 @@
     </p>
     <div class="stamp">
       <span>Updated <b>24 Sep 2026</b></span>
-      <span>Internal pass <b>done</b> · reproduces training</span>
+      <span>Rehearsal <b>done</b> · amended before unblinding (D12, D13)</span>
       <span>Locked data read <b>none</b></span>
       <span>Analysis plan <b>final</b></span>
     </div>
@@ -1588,6 +1588,80 @@
         fails, EM run on data with <em>no</em> shift drove three grades to zero. The fit now runs EM
         on the calibration split itself. If it drifts there, H2 fails for that reason and not
         because of any shift.
+      </p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Phase 7 · the rehearsal</h2>
+    <h3>The registered analysis fails in-domain, for two reasons that are not the hypothesis</h3>
+    <p>
+      Every parameter was fitted on the calibration split, then every table was rehearsed on
+      the validation split. That split is development data, so nothing from it is reported, but it
+      shows what the locked run would do. Calibration itself works: stages 0+1 take ECE from
+      <span class="num">0.23–0.27</span> down to <span class="num">0.03–0.06</span>, and the
+      prior correction does most of that. The ranking does not.
+    </p>
+    <div class="scroller">
+      <table>
+        <thead>
+          <tr><th>eyepacs_full</th><th>none</th><th>confidence</th><th>OOD</th><th>disagreement</th><th>combined</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>seed 42</td><td>0.7719</td><td class="key">0.9195</td><td>0.8606</td><td>0.7677</td><td>0.8322</td></tr>
+          <tr><td>seed 43</td><td>0.7169</td><td class="key">0.9015</td><td>0.8483</td><td>0.7189</td><td>0.7875</td></tr>
+          <tr><td>seed 44</td><td>0.7541</td><td class="key">0.9167</td><td>0.8463</td><td>0.7536</td><td>0.8221</td></tr>
+        </tbody>
+        <caption>
+          Coverage–accuracy AUC on validation. Disagreement is within 0.005 of no gate at all for
+          every model, in both variants.
+        </caption>
+      </table>
+    </div>
+    <ol class="findings">
+      <li>
+        <div>
+          <h4>The disagreement signal is real, but its ordering is inverted</h4>
+          <p>
+            Where the evidence and the grader differ by one grade (19% of images), M1 is right only
+            <span class="num">35%</span> of the time: that block does pick out errors. But the
+            largest disagreement covers <span class="num">47%</span> of images, and M1 is right
+            <span class="num">91%</span> of the time there. It is mostly M3 reporting grade 2 on
+            healthy eyes that M1 correctly calls 0. M3 finds evidence in
+            <span class="num">75.9%</span> of grade-0 validation images, and its QWK is
+            <span class="num">0.138</span> here against 0.375 on DDR.
+          </p>
+        </div>
+      </li>
+      <li>
+        <div>
+          <h4>EM's premise fails before any shift is involved</h4>
+          <p>
+            On the calibration split, where nothing has shifted, EM drove grade 1 to about zero in
+            every model. The mean calibrated posterior for grade 0 is
+            <span class="num">0.79–0.82</span> against a true <span class="num">0.744</span>.
+            Temperature scaling calibrates the confidence in a prediction, not the grade mix, and EM
+            needs the grade mix.
+          </p>
+        </div>
+      </li>
+    </ol>
+    <div class="note decision">
+      <span class="tag">Decision · amend, with the registered analysis primary</span>
+      <p>
+        Two dated deviations were written before the code that implements them, and before any
+        locked image or label was read. <strong>D12</strong> fits a per-type minimum lesion area for
+        M3 on the calibration split, choosing by M3's own agreement with the true grade; M1 is never
+        consulted. <strong>D13</strong> replaces temperature scaling with bias-corrected temperature
+        scaling for the calibration outcomes and H2; at its optimum, the mean posterior equals the
+        calibration grade mix. The confidence baseline is untouched. Both analyses come from one
+        locked pass and one label join. The registered one decides the registered verdicts; the
+        amended one is reported beside it.
+      </p>
+      <p>
+        <strong>One round:</strong> the amended analysis is rehearsed once, then everything is
+        committed and the locked data are read, whatever that rehearsal shows. Against the
+        pre-amendment code, the registered analysis reproduces to the last digit.
       </p>
     </div>
   </section>
