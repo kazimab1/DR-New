@@ -1411,6 +1411,42 @@ verdicts.
   exactly singular and the undamped solve raised. The damped fallback now takes over, and
   a test pins the case.
 
+### The amended fit on the real calibration split — 2026-09-25
+
+Section 4 of the re-run `08_fit_and_rehearse.ipynb`. The registered values reproduced
+exactly: the same T, ECE and EM drift as the first run.
+
+| | registered | amended |
+|---|---|---|
+| ECE on calibration | 0.03–0.06 (stages 0+1) | **0.012–0.018** (BCTS, T 0.42–0.48) |
+| EM drift where nothing shifted | 0.107–0.151 | **~1e-11**: EM returns the true grade mix exactly |
+| M3's QWK on calibration | 0.133 | **0.441** |
+| evidence grades 0 / 1 / 2 on calibration | 651 / 243 / 2,618 | 2,113 / 930 / 469 |
+| r | 2.5 for all six | 2.5 for all six |
+
+**D12's area minimums:** microaneurysm 16 px, haemorrhage 256 px, hard exudate 256 px,
+soft exudate **1,024 px**. That is the top of the pre-specified grid, so soft exudate now
+counts only when it is extensive. The grid is not widened: that would be a second round.
+**The new weakness:** evidence grade 1 now goes to 26% of calibration images against ~7%
+truly grade 1. The ladder's MA-only rung catches images whose larger lesions fell below
+their minimums.
+
+### Steps 4 and 5 built, and the whole chain rehearsed on toy data
+
+`notebooks/09_locked_pass.ipynb` (GPU) and `notebooks/10_unblinding.ipynb` (CPU). Both open
+with `step3_record`, which refuses unless `preregistration/fitted_params.json` exists,
+verifies against its digest, is tracked by git and unmodified, and has its digest
+recorded in `PREREGISTRATION.md`. 09 also checks all seven checkpoints' SHA-256 against
+the fitted ones before any GPU time is spent. It runs the externals first.
+
+**Rehearsed end to end, 07 → 08 → step 3 → 09 → 10**, on toy data in a fake `/kaggle` tree
+with step 3 committed in a scratch repository. The rehearsal checks the plumbing, not the
+numbers: the three locked passes are written label-free, and the unblinding produces both
+analyses for all three sets plus the verdicts. It surfaced one toy-only trap. A randomly
+initialised EfficientNet-B0's features vanish (~1e-14), every toy embedding is identical,
+and the OOD covariance is singular, so the toy checkpoints use ResNet50. The real fit
+(5,000 real embeddings) was never affected.
+
 ### Phase 7's code was written before the unblinding — the order this required
 
 Before step 1, `src/verify_dr/calibration/` and `src/verify_dr/triage/` were empty.

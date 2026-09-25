@@ -235,10 +235,20 @@ from one locked pass and one label join. **One round:** after the amended rehear
 commit `fitted_params.json` and run the locked pass whatever it shows. The registered
 analysis was proven unchanged to the last digit against the pre-amendment code.
 
-**Next:** the user re-runs 08 (now fits and rehearses both analyses) and pastes sections
-4, 6, 7 and `fitted_params.json`. Then step 3: commit it as
-`preregistration/fitted_params.json`, record the commit in `PREREGISTRATION.md`, then the
-locked pass notebook and the unblinding notebook.
+**Amended fit (08 re-run, section 4, 2026-09-25):** BCTS ECE 0.012-0.018 and EM drift ~1e-11
+(EM's premise now holds); D12 minimums MA 16 / HE 256 / hard EX 256 / soft EX 1024 px (grid
+top), M3 QWK on calibration 0.133 -> 0.441; evidence grade 1 now over-called (26% vs ~7%).
+
+**Steps 4-5 built:** `09_locked_pass.ipynb` (GPU, externals first) and `10_unblinding.ipynb`
+(CPU). Both start with `triage.params.step3_record`, which refuses unless the committed
+`preregistration/fitted_params.json` verifies and its digest is in `PREREGISTRATION.md`;
+09 also checks all seven checkpoints' SHA-256. The whole chain 07 -> 08 -> step 3 -> 09 -> 10
+was rehearsed on toy data.
+
+**Next:** the user pastes sections 6, 7 and `fitted_params.json` from the 08 re-run. Step 3:
+write it to `preregistration/fitted_params.json` (verify the digest), commit, then record
+that commit and the full digest in `PREREGISTRATION.md` and commit again. Then send 09,
+then 10. One round: no change to anything between here and the unblinding.
 
 Three things it found that change the analysis, not just pin it:
 - **The six models were trained on a uniform class prior** (`stratified_exposure`

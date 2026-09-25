@@ -31,7 +31,9 @@ import fit_params  # noqa: E402
 from verify_dr.calibration import coral_probs  # noqa: E402
 from verify_dr.triage import faithfulness as F  # noqa: E402
 from verify_dr.triage import ood as O  # noqa: E402
-from verify_dr.triage.params import load_params, write_params  # noqa: E402
+from verify_dr.triage.params import (  # noqa: E402
+    StepThreeError, load_params, step3_record, write_params,
+)
 
 MODELS = [f"H1_{v}_s{s}" for v in ("eyepacs_full", "eyepacs_ddr_full") for s in (42, 43, 44)]
 PREVALENCE = [0.70, 0.08, 0.15, 0.04, 0.03]
@@ -423,6 +425,55 @@ class FitAndRehearse(unittest.TestCase):
             fit_params.main(["--internal", str(bad), "--manifest-full", str(self.full_manifest),
                              "--manifest-ddr", str(self.ddr_manifest), "--out",
                              str(self.tmp / "bad_fit")])
+
+
+class StepThree(unittest.TestCase):
+    """The locked pass and the unblinding start only after step 3 (plan s10)."""
+
+    def setUp(self):
+        self.repo = Path(tempfile.mkdtemp(prefix="step3_"))
+        self.git = ["git", "-C", str(self.repo), "-c", "user.email=t@t", "-c", "user.name=t"]
+        subprocess.run(self.git[:3] + ["init", "-q"], check=True)
+        (self.repo / "preregistration").mkdir()
+        self.prereg = self.repo / "preregistration" / "PREREGISTRATION.md"
+        self.prereg.write_text("# Pre-registration\n")
+        self.params = self.repo / "preregistration" / "fitted_params.json"
+        self.commit("start", self.prereg)
+
+    def tearDown(self):
+        shutil.rmtree(self.repo, ignore_errors=True)
+
+    def commit(self, message, *paths):
+        subprocess.run(self.git + ["add", *map(str, paths)], check=True)
+        subprocess.run(self.git + ["commit", "-qm", message], check=True)
+
+    def write(self):
+        return write_params({"plan": "p", "models": {"m": {"temperature": 0.5}}}, self.params)
+
+    def test_every_way_step_three_can_be_missing(self):
+        with self.assertRaises(StepThreeError):          # no file
+            step3_record(self.repo)
+        digest = self.write()
+        with self.assertRaises(StepThreeError):          # written, not committed
+            step3_record(self.repo)
+        self.commit("params", self.params)
+        with self.assertRaises(StepThreeError):          # committed, not recorded
+            step3_record(self.repo)
+        self.prereg.write_text(self.prereg.read_text() + f"Fitted parameters: digest {digest}\n")
+        self.commit("record", self.prereg)
+        self.assertEqual(step3_record(self.repo)["digest"], digest)
+        self.params.write_text(self.params.read_text().replace('"plan"', '"plan" ', 1))
+        with self.assertRaises(StepThreeError):          # edited after the commit
+            step3_record(self.repo)
+
+    def test_a_changed_value_fails_even_when_committed(self):
+        digest = self.write()
+        tampered = self.params.read_text().replace("0.5", "0.6")
+        self.params.write_text(tampered)
+        self.prereg.write_text(self.prereg.read_text() + f"digest {digest}\n")
+        self.commit("tampered", self.params, self.prereg)
+        with self.assertRaises(ValueError):
+            step3_record(self.repo)
 
 
 class Params(unittest.TestCase):
