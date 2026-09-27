@@ -245,10 +245,16 @@ top), M3 QWK on calibration 0.133 -> 0.441; evidence grade 1 now over-called (26
 09 also checks all seven checkpoints' SHA-256. The whole chain 07 -> 08 -> step 3 -> 09 -> 10
 was rehearsed on toy data.
 
-**Next:** the user pastes sections 6, 7 and `fitted_params.json` from the 08 re-run. Step 3:
-write it to `preregistration/fitted_params.json` (verify the digest), commit, then record
-that commit and the full digest in `PREREGISTRATION.md` and commit again. Then send 09,
-then 10. One round: no change to anything between here and the unblinding.
+**Step 3 DONE 2026-09-27:** `preregistration/fitted_params.json` committed as `50d5d32`,
+digest `0df6b029...` (full value in `PREREGISTRATION.md`, "Step 3"). It is byte-identical
+to `fit_params.py`'s output, and its registered block equals the first fit's (`8fc2b5f8`)
+value for value. Since the fit's code (`b2eca70`), only `step3_record` was added.
+
+**Next:** 09 (GPU, ~2-4 h, externals first; publish `verify-dr-locked`), then 10 (CPU;
+publish `verify-dr-results`). **Commit nothing until 10 has run**, so both run on the same
+commit; 09's label-free outputs go into the record with 10's. A bug found on the way is
+fixed as a dated deviation, never silently. Sections 6-7 of the 08 re-run are still
+unrecorded; by the one-round rule they decide nothing.
 
 Three things it found that change the analysis, not just pin it:
 - **The six models were trained on a uniform class prior** (`stratified_exposure`

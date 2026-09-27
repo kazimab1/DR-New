@@ -1447,6 +1447,32 @@ initialised EfficientNet-B0's features vanish (~1e-14), every toy embedding is i
 and the OOD covariance is singular, so the toy checkpoints use ResNet50. The real fit
 (5,000 real embeddings) was never affected.
 
+### Step 3 of the plan: the fitted parameters are committed — DONE 2026-09-27
+
+`preregistration/fitted_params.json` is committed as **`50d5d32`**, digest
+**`0df6b029b3600c1f014b38fa9c5310fa84ca3c2355dac3b55a807452b4d1c4a9`**, and both are
+recorded in `PREREGISTRATION.md` ("Step 3"). No locked image or label has been read.
+
+- **It is exactly what `fit_params.py` wrote.** It came through a chat paste, and it is
+  byte-identical to `write_params`' output for its own values, and it verifies against
+  its digest.
+- **The amendment changed no registered value.** Its registered block matches the first
+  fit (`8fc2b5f8…`, made before D12 and D13 existed) value for value, on identical input
+  digests. The OOD statistics' digests are identical too, so either version of
+  `verify-dr-fitted` serves 10.
+- **The code is the code that fitted it.** Since `b2eca70` the only change under `src/`
+  and `scripts/` is `step3_record`, 45 lines added and none removed.
+- **Sections 5–7 of the amended re-run are not yet in the record.** Under the one-round
+  rule they decide nothing: step 3 happens whatever they show.
+
+Per-model values are tabulated in `PREREGISTRATION.md`. r and r′ are 2.5 (the grid's top)
+in all six models, as in the first fit.
+
+**Next: 09, the locked pass (GPU, ~2–4 h), then 10, the unblinding (CPU).** Nothing is
+committed between them, so 09 and 10 run on the same commit. 09's label-free outputs
+enter the record together with 10's. A bug found on the way would be fixed as a dated
+deviation (§9 of the pre-registration), never silently.
+
 ### Phase 7's code was written before the unblinding — the order this required
 
 Before step 1, `src/verify_dr/calibration/` and `src/verify_dr/triage/` were empty.

@@ -226,3 +226,52 @@ amend with the frozen analysis primary; amend with the amended analysis primary)
 > across sessions by `notebooks/06_final_training.ipynb` rather than trimmed.
 > Seeds stay at three: section 7's paired-seed analysis needs them.
 > Discovering it mid-run is what this document exists to prevent.
+
+---
+
+## Step 3 — the fitted parameters are committed · 2026-09-27
+
+`ANALYSIS_PLAN.md` §10, step 3. As with the freeze, the commit is recorded by the commit
+after it: a commit cannot contain its own hash.
+
+| Field | Value |
+|---|---|
+| File | `preregistration/fitted_params.json` |
+| Commit | `50d5d32` — full: `50d5d32592cb08ae2ccaeda6f090d3505aee7cd6` |
+| Digest (SHA-256 of the canonical form) | `0df6b029b3600c1f014b38fa9c5310fa84ca3c2355dac3b55a807452b4d1c4a9` |
+| SHA-256 of the file's bytes | `124563da5e1b8a9fddff6d92a845f36dc46626581ed3db52b076ebaa80fb328e` |
+| Fitted by | `scripts/fit_params.py` at `b2eca70`, in the re-run of `notebooks/08_fit_and_rehearse.ipynb`, 2026-09-24T20:30:16Z |
+| Analysis code | as at `50d5d32`. Since `b2eca70` the only change under `src/` and `scripts/` is `step3_record` (45 lines added, none removed): the guard that 09 and 10 run first, which computes nothing the analysis reads |
+| Locked images or labels read | **none** |
+
+**What it pins, per model:** the registered analysis — T (stages 0+1), the OOD
+statistics by content digest and τ_ood, τ_conf, r — and the amended one: D12's area
+minimums, D13's temperature and per-grade biases, r′. Also the SHA-256 of all seven
+checkpoints (six M1 runs and C2's segmenter) and of every input the fit read.
+
+| Model | T | τ_conf | τ_ood | r | D13: T′ | D13: ECE | r′ |
+|---|---|---|---|---|---|---|---|
+| `eyepacs_full s42` | 0.494 | 0.897 | 1.989 | 2.5 | 0.461 | 0.015 | 2.5 |
+| `eyepacs_full s43` | 0.414 | 0.906 | 1.851 | 2.5 | 0.419 | 0.012 | 2.5 |
+| `eyepacs_full s44` | 0.483 | 0.898 | 1.935 | 2.5 | 0.480 | 0.018 | 2.5 |
+| `eyepacs_ddr_full s42` | 0.480 | 0.916 | 1.858 | 2.5 | 0.473 | 0.013 | 2.5 |
+| `eyepacs_ddr_full s43` | 0.437 | 0.896 | 2.037 | 2.5 | 0.445 | 0.015 | 2.5 |
+| `eyepacs_ddr_full s44` | 0.507 | 0.900 | 2.080 | 2.5 | 0.481 | 0.012 | 2.5 |
+
+D12's minimums: microaneurysm 16 px, haemorrhage 256, hard exudate 256, soft exudate
+1,024. M3's QWK on the calibration split rises from 0.133 (the frozen rule) to 0.441.
+
+**The amendment changed no registered value.** Every registered value in this file is
+identical, to the last digit, to the first fit (digest `8fc2b5f8…`, kept as
+`docs/rehearsal/2026-09-24_fitted_params_frozen.json`), which was made on identical
+inputs before D12 and D13 existed. The amendment added its own block and nothing else.
+
+**Two values sit at the top of their grids, and the grids stay as they are:** r and r′
+are 2.5 in all six models (faithfulness dominates the ranking), and soft exudate's
+minimum is 1,024 px. Both grids are fixed by the plan (§5.5, addendum A.1); widening
+either now would be a second round.
+
+**From here to the unblinding, nothing changes** — not the code, not these values, and
+not the amendment — whatever the locked pass or the amended rehearsal shows. The locked
+pass (09) and the unblinding (10) both begin with `step3_record`, which refuses unless
+this file is committed, unmodified, and its digest appears above.

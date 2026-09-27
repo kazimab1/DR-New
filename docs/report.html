@@ -422,10 +422,10 @@
       decides which automated gradings to trust.
     </p>
     <div class="stamp">
-      <span>Updated <b>24 Sep 2026</b></span>
-      <span>Rehearsal <b>done</b> · amended before unblinding (D12, D13)</span>
+      <span>Updated <b>27 Sep 2026</b></span>
+      <span>Fitted parameters <b>committed</b> · step 3 · <code>0df6b029</code></span>
       <span>Locked data read <b>none</b></span>
-      <span>Analysis plan <b>final</b></span>
+      <span>Analysis plan <b>final</b> · amended D12, D13</span>
     </div>
   </header>
 
@@ -1667,6 +1667,82 @@
   </section>
 
   <section>
+    <h2>Phase 7 · step 3</h2>
+    <h3>The amendment is fitted, and every value is committed before a locked image is read</h3>
+    <p>
+      The amended fit ran once on the calibration split, as the one-round rule requires, and its
+      parameters were committed unchanged. That file is what the unblinding is held to: commit
+      <code>50d5d32</code>, digest <code>0df6b029…c4a9</code>, both recorded in the
+      pre-registration. The locked pass and the unblinding refuse to start unless the file is
+      committed, unmodified and recorded there.
+    </p>
+    <div class="scroller">
+      <table>
+        <thead>
+          <tr><th>On the calibration split</th><th>registered</th><th>amended</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>ECE</td><td>0.03–0.06</td><td class="key">0.012–0.018</td></tr>
+          <tr><td>EM drift where nothing shifted</td><td>0.107–0.151</td><td class="key">~1e-11</td></tr>
+          <tr><td>M3's QWK against the true grade</td><td>0.133</td><td class="key">0.441</td></tr>
+          <tr><td>images with d_evidence = 2</td><td>40–47%</td><td class="key">4–6%</td></tr>
+          <tr><td>r, the weight on faithfulness</td><td>2.5 in all six</td><td>2.5 in all six</td></tr>
+        </tbody>
+        <caption>
+          Ranges run over the six models; M3's QWK does not depend on M1. These values are
+          fitted on this split, so none of them is a result.
+        </caption>
+      </table>
+    </div>
+    <ol class="findings">
+      <li>
+        <div>
+          <h4>Both diagnosed failures are repaired where they were measured</h4>
+          <p>
+            With a bias per grade, the mean posterior equals the calibration grade mix, and EM run
+            where nothing shifted now stays where it started. D12's minimums (microaneurysm
+            <span class="num">16</span> px, haemorrhage <span class="num">256</span>, hard exudate
+            <span class="num">256</span>, soft exudate <span class="num">1,024</span>) take M3's QWK
+            from <span class="num">0.133</span> to <span class="num">0.441</span>. The largest
+            disagreement, which had marked M1's safest calls, falls from
+            <span class="num">40–47%</span> of images to <span class="num">4–6%</span>.
+          </p>
+        </div>
+      </li>
+      <li>
+        <div>
+          <h4>The repair has a cost, recorded before the locked data</h4>
+          <p>
+            M3 now gives evidence grade 1 to <span class="num">26%</span> of calibration images,
+            against about <span class="num">7%</span> truly grade 1: an image whose larger lesions
+            fall below their minimums drops to the microaneurysm-only rung. Soft exudate's minimum
+            sits at the top of its grid, and r at the top of its own. Neither grid is widened,
+            because that would be a second round.
+          </p>
+        </div>
+      </li>
+      <li>
+        <div>
+          <h4>The amendment added a block and changed nothing else</h4>
+          <p>
+            Every registered value in the committed file matches, to the last digit, the fit made
+            before D12 and D13 existed, on identical inputs. The primary analysis is therefore the
+            registered one, whatever the amended analysis shows.
+          </p>
+        </div>
+      </li>
+    </ol>
+    <div class="note decision">
+      <span class="tag">Next · the locked pass, then the unblinding</span>
+      <p>
+        <code>09_locked_pass.ipynb</code> runs the label-free pass over Messidor-2, APTOS and the
+        in-domain test split on GPU. <code>10_unblinding.ipynb</code> then joins the labels once,
+        on CPU. Nothing is committed between the two, so both run on the same code.
+      </p>
+    </div>
+  </section>
+
+  <section>
     <h2>Method · a recurring failure shape</h2>
     <h3>Every serious bug so far produced a well-formed artefact</h3>
 
@@ -1899,8 +1975,8 @@
       Generated from each run's <code>metrics.json</code> and <code>stage_b_summary.csv</code>.
       The authoritative log is <code>docs/04_experiment_register.md</code> in the project
       repository; this page is the narrative view of it and is updated as experiments complete.
-      Figures on this page are validation-only — no locked dataset has been touched, and no test
-      split has been read.
+      Figures on this page come from the validation and calibration splits only. No locked
+      dataset has been touched, and no test split has been read.
     </p>
   </footer>
 
