@@ -1618,6 +1618,30 @@ as a negative result with analysis, never worked around.
 found later is fixed, and the fix and any re-run are recorded as dated deviations beside
 these numbers, never in place of them.
 
+### Phase 8 — the error analysis: declared 2026-09-28, before it first runs
+
+**Exploratory, labelled post hoc throughout.** Nothing in Phase 8 can change a verdict:
+those are fixed by the one label join and retained under §9. The analyses are declared
+here and committed with `scripts/phase8.py` before `notebooks/11_phase8.ipynb` runs, so
+the tables are chosen before their numbers are seen. G2 cannot run (no M0, D10).
+
+| # | What | Data | Definition |
+|---|---|---|---|
+| P8.0 | **Reproduction gate** | locked passes, labels | Recompute every per-image signal as `analyse.py` did. Refuse unless all five arms' AUCs match `results.json` for every model and both analyses (to 1e-12). Refuse unless `results.json` is the unblinded one for the same pass and parameters. |
+| P8.1 | **Secondary outcomes, transcribed** | `results.json` only | Accuracy at 80% and 90% coverage, F3, F4, F5, D4 and E1–E3, all computed at the unblinding. Nothing new is computed. |
+| P8.2 | **G1 — error overlap** | as P8.0 | At 80% and 90% coverage, split M1's errors into those deferred by confidence only, by disagreement only, by both, or by neither. Expected counts, with ties broken independently at random, so the result does not depend on order. The same split for rDR errors (ŷ ≥ 2 ≠ y ≥ 2). Also the error rate within each arm's deferred set. |
+| P8.3 | **G1 — does disagreement add to confidence?** | as P8.0 | Split each model's images into quintiles of d_conf. Within each quintile, report M1's accuracy at each d_evidence level, and the AUROC of disagreement for error, weighted across quintiles (0.5 means no information beyond confidence). Also each signal's error-detection AUROC, with ties counted as 0.5. |
+| P8.4 | **G3 — failure taxonomy** | as P8.0 | M1's errors that disagreement cannot see: ŷ ≥ 3 (M3 abstains, D1), and e = ŷ (M3 agrees with a wrong grade). Also M1's correct calls that M3 contradicts: e > ŷ, by rule and lesion type, and e < ŷ. |
+| P8.5 | **Figure 1 candidates** | EyePACS test, then the externals; model `eyepacs_full_s42`; amended evidence | Three categories. **A** (figure 1): M1 predicts 0 among its most confident quarter of grade-0 calls, the truth is ≥ 1, and M3 finds microaneurysms. **B**: the same confident 0, a true 0, and M3 evidence 2 (false evidence). **C**: M1 correct at grade 2 and M3 evidence 0 (M3 misses). Up to 8 per category, ordered by confidence and then image ID, and drawn with M2's lesion outlines. The figure may use any candidate, and the caption says it was selected. |
+| P8.6 | **Messidor-2 preprocessing audit** | images only, label-free | 200 cached images per source (EyePACS test, APTOS, Messidor-2, DDR). Field-of-view fraction, background level, colour and saturation, near-grey share, sharpness and high-pass energy. Raw Messidor-2 files: size, mode and background. Lesion-detection rates per source from the locked passes. Contact sheets. |
+
+**Built and tested 2026-09-28, not yet run.** The World fixture's 11 tests cover a real
+`--unblind` run of `analyse.py` followed by Phase 8. There, the gate reproduces every
+AUC, catches one changed by 1e-9, and refuses another pass's results and a locked pass
+with no unblinding on record. Notebook 11 ran end to end on the toy Kaggle tree
+(07 → 08 → step 3 → 09 → 10 → 11). One fix came from that run: a set where no image
+qualifies for a figure category is now reported as a finding, not a failure.
+
 ### Phase 7's code was written before the unblinding — the order this required
 
 Before step 1, `src/verify_dr/calibration/` and `src/verify_dr/triage/` were empty.

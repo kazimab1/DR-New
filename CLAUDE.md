@@ -273,15 +273,24 @@ beats disagreement in every seed on every set, every interval below -0.09.
 and re-run is a dated deviation beside them, never in place of them. Write it up as a
 pre-registered negative result with analysis (§8), not worked around.
 
-**Next:**
-1. Transcribe F3-F5, D4, E1-E3 from `verify-dr-results`: they are in `results.json` but
-   the readout does not print them. Needs the user to bring the JSONs into the repo.
-2. Messidor-2 preprocessing audit (dataset card Q2), unlocked now -- a limitation either way.
-3. Phase 8 error analysis (G1, G3), exploratory and labelled post hoc. Candidates: the
-   combined policy trails confidence despite ordering by it within levels, so the levels
-   rank errors worse, not merely coarsely; M3 stops at grade 2; 21% of referable
-   in-domain images get no evidence under D12.
-4. Sections 6-7 of the 08 re-run are still unrecorded; they decide nothing now.
+**Phase 8 built 2026-09-28 -- `scripts/phase8.py` + `notebooks/11_phase8.ipynb` (CPU).** The
+analyses P8.0-P8.6 are declared in the register ("Phase 8") before the first run:
+- P8.0 is a gate: recompute every signal and match every published AUC to 1e-12, or refuse.
+- P8.1 transcribes F3-F5, D4 and E1-E3 from `results.json`.
+- G1 and G3, then the figure-1 candidates.
+- P8.6 is the Messidor-2 preprocessing audit, label-free.
+Tested on the World fixture (11 tests, including a real `--unblind` run) and on the toy
+Kaggle tree, 07 -> 11. The results chapter is drafted in `docs/thesis/06_results.md`.
+
+**Next:** the user runs 11 and pastes sections 3, 4 and 6, plus figure-1 sheets. Then:
+- fill the chapter's ⟨P8.1⟩ placeholders;
+- record Phase 8 in the register;
+- draft chapter 7, then chapter 4 (methods).
+
+The freeze tag `preregistration-freeze` exists only locally: this session's git proxy
+refuses tag pushes (403, policy), so the user pushes it. The pre-registration's
+author/supervisor/institution fields are still blank. Sections 6-7 of the 08 re-run are
+still unrecorded; they decide nothing now.
 
 Three things it found that change the analysis, not just pin it:
 - **The six models were trained on a uniform class prior** (`stratified_exposure`

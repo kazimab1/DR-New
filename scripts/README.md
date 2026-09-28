@@ -365,3 +365,28 @@ EyePACS test split, APTOS and Messidor-2 are refused before any label is read, a
 pass must come from the fitted checkpoints and constants. Fewer than 2,000 resamples
 only with `--rehearsal`. Exit codes: 0 done · 1 inconsistent inputs · 2 refused.
 
+## `phase8.py` — Phase 8, the error analysis ✅ implemented · exploratory
+
+```
+secondary --results results.json ... [--out DIR]
+errors    --pass-dir DIR --labels MANIFEST [--split NAME] --fitted fitted_params.json
+          --ood-dir DIR --results results.json --out DIR
+figures   --candidates candidates.csv ... [--cache-root ROOT ...] --evidence-checkpoint PT --out DIR
+audit     --manifest-dir DIR [--cache-root ROOT ...] [--locked DIR] [--raw-root DIR ...] --out DIR
+```
+
+Everything here is post hoc and labelled so. It cannot change a verdict, which the one
+label join fixed. The analyses, P8.0–P8.6, were declared in the register before this
+script first ran. `secondary` transcribes the secondary outcomes stored in `results.json`
+(accuracy at 80/90% coverage, F3, F4, F5, D4, E1–E3) and computes nothing new. `errors`
+does G1 (error overlap at fixed coverage, disagreement within confidence quintiles,
+error-detection AUROC), G3 (the errors disagreement cannot see, and the correct calls M3
+contradicts) and the figure-1 candidates. `figures` draws those candidates with M2's
+lesion outlines on CPU. `audit` checks Messidor-2's preprocessing without reading a
+grade: manifests are read with `usecols`.
+
+**P8.0 gates `errors`.** It recomputes every per-image signal as `analyse.py` did and
+refuses unless all five arms' AUCs match `results.json` to 1e-12, for every model and
+both analyses. It also refuses results from another pass or other parameters, and a
+locked pass whose `results.json` is not the unblinding. Exit codes: 0 done · 2 refused.
+

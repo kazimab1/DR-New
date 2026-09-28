@@ -23,8 +23,9 @@ which number. A notebook should pull the repo, call a script, and show the outpu
 | `06_check_runs.ipynb` | 6a | No | Done — run status, the official-split check (D8) |
 | `07_internal_pass.ipynb` | 7, step 1 | Yes | Done 2026-09-24 — `verify-dr-internal` |
 | `08_fit_and_rehearse.ipynb` | 7, step 2 | **No** | Run once 2026-09-24; **re-run** for the amended analysis (D12, D13), the one round before the lock |
-| `09_locked_pass.ipynb` | 6b, step 4 | Yes | Ready — refuses to start before step 3 (parameters committed, digest recorded) and on any checkpoint that is not the fitted one |
-| `10_unblinding.ipynb` | 6b, step 5 | **No** | Ready — the one label join; both analyses, registered first |
+| `09_locked_pass.ipynb` | 6b, step 4 | Yes | Done 2026-09-28 — `verify-dr-locked`, label-free |
+| `10_unblinding.ipynb` | 6b, step 5 | **No** | Done 2026-09-28 — `verify-dr-results`; run once |
+| `11_phase8.ipynb` | 8 | **No** | Ready — the exploratory error analysis (P8.0–P8.6), declared in the register before it runs |
 
 Each remaining notebook gets written **in the same commit as the script it drives** —
 a notebook and its script are tested together or neither works.
@@ -64,6 +65,7 @@ result rather than a batch.
 | `02_manifests` | `verify-dr-cache-512` **and the raw datasets** — see below |
 | | A cache published as a `.zip` is extracted automatically on first use |
 | `03`–`08` | `verify-dr-cache-512` + `verify-dr-manifests`, plus checkpoints and results |
+| `11_phase8` | `verify-dr-results`, `-locked`, `-fitted`, `-manifests`, `-cache-512`, `-stage-c`; optionally the raw Messidor-2 mirror |
 
 **Phase 2 still needs the raw mounts.** Labels live there, not in the cache: DDR's
 `train/valid/test.txt`, IDRiD's Part B grading CSV and Part C coordinate tables,
