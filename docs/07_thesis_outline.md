@@ -111,3 +111,32 @@ Do **not** write chapter 1 first.
    the comparison is honest.
 3. **"Is the explanation real?"** → E2. The random-region control is why you can
    answer yes or no rather than assert.
+
+---
+
+## Where each chapter stands · 2026-09-28, after the unblinding
+
+The outline above was written before the results existed. Four things have changed:
+
+- **The headline is a negative result.** Every pre-registered hypothesis was not
+  supported (register, "Step 5"). Chapter 6 reports this as a result, and Chapter 8
+  explains it with a mechanism.
+- **§6.2 did not run (D8).** No split here is comparable with the leaderboard. Viva
+  question 2 therefore has a different answer: no leaderboard comparison is possible,
+  because the variants regrouped every EyePACS image, and the thesis says so.
+- **Chapter 4 describes the system as built, not as designed.** M0 was never built
+  (D10). The disc-and-fovea network failed its gate (C1, D1), so M3 counts lesions and
+  stops at grade 2. The report's "What changed between the design and the build" table
+  is the checklist.
+- **Chapter 7 asks why disagreement lost.** Figure 1 is still the case disagreement
+  catches and confidence misses. It is now one example against an aggregate that went
+  the other way, and the chapter's job is the mechanism (G1, G3; Phase 8 is declared in
+  the register).
+
+| Chapter | State |
+|---|---|
+| 6 Results | **Drafted:** `docs/thesis/06_results.md`. The ⟨P8.1⟩ placeholders wait on notebook 11 |
+| 7 Error analysis | Waiting on notebook 11 (G1, G3, figure 1) |
+| 4 Methods | Next: write from `PREREGISTRATION.md`, `ANALYSIS_PLAN.md` and the report's as-built table |
+| 3 Data | From `docs/05_dataset_card.md` and A0. Messidor-2's preprocessing comes from the P8.6 audit |
+| 2, 8, 1, 9 | Not started, in the writing order above |
