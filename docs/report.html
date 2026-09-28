@@ -422,10 +422,10 @@
       decides which automated gradings to trust.
     </p>
     <div class="stamp">
-      <span>Updated <b>27 Sep 2026</b></span>
-      <span>Fitted parameters <b>committed</b> · step 3 · <code>0df6b029</code></span>
-      <span>Locked data read <b>none</b></span>
-      <span>Analysis plan <b>final</b> · amended D12, D13</span>
+      <span>Updated <b>28 Sep 2026</b></span>
+      <span>Locked pass <b>done</b> · label-free</span>
+      <span>Labels joined <b>none</b></span>
+      <span>Fitted parameters <b>committed</b> · <code>0df6b029</code></span>
     </div>
   </header>
 
@@ -1737,7 +1737,86 @@
       <p>
         <code>09_locked_pass.ipynb</code> runs the label-free pass over Messidor-2, APTOS and the
         in-domain test split on GPU. <code>10_unblinding.ipynb</code> then joins the labels once,
-        on CPU. Nothing is committed between the two, so both run on the same code.
+        on CPU. Only this record is committed between the two, so both run on the same code.
+      </p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Phase 6b · step 4</h2>
+    <h3>The locked pass ran once, without a label, and every count reconciles</h3>
+    <p>
+      The same label-free pass as the internal one ran over the three locked sets, externals
+      first, in <span class="num">87</span> minutes on two GPUs, on the commit that records the
+      fitted parameters. Every pass certifies <code>locked: true</code> and
+      <code>labels_written: false</code>. The unblinding re-checks each pass's checkpoints and
+      constants against the fitted ones before it joins a single label.
+    </p>
+    <div class="scroller">
+      <table>
+        <thead>
+          <tr><th></th><th>Messidor-2</th><th>APTOS</th><th>EyePACS test</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>images</td><td>1,744</td><td>3,662</td><td>17,615</td></tr>
+          <tr><td>M3 finds a lesion</td><td class="key">90.3%</td><td>81.5%</td><td>80.4%</td></tr>
+          <tr><td>evidence grade 0 / 1 / 2</td><td class="key">9.7 / 13.3 / 76.9</td><td>18.5 / 3.9 / 77.6</td><td>19.6 / 6.9 / 73.5</td></tr>
+          <tr><td>R3*: haemorrhage or exudate, no MA</td><td>17.0%</td><td>21.0%</td><td>29.7%</td></tr>
+          <tr><td>faithfulness decided</td><td>99.2%</td><td>97.2%</td><td>99.6%</td></tr>
+        </tbody>
+        <caption>
+          Evidence grades under the frozen rule, as the pass stores them; the amended analysis
+          re-derives them from the stored lesion counts and areas. Faithfulness is decided
+          over images with a lesion. EyePACS test is the custom split (D8). No column here
+          needs a label.
+        </caption>
+      </table>
+    </div>
+    <ol class="findings">
+      <li>
+        <div>
+          <h4>Every count reconciles, and in-domain matches calibration</h4>
+          <p>
+            Rules fired sum to the images; each rule accounts for exactly its evidence grade;
+            images with no lesion are exactly those with no faithfulness test; the per-shard
+            counts sum to the totals. On the EyePACS test split, M3's evidence split is within
+            <span class="num">1.1</span> points of the calibration split's.
+          </p>
+        </div>
+      </li>
+      <li>
+        <div>
+          <h4>The in-domain rows arrive in grade order, and nothing depends on order</h4>
+          <p>
+            The lesion rate by shard sits near <span class="num">75%</span> but reaches
+            <span class="num">89–100%</span> in three blocks. Manifests are sorted by image path,
+            and the EyePACS mirror's paths follow grade. Before any label was joined, the code
+            was checked for order dependence and none was found: ties on the coverage–accuracy
+            curve are resolved by expectation, bootstrap resamples are uniform, and labels are
+            joined by image ID.
+          </p>
+        </div>
+      </li>
+      <li>
+        <div>
+          <h4>Messidor-2 stands out</h4>
+          <p>
+            M3 finds a lesion in <span class="num">90%</span> of Messidor-2 images, against
+            <span class="num">80–82%</span> everywhere else, and gives evidence grade 0 to
+            <span class="num">9.7%</span> against <span class="num">18.5–19.6%</span>.
+          </p>
+        </div>
+      </li>
+    </ol>
+    <div class="note caution">
+      <span class="tag">Recorded before the unblinding · Messidor-2's preprocessing</span>
+      <p>
+        The Messidor-2 mirror's own preprocessing was never recorded: the dataset card's
+        question (are its images already contrast-normalised or Ben-Graham processed?) is still
+        open, and the A0 visual audit left Messidor-2 out. If the mirror is processed
+        differently from the other sources, part of any Messidor-2 effect is preprocessing,
+        not domain. The audit follows the unblinding, as planned. Whatever it finds is a
+        limitation; the verdicts stand as registered.
       </p>
     </div>
   </section>
@@ -1975,8 +2054,8 @@
       Generated from each run's <code>metrics.json</code> and <code>stage_b_summary.csv</code>.
       The authoritative log is <code>docs/04_experiment_register.md</code> in the project
       repository; this page is the narrative view of it and is updated as experiments complete.
-      Figures on this page come from the validation and calibration splits only. No locked
-      dataset has been touched, and no test split has been read.
+      Figures on this page come from the validation and calibration splits, and from the
+      label-free locked pass. No label of a locked set or of a test split has been read.
     </p>
   </footer>
 

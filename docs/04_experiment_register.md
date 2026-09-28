@@ -1473,6 +1473,53 @@ committed between them, so 09 and 10 run on the same commit. 09's label-free out
 enter the record together with 10's. A bug found on the way would be fixed as a dated
 deviation (§9 of the pre-registration), never silently.
 
+### Step 4 of the plan: the locked pass — DONE 2026-09-28, label-free
+
+`09_locked_pass.ipynb` on commit `1d9a764`, published as `verify-dr-locked`. **87
+minutes** of pass time on two T4s, externals first: Messidor-2 7.4, APTOS 17.1, EyePACS test 62.8.
+Every `run.json` reads `locked: true, labels_written: false`. 10 re-checks each pass's
+recorded checkpoints and constants against the fitted ones before it joins a label.
+
+| | Messidor-2 | APTOS | EyePACS test (custom, D8) |
+|---|---|---|---|
+| images | 1,744 | 3,662 | 17,615 |
+| M3 finds a lesion | 90.3% | 81.5% | 80.4% |
+| evidence grade 0 / 1 / 2 (frozen rule) | 9.7 / 13.3 / 76.9% | 18.5 / 3.9 / 77.6% | 19.6 / 6.9 / 73.5% |
+| R3* (haemorrhage or exudate, no MA) | 17.0% | 21.0% | 29.7% |
+| faithfulness decided, of lesion images | 99.2% | 97.2% | 99.6% |
+
+**Every count reconciles.** The rules sum to the images. R3 + R3* equals evidence grade 2,
+and R2 equals grade 1. R1 equals grade 0, which equals the images with no faithfulness
+test. Decided plus undetermined equals the images with lesions, and the per-shard lesion
+counts sum to the totals. EyePACS test matches calibration's evidence split (18.5 / 6.9 /
+74.5%) to within 1.1 points.
+
+Three observations, recorded before any label is joined:
+
+- **The in-domain rows arrive in grade-correlated order.** The per-shard lesion rate runs
+  near 75%, but 89–100% in shards 5, 24–29 and 34–35. `prepare_manifest.py` sorts by
+  image path, the cache keeps the mirror's folder layout, and the mirror's path order
+  follows grade. This is harmless, and the code was checked before the join: every
+  statistic is order-invariant (ties by expectation in `selective.py`, uniform bootstrap
+  resamples, labels joined by ID with duplicates and gaps refused), and nothing parses a
+  path for a grade.
+- **Messidor-2 stands out.** M3 finds a lesion in 90% of its images, against 80–82%
+  elsewhere, and evidence grade 0 in 9.7% against 18.5–19.6%. The registered analysis
+  uses these grades as they are. The amended one re-derives them with D12's minimums from
+  the stored per-type counts and areas.
+- **Messidor-2's preprocessing was never recorded.** Dataset card Q2 (is
+  `messidor2preprocess` already contrast-normalised or Ben-Graham processed?) is open,
+  and A0's visual audit left Messidor-2 out. The mirror's page could not be read from the
+  analysis environment. The audit follows the unblinding, as planned. Whatever it finds
+  goes into the limitations, and the verdicts stand as registered.
+
+**This record is committed before 10 runs, not with its results as step 3 said.** The
+analysis environment is ephemeral, and an uncommitted record can be lost with it. The
+commit changes only this register, `CLAUDE.md` and the report, so 10 runs on the code,
+fitted parameters and pre-registration 09 ran on: `git diff 1d9a764` touches nothing
+under `src/`, `scripts/`, `notebooks/` or `preregistration/`. `results.json` names the
+commit 10 cloned; any commit between `1d9a764` and it must pass that same check.
+
 ### Phase 7's code was written before the unblinding — the order this required
 
 Before step 1, `src/verify_dr/calibration/` and `src/verify_dr/triage/` were empty.

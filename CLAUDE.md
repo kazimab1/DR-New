@@ -250,11 +250,18 @@ digest `0df6b029...` (full value in `PREREGISTRATION.md`, "Step 3"). It is byte-
 to `fit_params.py`'s output, and its registered block equals the first fit's (`8fc2b5f8`)
 value for value. Since the fit's code (`b2eca70`), only `step3_record` was added.
 
-**Next:** 09 (GPU, ~2-4 h, externals first; publish `verify-dr-locked`), then 10 (CPU;
-publish `verify-dr-results`). **Commit nothing until 10 has run**, so both run on the same
-commit; 09's label-free outputs go into the record with 10's. A bug found on the way is
-fixed as a dated deviation, never silently. Sections 6-7 of the 08 re-run are still
-unrecorded; by the one-round rule they decide nothing.
+**Step 4 DONE 2026-09-28 (label-free):** 09 on `1d9a764`, 87 min on two T4s, published as
+`verify-dr-locked`; all counts reconcile. M3 finds lesions in 90% of Messidor-2 (80-82%
+elsewhere); Messidor-2's preprocessing is unrecorded (dataset card Q2 open, A0 audit
+excluded it) -- a limitation, audited after the unblinding. `eyepacs_test` rows are
+grade-ordered (path sort); every statistic is order-invariant, checked in the code.
+
+**Next:** 10 (CPU; publish `verify-dr-results`). Between `1d9a764` and 10, commit **docs
+only**: the step-4 record was committed before 10 so an ephemeral container cannot lose
+it, and `git diff 1d9a764` must touch nothing under `src/`, `scripts/`, `notebooks/` or
+`preregistration/` -- 10 runs on the code 09 ran on. A bug found on the way is fixed as
+a dated deviation, never silently. Sections 6-7 of the 08 re-run are still unrecorded; by the
+one-round rule they decide nothing.
 
 Three things it found that change the analysis, not just pin it:
 - **The six models were trained on a uniform class prior** (`stratified_exposure`
