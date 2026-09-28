@@ -275,3 +275,28 @@ either now would be a second round.
 not the amendment — whatever the locked pass or the amended rehearsal shows. The locked
 pass (09) and the unblinding (10) both begin with `step3_record`, which refuses unless
 this file is committed, unmodified, and its digest appears above.
+
+---
+
+## Step 5 — the unblinding · 2026-09-28
+
+`ANALYSIS_PLAN.md` §10, step 5. The labels of the three locked sets were joined **once**,
+by `notebooks/10_unblinding.ipynb`, on code identical to `1d9a764`. The commits after it
+change documentation only, and `results.json` names the commit that was cloned. The
+readout is kept verbatim in `docs/unblinding/2026-09-28_readout.txt`, and the full results
+are the Kaggle dataset `verify-dr-results`.
+
+| Hypothesis | Registered analysis (primary) | Amended analysis (D12, D13) |
+|---|---|---|
+| H1 | not supported | not supported |
+| H1′ | not supported | not supported |
+| H2 | not supported | not supported |
+| H3 | not supported | not supported |
+
+The verdicts are the same for both variants, under the claim rule of `ANALYSIS_PLAN.md` §8.
+H1 and H1′ also meet §1's falsification criterion. Confidence-gating beats
+disagreement-gating in every seed, on all three sets and in both analyses, with every
+95% interval of the difference below −0.09.
+
+**These are the numbers §9 retains.** A bug found from here is fixed, and the fix and any
+re-run are recorded as dated deviations beside these numbers, never in place of them.

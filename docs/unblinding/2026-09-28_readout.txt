@@ -1,0 +1,123 @@
+# 10_unblinding.ipynb -- sections 5 and 6, verbatim as pasted from the Kaggle session
+# (2026-09-28). The one label join of ANALYSIS_PLAN.md s10 step 5. Full results:
+# Kaggle dataset verify-dr-results (results.json + curves.npz per set, verdicts.json).
+
+Section 5 output:
+
+$ python /kaggle/working/repo/scripts/analyse.py verdicts --in-domain /kaggle/working/results/eyepacs_test/results.json --external /kaggle/working/results/aptos/results.json /kaggle/working/results/messidor2/results.json --out /kaggle/working/results
+Verdicts under the s8 claim rule (in-domain: eyepacs_test; external: aptos, messidor2)
+
+REGISTERED ANALYSIS -- the primary result
+  primary variant (eyepacs_full):
+    H1  disagreement beats confidence in-domain      not supported
+    H1' ...and on every external set (the thesis)    not supported
+    H2  EM improves external calibration             not supported
+  replication variant (eyepacs_ddr_full):
+    H1  disagreement beats confidence in-domain      not supported
+    H1' ...and on every external set (the thesis)    not supported
+    H2  EM improves external calibration             not supported
+  H3  DDR in training improves external QWK        not supported
+
+AMENDED ANALYSIS -- deviations D12, D13, reported beside it
+  primary variant (eyepacs_full):
+    H1  disagreement beats confidence in-domain      not supported
+    H1' ...and on every external set (the thesis)    not supported
+    H2  EM improves external calibration             not supported
+  replication variant (eyepacs_ddr_full):
+    H1  disagreement beats confidence in-domain      not supported
+    H1' ...and on every external set (the thesis)    not supported
+    H2  EM improves external calibration             not supported
+  H3  DDR in training improves external QWK        not supported
+
+
+Section 6 output:
+
+##############################################################################
+messidor2: 1744 images, role external, true grades [1017, 270, 347, 75, 35]
+##############################################################################
+
+--- REGISTERED (primary) ---
+M3: QWK 0.152; evidence in 85.3% of grade-0 images; none in 0.0% of referable; confusion [[149, 159, 709], [21, 60, 189], [0, 13, 334], [0, 0, 75], [0, 0, 35]]
+H1_eyepacs_full_s42        acc 0.6984 QWK 0.8049 | AUC none 0.6984 confidence 0.8516 ood 0.7806 disagreement 0.6794 combined 0.7446 | ECE raw 0.2212 stage01 0.1331 EM 0.1816 oracle 0.0728
+H1_eyepacs_full_s43        acc 0.6416 QWK 0.7753 | AUC none 0.6416 confidence 0.8286 ood 0.7521 disagreement 0.6462 combined 0.7104 | ECE raw 0.2456 stage01 0.1210 EM 0.1782 oracle 0.0477
+H1_eyepacs_full_s44        acc 0.6680 QWK 0.7718 | AUC none 0.6680 confidence 0.8420 ood 0.7698 disagreement 0.6518 combined 0.7260 | ECE raw 0.2217 stage01 0.1124 EM 0.1915 oracle 0.0501
+H1_eyepacs_ddr_full_s42    acc 0.5786 QWK 0.7140 | AUC none 0.5786 confidence 0.8060 ood 0.6717 disagreement 0.5890 combined 0.6744 | ECE raw 0.1922 stage01 0.0904 EM 0.1280 oracle 0.0394
+H1_eyepacs_ddr_full_s43    acc 0.5591 QWK 0.6837 | AUC none 0.5591 confidence 0.7629 ood 0.6520 disagreement 0.5959 combined 0.6683 | ECE raw 0.2169 stage01 0.1311 EM 0.3818 oracle 0.0622
+H1_eyepacs_ddr_full_s44    acc 0.6606 QWK 0.7520 | AUC none 0.6606 confidence 0.8402 ood 0.7383 disagreement 0.6364 combined 0.7181 | ECE raw 0.2052 stage01 0.1215 EM 0.1884 oracle 0.0597
+  eyepacs_full      auc_gain  s42 -0.1722 [-0.1974, -0.1475]  s43 -0.1823 [-0.2066, -0.1572]  s44 -0.1902 [-0.2142, -0.1651]  -> not supported
+  eyepacs_full      ece_gain  s42 -0.0486 [-0.0627, -0.0332]  s43 -0.0572 [-0.0699, +0.0206]  s44 -0.0791 [-0.0931, -0.0592]  -> not supported
+  eyepacs_ddr_full  auc_gain  s42 -0.2170 [-0.2409, -0.1933]  s43 -0.1670 [-0.1935, -0.1421]  s44 -0.2037 [-0.2279, -0.1791]  -> not supported
+  eyepacs_ddr_full  ece_gain  s42 -0.0376 [-0.0897, +0.0482]  s43 -0.2507 [-0.3567, -0.0703]  s44 -0.0669 [-0.0789, -0.0498]  -> not supported
+  H3 qwk gain           s42 -0.0909 [-0.1127, -0.0697]  s43 -0.0915 [-0.1148, -0.0687]  s44 -0.0198 [-0.0401, +0.0010]  -> not supported
+
+--- AMENDED (D12, D13) ---
+M3: QWK 0.505; evidence in 35.7% of grade-0 images; none in 6.1% of referable; confusion [[654, 216, 147], [107, 137, 26], [27, 179, 141], [0, 7, 68], [1, 3, 31]]
+H1_eyepacs_full_s42        acc 0.6984 QWK 0.8049 | AUC none 0.6984 confidence 0.8516 ood 0.7806 disagreement 0.7354 combined 0.8221 | ECE raw 0.2212 bcts 0.0919 EM 0.1052 oracle 0.0367
+H1_eyepacs_full_s43        acc 0.6416 QWK 0.7753 | AUC none 0.6416 confidence 0.8286 ood 0.7521 disagreement 0.6953 combined 0.7881 | ECE raw 0.2456 bcts 0.0969 EM 0.1592 oracle 0.0580
+H1_eyepacs_full_s44        acc 0.6680 QWK 0.7718 | AUC none 0.6680 confidence 0.8420 ood 0.7698 disagreement 0.7166 combined 0.8057 | ECE raw 0.2217 bcts 0.0910 EM 0.0908 oracle 0.0457
+H1_eyepacs_ddr_full_s42    acc 0.5786 QWK 0.7140 | AUC none 0.5786 confidence 0.8060 ood 0.6717 disagreement 0.6506 combined 0.7526 | ECE raw 0.1922 bcts 0.0648 EM 0.3196 oracle 0.0520
+H1_eyepacs_ddr_full_s43    acc 0.5591 QWK 0.6837 | AUC none 0.5591 confidence 0.7629 ood 0.6520 disagreement 0.6428 combined 0.7385 | ECE raw 0.2169 bcts 0.0892 EM 0.5019 oracle 0.0611
+H1_eyepacs_ddr_full_s44    acc 0.6606 QWK 0.7520 | AUC none 0.6606 confidence 0.8402 ood 0.7383 disagreement 0.7071 combined 0.8052 | ECE raw 0.2052 bcts 0.0894 EM 0.1026 oracle 0.0429
+  eyepacs_full      auc_gain  s42 -0.1162 [-0.1345, -0.0962]  s43 -0.1332 [-0.1518, -0.1143]  s44 -0.1253 [-0.1447, -0.1070]  -> not supported
+  eyepacs_full      ece_gain  s42 -0.0133 [-0.0590, +0.0531]  s43 -0.0623 [-0.1069, +0.0037]  s44 +0.0003 [-0.0914, +0.0191]  -> not supported
+  eyepacs_ddr_full  auc_gain  s42 -0.1555 [-0.1751, -0.1357]  s43 -0.1201 [-0.1413, -0.0991]  s44 -0.1331 [-0.1525, -0.1137]  -> not supported
+  eyepacs_ddr_full  ece_gain  s42 -0.2548 [-0.3391, -0.1490]  s43 -0.4127 [-0.4509, -0.3718]  s44 -0.0133 [-0.0638, +0.0176]  -> not supported
+  H3 qwk gain           s42 -0.0909 [-0.1127, -0.0697]  s43 -0.0915 [-0.1148, -0.0687]  s44 -0.0198 [-0.0401, +0.0010]  -> not supported
+
+##############################################################################
+aptos: 3662 images, role external, true grades [1805, 370, 999, 193, 295]
+##############################################################################
+
+--- REGISTERED (primary) ---
+M3: QWK 0.366; evidence in 62.4% of grade-0 images; none in 0.0% of referable; confusion [[678, 139, 988], [0, 3, 367], [0, 0, 999], [0, 0, 193], [0, 0, 295]]
+H1_eyepacs_full_s42        acc 0.6846 QWK 0.8733 | AUC none 0.6846 confidence 0.8875 ood 0.8719 disagreement 0.6083 combined 0.8321 | ECE raw 0.1911 stage01 0.0559 EM 0.1302 oracle 0.0903
+H1_eyepacs_full_s43        acc 0.5246 QWK 0.8184 | AUC none 0.5246 confidence 0.8228 ood 0.7505 disagreement 0.4563 combined 0.6884 | ECE raw 0.1820 stage01 0.1127 EM 0.2227 oracle 0.1620
+H1_eyepacs_full_s44        acc 0.6352 QWK 0.8482 | AUC none 0.6352 confidence 0.8703 ood 0.8247 disagreement 0.5836 combined 0.8046 | ECE raw 0.1797 stage01 0.0776 EM 0.1523 oracle 0.1062
+H1_eyepacs_ddr_full_s42    acc 0.6895 QWK 0.8621 | AUC none 0.6895 confidence 0.8875 ood 0.8304 disagreement 0.6596 combined 0.8104 | ECE raw 0.2437 stage01 0.0609 EM 0.1419 oracle 0.0892
+H1_eyepacs_ddr_full_s43    acc 0.6322 QWK 0.8654 | AUC none 0.6322 confidence 0.8856 ood 0.8240 disagreement 0.5850 combined 0.7612 | ECE raw 0.2379 stage01 0.0451 EM 0.1124 oracle 0.0706
+H1_eyepacs_ddr_full_s44    acc 0.7086 QWK 0.8796 | AUC none 0.7086 confidence 0.8950 ood 0.8651 disagreement 0.6552 combined 0.8317 | ECE raw 0.2172 stage01 0.0415 EM 0.0978 oracle 0.0781
+  eyepacs_full      auc_gain  s42 -0.2791 [-0.2959, -0.2615]  s43 -0.3665 [-0.3805, -0.3524]  s44 -0.2866 [-0.3030, -0.2708]  -> not supported
+  eyepacs_full      ece_gain  s42 -0.0744 [-0.0809, -0.0657]  s43 -0.1100 [-0.1425, -0.0853]  s44 -0.0747 [-0.0820, -0.0657]  -> not supported
+  eyepacs_ddr_full  auc_gain  s42 -0.2279 [-0.2436, -0.2104]  s43 -0.3006 [-0.3148, -0.2857]  s44 -0.2398 [-0.2570, -0.2224]  -> not supported
+  eyepacs_ddr_full  ece_gain  s42 -0.0810 [-0.0979, -0.0587]  s43 -0.0672 [-0.0880, -0.0432]  s44 -0.0563 [-0.0619, -0.0484]  -> not supported
+  H3 qwk gain           s42 -0.0112 [-0.0199, -0.0022]  s43 +0.0470 [+0.0391, +0.0554]  s44 +0.0313 [+0.0225, +0.0407]  -> not supported
+
+--- AMENDED (D12, D13) ---
+M3: QWK 0.755; evidence in 10.5% of grade-0 images; none in 0.9% of referable; confusion [[1616, 95, 94], [14, 167, 189], [8, 84, 907], [0, 5, 188], [6, 17, 272]]
+H1_eyepacs_full_s42        acc 0.6846 QWK 0.8733 | AUC none 0.6846 confidence 0.8875 ood 0.8719 disagreement 0.7246 combined 0.9030 | ECE raw 0.1911 bcts 0.0861 EM 0.2264 oracle 0.1079
+H1_eyepacs_full_s43        acc 0.5246 QWK 0.8184 | AUC none 0.5246 confidence 0.8228 ood 0.7505 disagreement 0.5863 combined 0.8001 | ECE raw 0.1820 bcts 0.1546 EM 0.2394 oracle 0.1242
+H1_eyepacs_full_s44        acc 0.6352 QWK 0.8482 | AUC none 0.6352 confidence 0.8703 ood 0.8247 disagreement 0.7052 combined 0.8777 | ECE raw 0.1797 bcts 0.0935 EM 0.2569 oracle 0.0976
+H1_eyepacs_ddr_full_s42    acc 0.6895 QWK 0.8621 | AUC none 0.6895 confidence 0.8875 ood 0.8304 disagreement 0.7731 combined 0.8887 | ECE raw 0.2437 bcts 0.0738 EM 0.1706 oracle 0.0924
+H1_eyepacs_ddr_full_s43    acc 0.6322 QWK 0.8654 | AUC none 0.6322 confidence 0.8856 ood 0.8240 disagreement 0.7010 combined 0.8683 | ECE raw 0.2379 bcts 0.0715 EM 0.2671 oracle 0.1131
+H1_eyepacs_ddr_full_s44    acc 0.7086 QWK 0.8796 | AUC none 0.7086 confidence 0.8950 ood 0.8651 disagreement 0.7679 combined 0.9091 | ECE raw 0.2172 bcts 0.0679 EM 0.2651 oracle 0.0877
+  eyepacs_full      auc_gain  s42 -0.1628 [-0.1778, -0.1479]  s43 -0.2364 [-0.2493, -0.2241]  s44 -0.1650 [-0.1793, -0.1513]  -> not supported
+  eyepacs_full      ece_gain  s42 -0.1403 [-0.1588, -0.1190]  s43 -0.0848 [-0.1130, -0.0736]  s44 -0.1634 [-0.1821, -0.1446]  -> not supported
+  eyepacs_ddr_full  auc_gain  s42 -0.1144 [-0.1281, -0.0996]  s43 -0.1847 [-0.1969, -0.1723]  s44 -0.1271 [-0.1427, -0.1132]  -> not supported
+  eyepacs_ddr_full  ece_gain  s42 -0.0968 [-0.1299, -0.0655]  s43 -0.1956 [-0.2338, -0.1725]  s44 -0.1972 [-0.2158, -0.1762]  -> not supported
+  H3 qwk gain           s42 -0.0112 [-0.0199, -0.0022]  s43 +0.0470 [+0.0391, +0.0554]  s44 +0.0313 [+0.0225, +0.0407]  -> not supported
+
+##############################################################################
+eyepacs_test: 17615 images, role in_domain, true grades [13002, 1226, 2593, 414, 380]
+##############################################################################
+
+--- REGISTERED (primary) ---
+M3: QWK 0.141; evidence in 75.3% of grade-0 images; none in 2.5% of referable; confusion [[3217, 973, 8812], [156, 166, 904], [82, 71, 2440], [2, 0, 412], [0, 2, 378]]
+H1_eyepacs_full_s42        acc 0.7696 QWK 0.7840 | AUC none 0.7696 confidence 0.9222 ood 0.8617 disagreement 0.7662 combined 0.8321 | ECE raw 0.2672 stage01 0.0517
+H1_eyepacs_full_s43        acc 0.7150 QWK 0.7617 | AUC none 0.7150 confidence 0.9055 ood 0.8523 disagreement 0.7186 combined 0.7877 | ECE raw 0.2575 stage01 0.0417
+H1_eyepacs_full_s44        acc 0.7565 QWK 0.7840 | AUC none 0.7565 confidence 0.9218 ood 0.8604 disagreement 0.7546 combined 0.8240 | ECE raw 0.2694 stage01 0.0441
+H1_eyepacs_ddr_full_s42    acc 0.7089 QWK 0.7612 | AUC none 0.7089 confidence 0.9095 ood 0.8168 disagreement 0.7190 combined 0.7920 | ECE raw 0.2731 stage01 0.0386
+H1_eyepacs_ddr_full_s43    acc 0.7246 QWK 0.7585 | AUC none 0.7246 confidence 0.9030 ood 0.8597 disagreement 0.7253 combined 0.7952 | ECE raw 0.2376 stage01 0.0618
+H1_eyepacs_ddr_full_s44    acc 0.7651 QWK 0.7922 | AUC none 0.7651 confidence 0.9247 ood 0.8583 disagreement 0.7616 combined 0.8245 | ECE raw 0.2604 stage01 0.0530
+  eyepacs_full      auc_gain  s42 -0.1559 [-0.1632, -0.1492]  s43 -0.1869 [-0.1937, -0.1802]  s44 -0.1672 [-0.1738, -0.1603]  -> not supported
+  eyepacs_ddr_full  auc_gain  s42 -0.1905 [-0.1973, -0.1836]  s43 -0.1777 [-0.1849, -0.1704]  s44 -0.1631 [-0.1701, -0.1564]  -> not supported
+
+--- AMENDED (D12, D13) ---
+M3: QWK 0.444; evidence in 29.6% of grade-0 images; none in 21.0% of referable; confusion [[9157, 2923, 922], [627, 501, 98], [654, 1170, 769], [20, 81, 313], [37, 81, 262]]
+H1_eyepacs_full_s42        acc 0.7696 QWK 0.7840 | AUC none 0.7696 confidence 0.9222 ood 0.8617 disagreement 0.8179 combined 0.8986 | ECE raw 0.2672 bcts 0.0186
+H1_eyepacs_full_s43        acc 0.7150 QWK 0.7617 | AUC none 0.7150 confidence 0.9055 ood 0.8523 disagreement 0.7713 combined 0.8749 | ECE raw 0.2575 bcts 0.0171
+H1_eyepacs_full_s44        acc 0.7565 QWK 0.7840 | AUC none 0.7565 confidence 0.9218 ood 0.8604 disagreement 0.8131 combined 0.8963 | ECE raw 0.2694 bcts 0.0189
+H1_eyepacs_ddr_full_s42    acc 0.7089 QWK 0.7612 | AUC none 0.7089 confidence 0.9095 ood 0.8168 disagreement 0.7839 combined 0.8747 | ECE raw 0.2731 bcts 0.0200
+H1_eyepacs_ddr_full_s43    acc 0.7246 QWK 0.7585 | AUC none 0.7246 confidence 0.9030 ood 0.8597 disagreement 0.7815 combined 0.8762 | ECE raw 0.2376 bcts 0.0160
+H1_eyepacs_ddr_full_s44    acc 0.7651 QWK 0.7922 | AUC none 0.7651 confidence 0.9247 ood 0.8583 disagreement 0.8098 combined 0.8974 | ECE raw 0.2604 bcts 0.0180
+  eyepacs_full      auc_gain  s42 -0.1043 [-0.1096, -0.0993]  s43 -0.1342 [-0.1397, -0.1289]  s44 -0.1086 [-0.1136, -0.1035]  -> not supported
+  eyepacs_ddr_full  auc_gain  s42 -0.1255 [-0.1308, -0.1203]  s43 -0.1215 [-0.1272, -0.1159]  s44 -0.1149 [-0.1203, -0.1098]  -> not supported

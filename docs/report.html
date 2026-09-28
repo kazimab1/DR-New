@@ -400,6 +400,72 @@
   .tl .lra  { fill: var(--ink-2); fill-opacity: 0.07; }
   .tl .run  { font-family: var(--mono); font-size: 11.5px; fill: var(--ink-2); }
 
+  /* ---------- dot plot: the unblinding ---------- */
+  .dp { --dp-accent: var(--accent); }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .dp { --dp-accent: var(--accent-2); }
+  }
+  :root[data-theme="dark"] .dp { --dp-accent: var(--accent-2); }
+  .dp .chart-shell { position: relative; }
+  .dp-legend {
+    list-style: none; padding: 0; margin: 6px 0 4px;
+    display: flex; flex-wrap: wrap; gap: 4px 18px;
+    font-family: var(--sans); font-size: 12.5px; color: var(--ink-2);
+  }
+  .dp-legend li { display: flex; align-items: center; gap: 7px; }
+  .dp-key { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .dp-key.dp-acc   { background: var(--dp-accent); }
+  .dp-key.dp-ink   { background: var(--ink); }
+  .dp-key.dp-hollow { background: var(--surface); box-shadow: inset 0 0 0 2px var(--dp-accent); }
+  .dp-panel { margin-top: 14px; }
+  .dp-head { font-family: var(--sans); font-size: 13px; font-weight: 600; color: var(--ink); margin: 0 0 2px; }
+  .dp-head span { font-weight: 400; color: var(--muted); }
+  .dp-row { display: grid; grid-template-columns: 100px 1fr; align-items: center; height: 30px; }
+  .dp-lab { font-family: var(--sans); font-size: 12.5px; color: var(--ink-2); }
+  .dp-track {
+    position: relative; height: 100%; margin-right: 10px;
+    background-image: linear-gradient(to right, var(--line) 1px, transparent 1px);
+    background-size: 22.2222% 100%;
+  }
+  .dp-dot {
+    position: absolute; top: 50%; width: 10px; height: 10px; margin: -5px 0 0 -5px;
+    border-radius: 50%; box-shadow: 0 0 0 2px var(--surface); z-index: 1;
+  }
+  .dp-dot::before { content: ""; position: absolute; inset: -7px; border-radius: 50%; }
+  .dp-dot.dp-acc  { background: var(--dp-accent); }
+  .dp-dot.dp-ink  { background: var(--ink); }
+  .dp-dot.dp-gray { background: var(--muted); }
+  .dp-dot.dp-hollow { background: var(--surface); box-shadow: inset 0 0 0 2px var(--dp-accent), 0 0 0 2px var(--surface); }
+  .dp-dot.dp-gray.dp-hollow { box-shadow: inset 0 0 0 2px var(--muted), 0 0 0 2px var(--surface); }
+  .dp-dot:hover, .dp-dot:focus-visible { outline: 1.5px solid var(--ink-2); outline-offset: 3px; }
+  .dp-dot:focus { outline-offset: 3px; }
+  .dp-link { position: absolute; top: 50%; height: 2px; margin-top: -1px; border-radius: 1px; opacity: 0.6; }
+  .dp-link.dp-acc  { background: var(--dp-accent); }
+  .dp-link.dp-gray { background: var(--muted); }
+  .dp-val {
+    position: absolute; top: 50%; transform: translateY(-50%);
+    font-family: var(--mono); font-size: 11.5px; color: var(--ink-2);
+    white-space: nowrap; pointer-events: none;
+  }
+  .dp-val.dp-right { margin-left: 11px; }
+  .dp-val.dp-left  { transform: translate(-100%, -50%); margin-left: -11px; }
+  .dp-axis { height: 22px; margin-top: 6px; }
+  .dp-axis .dp-track { background: none; border-top: 1px solid var(--line-2); }
+  .dp-tick {
+    position: absolute; top: 4px; transform: translateX(-50%);
+    font-family: var(--mono); font-size: 11px; color: var(--muted);
+  }
+  .dp-axis-title { font-family: var(--sans); font-size: 12px; color: var(--muted); margin: 2px 0 0 100px; }
+  .dp-tip {
+    position: absolute; z-index: 3; pointer-events: none;
+    background: var(--surface); border: 1px solid var(--line-2); border-radius: 4px;
+    padding: 6px 9px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+    font-family: var(--sans); font-size: 12.5px; color: var(--ink-2); white-space: nowrap;
+    transform: translate(-50%, calc(-100% - 12px));
+  }
+  .dp-tip b { display: block; font-family: var(--mono); font-size: 14px; font-weight: 600; color: var(--ink); }
+  table.verdicts td { text-align: left; }
+
   footer {
     margin-top: 56px;
     padding-top: 18px;
@@ -418,13 +484,15 @@
     <h1>VERIFY-DR</h1>
     <p class="standfirst">
       A diabetic retinopathy grader paired with an independently-supervised lesion-evidence
-      pathway, where <em>disagreement between the two</em> — not the grader's confidence —
-      decides which automated gradings to trust.
+      pathway, built to test whether <em>disagreement between the two</em>, rather than the
+      grader's confidence, should decide which automated gradings to trust. It was
+      pre-registered and unblinded once, and in this design the answer is no: the grader's
+      own confidence ranks its errors better on every test set.
     </p>
     <div class="stamp">
       <span>Updated <b>28 Sep 2026</b></span>
-      <span>Locked pass <b>done</b> · label-free</span>
-      <span>Labels joined <b>none</b></span>
+      <span>Unblinded <b>once</b> · 28 Sep</span>
+      <span>Verdict <b>every hypothesis not supported</b></span>
       <span>Fitted parameters <b>committed</b> · <code>0df6b029</code></span>
     </div>
   </header>
@@ -436,11 +504,195 @@
     <li class="done">3 · grading pathway</li>
     <li class="done">4 · evidence</li>
     <li class="done">5 · freeze</li>
-    <li class="live">6 · final + unblinding</li>
-    <li class="live">7 · calibration</li>
-    <li>8 · error analysis</li>
+    <li class="done">6 · final + unblinding</li>
+    <li class="done">7 · calibration</li>
+    <li class="live">8 · error analysis</li>
     <li>9 · write-up</li>
   </ul>
+
+  <section>
+    <h2>Phase 6b · the unblinding</h2>
+    <h3>Every hypothesis is not supported, and the grader's own confidence wins on every set</h3>
+    <p>
+      The labels of the three locked sets were joined once, on 28 September, by the analysis
+      fixed before any of them was read. Under the pre-registered claim rule, <strong>H1, H1′,
+      H2 and H3 are all not supported</strong>. That holds in the registered analysis, which is
+      the primary result, and in the amended one reported beside it. H1 and H1′ also meet the
+      pre-registration's own falsification test: confidence-gating beats disagreement-gating
+      in every seed, on all three sets and in both analyses, and every 95% interval of the
+      difference lies below <span class="num">−0.09</span>.
+    </p>
+    <div class="scroller">
+      <table class="verdicts">
+        <thead>
+          <tr><th>Hypothesis</th><th>Registered (primary)</th><th>Amended (D12, D13)</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>H1 · disagreement beats confidence in-domain</td><td>not supported</td><td>not supported</td></tr>
+          <tr><td>H1′ · …and on both external sets (the thesis)</td><td>not supported</td><td>not supported</td></tr>
+          <tr><td>H2 · prior-shift EM improves external calibration</td><td>not supported</td><td>not supported</td></tr>
+          <tr><td>H3 · DDR in training improves external QWK</td><td>not supported</td><td>not supported</td></tr>
+        </tbody>
+        <caption>
+          Both training variants give the same verdicts. The readout was checked against itself
+          before being recorded, with 380 cross-checks and no failures, and it is kept verbatim in
+          the repository.
+        </caption>
+      </table>
+    </div>
+    <figure class="dp">
+      <div class="chart-shell">
+        <p class="chart-title">Coverage–accuracy AUC by gating arm</p>
+        <p class="chart-sub">Primary variant (<code>eyepacs_full</code>), mean of three seeds. Higher is better. Only disagreement and combined change between the two analyses.</p>
+        <ul class="dp-legend">
+          <li><i class="dp-key dp-acc dp-hollow"></i>registered analysis</li>
+          <li><i class="dp-key dp-acc"></i>amended (D12, D13)</li>
+          <li><i class="dp-key dp-ink"></i>confidence, the benchmark</li>
+        </ul>
+      <div class="dp-panel">
+        <p class="dp-head">EyePACS test <span>· in-domain, custom split (D8)</span></p>
+        <div class="dp-row"><span class="dp-lab">none</span><span class="dp-track"><i class="dp-dot dp-gray" style="left:54.90%" tabindex="0" data-tip="0.747|none, both analyses" aria-label="EyePACS test, none, both analyses: AUC 0.747"></i></span></div>
+        <div class="dp-row"><span class="dp-lab">confidence</span><span class="dp-track"><i class="dp-dot dp-ink" style="left:92.56%" tabindex="0" data-tip="0.917|confidence, both analyses" aria-label="EyePACS test, confidence, both analyses: AUC 0.917"></i><span class="dp-val dp-left" style="left:92.56%">0.917</span></span></div>
+        <div class="dp-row"><span class="dp-lab">OOD</span><span class="dp-track"><i class="dp-dot dp-gray" style="left:79.59%" tabindex="0" data-tip="0.858|OOD, both analyses" aria-label="EyePACS test, OOD, both analyses: AUC 0.858"></i></span></div>
+        <div class="dp-row"><span class="dp-lab">disagreement</span><span class="dp-track"><i class="dp-link dp-acc" style="left:54.77%;width:12.07%"></i><i class="dp-dot dp-acc dp-hollow" style="left:54.77%" tabindex="0" data-tip="0.746|disagreement, registered" aria-label="EyePACS test, disagreement, registered: AUC 0.746"></i><i class="dp-dot dp-acc" style="left:66.84%" tabindex="0" data-tip="0.801|disagreement, amended" aria-label="EyePACS test, disagreement, amended: AUC 0.801"></i><span class="dp-val dp-right" style="left:66.84%">0.801</span></span></div>
+        <div class="dp-row"><span class="dp-lab">combined</span><span class="dp-track"><i class="dp-link dp-gray" style="left:69.91%;width:16.74%"></i><i class="dp-dot dp-gray dp-hollow" style="left:69.91%" tabindex="0" data-tip="0.815|combined, registered" aria-label="EyePACS test, combined, registered: AUC 0.815"></i><i class="dp-dot dp-gray" style="left:86.65%" tabindex="0" data-tip="0.890|combined, amended" aria-label="EyePACS test, combined, amended: AUC 0.890"></i></span></div>
+      </div>
+      <div class="dp-panel">
+        <p class="dp-head">APTOS <span>· external</span></p>
+        <div class="dp-row"><span class="dp-lab">none</span><span class="dp-track"><i class="dp-dot dp-gray" style="left:25.51%" tabindex="0" data-tip="0.615|none, both analyses" aria-label="APTOS, none, both analyses: AUC 0.615"></i></span></div>
+        <div class="dp-row"><span class="dp-lab">confidence</span><span class="dp-track"><i class="dp-dot dp-ink" style="left:80.04%" tabindex="0" data-tip="0.860|confidence, both analyses" aria-label="APTOS, confidence, both analyses: AUC 0.860"></i><span class="dp-val dp-left" style="left:80.04%">0.860</span></span></div>
+        <div class="dp-row"><span class="dp-lab">OOD</span><span class="dp-track"><i class="dp-dot dp-gray" style="left:70.16%" tabindex="0" data-tip="0.816|OOD, both analyses" aria-label="APTOS, OOD, both analyses: AUC 0.816"></i></span></div>
+        <div class="dp-row"><span class="dp-lab">disagreement</span><span class="dp-track"><i class="dp-link dp-acc" style="left:10.98%;width:27.25%"></i><i class="dp-dot dp-acc dp-hollow" style="left:10.98%" tabindex="0" data-tip="0.549|disagreement, registered" aria-label="APTOS, disagreement, registered: AUC 0.549"></i><i class="dp-dot dp-acc" style="left:38.23%" tabindex="0" data-tip="0.672|disagreement, amended" aria-label="APTOS, disagreement, amended: AUC 0.672"></i><span class="dp-val dp-right" style="left:38.23%">0.672</span></span></div>
+        <div class="dp-row"><span class="dp-lab">combined</span><span class="dp-track"><i class="dp-link dp-gray" style="left:61.12%;width:18.94%"></i><i class="dp-dot dp-gray dp-hollow" style="left:61.12%" tabindex="0" data-tip="0.775|combined, registered" aria-label="APTOS, combined, registered: AUC 0.775"></i><i class="dp-dot dp-gray" style="left:80.06%" tabindex="0" data-tip="0.860|combined, amended" aria-label="APTOS, combined, amended: AUC 0.860"></i></span></div>
+      </div>
+      <div class="dp-panel">
+        <p class="dp-head">Messidor-2 <span>· external</span></p>
+        <div class="dp-row"><span class="dp-lab">none</span><span class="dp-track"><i class="dp-dot dp-gray" style="left:37.63%" tabindex="0" data-tip="0.669|none, both analyses" aria-label="Messidor-2, none, both analyses: AUC 0.669"></i></span></div>
+        <div class="dp-row"><span class="dp-lab">confidence</span><span class="dp-track"><i class="dp-dot dp-ink" style="left:75.72%" tabindex="0" data-tip="0.841|confidence, both analyses" aria-label="Messidor-2, confidence, both analyses: AUC 0.841"></i><span class="dp-val dp-left" style="left:75.72%">0.841</span></span></div>
+        <div class="dp-row"><span class="dp-lab">OOD</span><span class="dp-track"><i class="dp-dot dp-gray" style="left:59.44%" tabindex="0" data-tip="0.768|OOD, both analyses" aria-label="Messidor-2, OOD, both analyses: AUC 0.768"></i></span></div>
+        <div class="dp-row"><span class="dp-lab">disagreement</span><span class="dp-track"><i class="dp-link dp-acc" style="left:35.36%;width:12.59%"></i><i class="dp-dot dp-acc dp-hollow" style="left:35.36%" tabindex="0" data-tip="0.659|disagreement, registered" aria-label="Messidor-2, disagreement, registered: AUC 0.659"></i><i class="dp-dot dp-acc" style="left:47.95%" tabindex="0" data-tip="0.716|disagreement, amended" aria-label="Messidor-2, disagreement, amended: AUC 0.716"></i><span class="dp-val dp-right" style="left:47.95%">0.716</span></span></div>
+        <div class="dp-row"><span class="dp-lab">combined</span><span class="dp-track"><i class="dp-link dp-gray" style="left:50.44%;width:17.40%"></i><i class="dp-dot dp-gray dp-hollow" style="left:50.44%" tabindex="0" data-tip="0.727|combined, registered" aria-label="Messidor-2, combined, registered: AUC 0.727"></i><i class="dp-dot dp-gray" style="left:67.84%" tabindex="0" data-tip="0.805|combined, amended" aria-label="Messidor-2, combined, amended: AUC 0.805"></i></span></div>
+      </div>
+        <div class="dp-row dp-axis" aria-hidden="true"><span class="dp-lab"></span><span class="dp-track"><span class="dp-tick" style="left:0.00%">0.5</span><span class="dp-tick" style="left:22.22%">0.6</span><span class="dp-tick" style="left:44.44%">0.7</span><span class="dp-tick" style="left:66.67%">0.8</span><span class="dp-tick" style="left:88.89%">0.9</span></span></div>
+        <p class="dp-axis-title" aria-hidden="true">coverage–accuracy AUC</p>
+        <div class="dp-tip" role="status" hidden><b></b><span></span></div>
+      </div>
+      <figcaption>
+        The arm under test is amber. Registered, it sits on the no-gate baseline in-domain and on
+        Messidor-2, and below it on APTOS. Amended, it moves clear of the baseline, and confidence
+        stays ahead on every set. The replication variant orders the arms the same way. Exact
+        values are in the table below.
+      </figcaption>
+    </figure>
+    <div class="scroller">
+      <table>
+        <thead>
+          <tr><th>Mean AUC</th><th>none</th><th>confidence</th><th>OOD</th><th>disagreement</th><th>combined</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>EyePACS test</td><td>0.747</td><td class="key">0.917</td><td>0.858</td><td>0.746 → 0.801</td><td>0.815 → 0.890</td></tr>
+          <tr><td>APTOS</td><td>0.615</td><td class="key">0.860</td><td>0.816</td><td>0.549 → 0.672</td><td>0.775 → 0.860</td></tr>
+          <tr><td>Messidor-2</td><td>0.669</td><td class="key">0.841</td><td>0.768</td><td>0.659 → 0.716</td><td>0.727 → 0.805</td></tr>
+        </tbody>
+        <caption>
+          The chart's values. Where two appear, the first is the registered analysis and the
+          second the amended one. The effect H1 and H1′ test, disagreement minus confidence per
+          seed, lies between −0.156 and −0.367 registered and between −0.104 and −0.236 amended,
+          across both variants and all three sets.
+        </caption>
+      </table>
+    </div>
+    <ol class="findings">
+      <li>
+        <div>
+          <h4>Registered, disagreement carries no signal</h4>
+          <p>
+            In-domain it ranks within <span class="num">0.011</span> of no gating in every model,
+            and on Messidor-2 within <span class="num">0.037</span>. On APTOS it is worse than no
+            gating in all six models. The validation rehearsal predicted the in-domain figure
+            to within <span class="num">0.002</span>, which is why the amendment was made before
+            the labels were read.
+          </p>
+        </div>
+      </li>
+      <li>
+        <div>
+          <h4>Amended, the signal is real, but the gap to confidence remains</h4>
+          <p>
+            D12's lesion-area minimums were fitted on EyePACS alone, and they transfer. M3's QWK
+            rises from <span class="num">0.366</span> to <span class="num">0.755</span> on APTOS,
+            from <span class="num">0.152</span> to <span class="num">0.505</span> on Messidor-2 and
+            from <span class="num">0.141</span> to <span class="num">0.444</span> in-domain.
+            Disagreement then beats no gating in every model on every set, by
+            <span class="num">0.04–0.08</span>. Confidence stays <span class="num">0.10–0.24</span>
+            ahead.
+          </p>
+        </div>
+      </li>
+      <li>
+        <div>
+          <h4>The combined policy comes closest</h4>
+          <p>
+            It sets its level from the evidence, faithfulness and OOD signals and orders by
+            confidence within each level. Amended, it ties confidence on APTOS: mean
+            <span class="num">0.860</span> against <span class="num">0.860</span>, and ahead in 4
+            of 6 models by at most <span class="num">0.016</span>. It trails confidence by
+            <span class="num">0.02–0.05</span> everywhere else. No registered claim concerns it,
+            so this is description, not support.
+          </p>
+        </div>
+      </li>
+      <li>
+        <div>
+          <h4>Prior-shift EM makes external calibration worse</h4>
+          <p>
+            It does so in all 12 model-by-set cells of the registered analysis, and in 11 of 12
+            of the amended one. The oracle prior tells the two sets apart. It roughly halves
+            Messidor-2's ECE, so there EM's <em>estimate</em> of the prior is what fails. On APTOS
+            even the true prior makes ECE worse: the shift is not the label shift EM assumes.
+          </p>
+        </div>
+      </li>
+      <li>
+        <div>
+          <h4>DDR in training does not help transfer</h4>
+          <p>
+            It lowers Messidor-2's QWK in every seed (<span class="num">−0.091</span>,
+            <span class="num">−0.092</span>, <span class="num">−0.020</span>) and is mixed on APTOS
+            (<span class="num">−0.011</span>, <span class="num">+0.047</span>,
+            <span class="num">+0.031</span>).
+          </p>
+        </div>
+      </li>
+    </ol>
+    <div class="note decision">
+      <span class="tag">What it means</span>
+      <p>
+        This is a pre-registered negative result, and a robust one. The premise check passed:
+        the evidence pathway is informative. But disagreement with it is a weaker signal of the
+        grader's errors than the grader's own calibrated confidence, in-domain and under shift.
+        The pre-registration requires it to be reported as a negative result with analysis,
+        never worked around. From here these numbers are retained. A bug found later is fixed as
+        a dated deviation beside them, never in place of them.
+      </p>
+    </div>
+    <div class="note caution">
+      <span class="tag">Post hoc · for the error analysis, labelled exploratory</span>
+      <p>
+        Three candidate reasons. First, coarseness is not enough on its own to explain it:
+        disagreement takes at most six values, but the combined policy orders by confidence
+        within its levels and still trails confidence alone except on APTOS. Second, M3 stops at
+        grade 2, so it cannot question a grade-3 or grade-4 call. Third, M3's own misses become
+        disagreements the grader wins: amended, <span class="num">21%</span> of referable
+        in-domain images get no evidence at all.
+      </p>
+      <p>
+        Still to transcribe from the saved results: the clinical view at fixed coverage (F3),
+        the signal-form and per-action tables (F4, F5), EM's sample-size curve (D4) and the
+        faithfulness experiments (E1–E3).
+      </p>
+    </div>
+  </section>
 
   <section>
     <h2>Architecture · as it will run</h2>
@@ -1994,6 +2246,17 @@
     <h2>For the write-up</h2>
     <h3>What these numbers can and cannot claim</h3>
 
+    <h4>The headline is a pre-registered negative result</h4>
+    <p>
+      The thesis can claim that, in this design, disagreement with an independent
+      lesion-evidence pathway does not beat calibrated confidence for selective DR grading,
+      either in-domain or under dataset shift. The analysis behind that was fixed before any
+      locked label was read. It cannot claim that disagreement is useless: amended, it beats no
+      gating on every set, though no registered claim concerns that. Nor can it put the amended
+      analysis above the registered one. The amendment was chosen after the validation
+      rehearsal, so it is reported beside the primary result, never in place of it.
+    </p>
+
     <div class="note caution">
       <span class="tag">Limitation · B1</span>
       <p>
@@ -2054,9 +2317,43 @@
       Generated from each run's <code>metrics.json</code> and <code>stage_b_summary.csv</code>.
       The authoritative log is <code>docs/04_experiment_register.md</code> in the project
       repository; this page is the narrative view of it and is updated as experiments complete.
-      Figures on this page come from the validation and calibration splits, and from the
-      label-free locked pass. No label of a locked set or of a test split has been read.
+      Figures on this page come from the validation and calibration splits, the label-free
+      locked pass, and the single unblinding of 28 September 2026, whose readout is kept
+      verbatim in <code>docs/unblinding/</code>.
     </p>
   </footer>
 
 </div>
+
+<script>
+  // The unblinding chart: one tooltip per figure, on hover and on keyboard focus.
+  // Values and labels are set with textContent; every value is also in the table below.
+  (() => {
+    for (const fig of document.querySelectorAll("figure.dp")) {
+      const shell = fig.querySelector(".chart-shell");
+      const tip = fig.querySelector(".dp-tip");
+      if (!shell || !tip) continue;
+      const value = tip.querySelector("b");
+      const label = tip.querySelector("span");
+      const show = (el) => {
+        const [v, l] = (el.dataset.tip || "").split("|");
+        value.textContent = v || "";
+        label.textContent = l || "";
+        tip.hidden = false;
+        const a = el.getBoundingClientRect();
+        const b = shell.getBoundingClientRect();
+        const half = tip.offsetWidth / 2;
+        const x = Math.min(Math.max(a.left + a.width / 2 - b.left, half + 4), b.width - half - 4);
+        tip.style.left = x + "px";
+        tip.style.top = (a.top - b.top) + "px";
+      };
+      const hide = () => { tip.hidden = true; };
+      for (const el of fig.querySelectorAll(".dp-dot")) {
+        el.addEventListener("pointerenter", () => show(el));
+        el.addEventListener("pointerleave", hide);
+        el.addEventListener("focus", () => show(el));
+        el.addEventListener("blur", hide);
+      }
+    }
+  })();
+</script>

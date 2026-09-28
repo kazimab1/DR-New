@@ -203,7 +203,7 @@ at the freeze, and that is a pre-registration decision, not a mid-run discovery.
 | B4 | Which sampler? | Natural / stratified exposure / class-balanced | Val QWK at natural prevalence | **DONE (2 arms)** | **weighted** — the third arm was a duplicate |
 | B5 | Does eye-pair fusion help? | Single vs left+right fusion | Val QWK, paired across seeds | **DONE** | **no fusion** — best grader, but confounds the thesis signal |
 | B6 | Does balancing the dataset help? *(ablation)* | `eyepacs_full` vs `eyepacs_balanced_1000` | QWK on natural-prevalence test | TODO | |
-| B7 | Does DDR improve transfer? **(H3)** | `eyepacs_full` vs `eyepacs_ddr_full` | External QWK — single unblinding | TODO | |
+| B7 | Does DDR improve transfer? **(H3)** | `eyepacs_full` vs `eyepacs_ddr_full` | External QWK — single unblinding | **DONE 2026-09-28** | **H3 not supported.** QWK, DDR − EyePACS-only, per seed: Messidor-2 −0.091 / −0.092 / −0.020; APTOS −0.011 / +0.047 / +0.031 |
 
 > **B1 warning.** Judge on grade-1 **F1**, not overall QWK and not recall alone.
 > Grade 1 is microaneurysms only; an MA is 10–20 px. A model that silently skips
@@ -891,10 +891,10 @@ says nothing about real lesions, and the fixture's numbers must never reach the 
 
 | ID | Question | Varies | Decided by | Status | Result |
 |---|---|---|---|---|---|
-| D1 | Calibrated internally? | Uncalibrated vs temperature scaling | ECE, NLL, Brier | TODO | |
-| D2 | Does internal temperature transfer? | Internal T applied to APTOS / Messidor-2 | External ECE — **expected to fail** | TODO | |
-| D3 | Does prior-shift correction fix it? | Saerens–Decock EM vs oracle prior | External ECE, oracle as upper bound | TODO | |
-| D4 | How much unlabelled target data does EM need? | 50 / 200 / 500 / all | ECE vs sample size | TODO | |
+| D1 | Calibrated internally? | Uncalibrated vs temperature scaling | ECE, NLL, Brier | **DONE 2026-09-28** | Yes. In-domain ECE 0.24–0.27 raw → 0.039–0.062 with stages 0+1; 0.016–0.020 with BCTS (D13) |
+| D2 | Does internal temperature transfer? | Internal T applied to APTOS / Messidor-2 | External ECE — **expected to fail** | **DONE 2026-09-28** | Partly. Stages 0+1 externally: APTOS 0.04–0.11, Messidor-2 0.09–0.13, against 0.18–0.25 raw and 0.04–0.06 in-domain |
+| D3 | Does prior-shift correction fix it? | Saerens–Decock EM vs oracle prior | External ECE, oracle as upper bound | **DONE 2026-09-28** | **No — H2 not supported.** EM worsens ECE in all 12 model × set cells (by 0.04–0.25); amended, 11 of 12. The oracle prior helps Messidor-2 (0.04–0.07) but hurts APTOS (0.07–0.16) |
+| D4 | How much unlabelled target data does EM need? | 50 / 200 / 500 / all | ECE vs sample size | **RUN 2026-09-28** | Computed; in `results.json` (`verify-dr-results`), not yet transcribed |
 
 > D2 failing is the *finding*, not a bug. Grade-0 prevalence moves ~73% → ~49%
 > between EyePACS and APTOS; a temperature fitted on one prior cannot transfer.
@@ -903,9 +903,9 @@ says nothing about real lesions, and the fixture's numbers must never reach the 
 
 | ID | Question | Varies | Decided by | Status | Result |
 |---|---|---|---|---|---|
-| E1 | Does removing cited lesions change the grade? | Inpaint predicted lesion regions | Δgrade distribution | TODO | |
-| E2 | **Is that shift lesion-specific?** | Random / non-lesion regions, equal area | Δ(lesion) vs Δ(random) | TODO | |
-| E3 | Does faithfulness hold at every severity? | Stratified by true grade | Δgrade by grade — grade 1 is the hard case | TODO | |
+| E1 | Does removing cited lesions change the grade? | Inpaint predicted lesion regions | Δgrade distribution | **RUN 2026-09-28** | Computed; in `results.json`, not yet transcribed |
+| E2 | **Is that shift lesion-specific?** | Random / non-lesion regions, equal area | Δ(lesion) vs Δ(random) | **RUN 2026-09-28** | Computed; in `results.json`, not yet transcribed |
+| E3 | Does faithfulness hold at every severity? | Stratified by true grade | Δgrade by grade — grade 1 is the hard case | **RUN 2026-09-28** | Computed; in `results.json`, not yet transcribed |
 
 > **E2 is mandatory.** Without the control, E1 shows the model reacts to inpainting,
 > not that it uses the lesions. Every reviewer asks for this.
@@ -914,11 +914,11 @@ says nothing about real lesions, and the fixture's numbers must never reach the 
 
 | ID | Question | Varies | Decided by | Status | Result |
 |---|---|---|---|---|---|
-| F1 | Best gating signal, internally? | none / confidence / OOD-z / **disagreement** / combined | Coverage–accuracy AUC; accuracy @ 80% and 90% coverage | TODO | |
-| F2 | **Does the ranking survive shift?** | Same five arms on APTOS + Messidor-2 | Same metrics, externally | TODO | |
-| F3 | What does it mean clinically? | Same arms | rDR sensitivity/specificity at fixed coverage | TODO | |
-| F4 | Which form of the signal works? | Binary / magnitude / magnitude + unobservable set | Coverage–accuracy AUC | TODO | |
-| F5 | Where do cases actually land? | — | Fraction and accuracy per action bucket | TODO | |
+| F1 | Best gating signal, internally? | none / confidence / OOD-z / **disagreement** / combined | Coverage–accuracy AUC; accuracy @ 80% and 90% coverage | **DONE 2026-09-28** | **Confidence** (AUC 0.917). Disagreement 0.746 = no gate (0.747); amended 0.801. **H1 not supported** |
+| F2 | **Does the ranking survive shift?** | Same five arms on APTOS + Messidor-2 | Same metrics, externally | **DONE 2026-09-28** | Confidence best on both (0.860, 0.841); amended, the combined policy ties it on APTOS (0.860). Disagreement 0.549 and 0.659, at or below no gate; amended 0.672 and 0.716. **H1′ not supported** |
+| F3 | What does it mean clinically? | Same arms | rDR sensitivity/specificity at fixed coverage | **RUN 2026-09-28** | Computed; in `results.json`, not yet transcribed |
+| F4 | Which form of the signal works? | Binary / magnitude / magnitude + unobservable set | Coverage–accuracy AUC | **RUN 2026-09-28** | Computed; in `results.json`, not yet transcribed |
+| F5 | Where do cases actually land? | — | Fraction and accuracy per action bucket | **RUN 2026-09-28** | Computed; in `results.json`, not yet transcribed |
 
 > **F2 is the thesis.** A signal that only wins in-domain is a curiosity; one that
 > holds under shift is a contribution.
@@ -938,7 +938,7 @@ says nothing about real lesions, and the fixture's numbers must never reach the 
 
 | ID | Question | Status | Result |
 |---|---|---|---|
-| H1 | QWK on the **official** EyePACS test split, reported beside the 0.8496 leaderboard reference | TODO | |
+| H1 | QWK on the **official** EyePACS test split, reported beside the 0.8496 leaderboard reference | **DROPPED** (D8) | The variants regrouped every EyePACS image; no split here is comparable with the leaderboard |
 
 ---
 
@@ -1520,6 +1520,104 @@ fitted parameters and pre-registration 09 ran on: `git diff 1d9a764` touches not
 under `src/`, `scripts/`, `notebooks/` or `preregistration/`. `results.json` names the
 commit 10 cloned; any commit between `1d9a764` and it must pass that same check.
 
+### Step 5 of the plan: the unblinding — DONE 2026-09-28. Every hypothesis: NOT SUPPORTED
+
+`10_unblinding.ipynb`, run once, published as `verify-dr-results`. The labels of all
+three sets were joined in one step. Sections 5 and 6 are kept verbatim in
+`docs/unblinding/2026-09-28_readout.txt`. The true grade counts match A0's reconciliation
+exactly: Messidor-2 1,017 / 270 / 347 / 75 / 35, APTOS 1,805 / 370 / 999 / 193 / 295, and
+EyePACS test 13,002 / 1,226 / 2,593 / 414 / 380 at natural prevalence.
+
+**The readout checks out: 380 cross-checks and none fails.** Every effect is the
+difference of the arms it compares and lies inside its interval. Every confusion matrix
+reproduces the true grade counts and 09's label-free evidence counts. M3's QWK,
+recomputed independently from each confusion matrix, matches the printed value. The arms
+the amendment does not touch (none, confidence, OOD) are identical in both analyses.
+
+| Hypothesis | Registered analysis (primary) | Amended analysis (D12, D13) |
+|---|---|---|
+| H1 — disagreement beats confidence in-domain | not supported, both variants | not supported, both variants |
+| H1′ — …and on both external sets (the thesis) | not supported | not supported |
+| H2 — EM improves external calibration | not supported | not supported |
+| H3 — DDR in training improves external QWK | not supported | not supported |
+
+H1 and H1′ also fail §1's own falsification criterion, "confidence-gating matches or beats
+it": confidence beats disagreement in every seed of both variants, on all three sets, in
+both analyses, and every 95% interval lies below −0.09.
+
+**Coverage–accuracy AUC, primary variant (`eyepacs_full`), mean of three seeds:**
+
+| | none | confidence | OOD | disagreement, registered → amended | combined, registered → amended |
+|---|---|---|---|---|---|
+| EyePACS test (custom, D8) | 0.747 | **0.917** | 0.858 | 0.746 → 0.801 | 0.815 → 0.890 |
+| APTOS | 0.615 | **0.860** | 0.816 | 0.549 → 0.672 | 0.775 → 0.860 |
+| Messidor-2 | 0.669 | **0.841** | 0.768 | 0.659 → 0.716 | 0.727 → 0.805 |
+
+The replication variant (`eyepacs_ddr_full`) orders the arms the same way; its
+confidence AUCs are 0.912 / 0.889 / 0.803.
+
+**H1/H1′ effect (disagreement − confidence), per seed, over both variants:**
+
+| | registered | amended |
+|---|---|---|
+| EyePACS test | −0.156 to −0.191 | −0.104 to −0.134 |
+| APTOS | −0.228 to −0.367 | −0.114 to −0.236 |
+| Messidor-2 | −0.167 to −0.217 | −0.116 to −0.156 |
+
+1. **Under the registered analysis, disagreement carries no signal.** In-domain it ranks
+   within 0.011 of no gating in every model, and on Messidor-2 within 0.037. On APTOS it
+   is *worse* than no gating in all six models (by 0.030–0.076). The val rehearsal
+   predicted the in-domain figure to within 0.002: for s42, 0.7677 against 0.7719 on val
+   and 0.7662 against 0.7696 on test.
+2. **The amendment restores a real signal, but the gap to confidence remains.** D12's
+   minimums were fitted on EyePACS calibration alone, and they transfer. M3's QWK rises
+   from 0.141 to 0.444 in-domain, from 0.366 to **0.755** on APTOS and from 0.152 to 0.505
+   on Messidor-2. The share of grade-0 images given evidence falls from 62–85% to 10–36%.
+   Disagreement then beats no gating in every model on every set, by 0.037–0.084, but
+   confidence stays 0.10–0.24 ahead.
+3. **The combined policy comes closest.** It sets its level from the evidence,
+   faithfulness and OOD signals, then orders by confidence within each level. In the
+   amended analysis it trails confidence by 0.02–0.05 in-domain and on Messidor-2, and
+   ties it on APTOS (mean 0.860 against 0.860). It is ahead in 4 of 6 models there, by at
+   most 0.016. This is descriptive only: no registered claim concerns the combined arm.
+4. **H2: EM makes external calibration worse.** It does so in all 12 model × set cells
+   of the registered analysis, by 0.04–0.25 ECE. In the amended analysis, whose EM
+   premise held on calibration (D13), it does so in 11 of 12; the twelfth moves by
+   +0.0003. The oracle prior helps on Messidor-2, taking ECE from 0.09–0.13 to 0.04–0.07,
+   but hurts on APTOS, taking it from 0.04–0.11 to 0.07–0.16. So on APTOS even the true
+   prior does not fix the posteriors, and the shift there is not the label shift EM
+   assumes. On Messidor-2, it is EM's estimate of the prior that fails.
+5. **H3: DDR in training does not improve transfer.** External QWK, DDR minus
+   EyePACS-only, per seed: Messidor-2 −0.091, −0.092, −0.020 (worse in every seed), and
+   APTOS −0.011, +0.047, +0.031.
+
+**What it means.** The result is pre-registered, negative and robust. It holds in every
+seed, both variants, all three sets and both analyses. The premise check of §8 passed:
+the evidence pathway is informative (C4, and M3 reaches 0.755 QWK on APTOS after D12). But
+disagreement with it is a weaker signal of M1's errors than M1's own calibrated
+confidence, in-domain and under shift. The pre-registration requires this to be reported
+as a negative result with analysis, never worked around.
+
+**Candidate explanations: post hoc, for Phase 8 (G1, G3), labelled exploratory:**
+
+- **Coarseness does not explain it by itself.** Disagreement takes at most six values
+  against confidence's continuum, and the plan names that coarseness as a property of the
+  method (§6.2). But the combined policy, which orders by confidence *within* its levels,
+  still trails confidence alone except on APTOS. So the levels themselves rank M1's errors
+  worse than confidence does.
+- **M3 stops at grade 2 (D1),** so no disagreement can question M1's grade-3 or grade-4
+  calls.
+- **M3's own misses become disagreements M1 wins.** Under D12, 21% of referable in-domain
+  images get no evidence at all, so where M1 correctly calls them referable, d_evidence is
+  2.
+
+**Still to transcribe:** F3–F5, D4 and E1–E3 are computed and stored in `results.json`
+(`verify-dr-results`), but the readout does not print them.
+
+**From here, §9 of the pre-registration applies.** These are the numbers retained. A bug
+found later is fixed, and the fix and any re-run are recorded as dated deviations beside
+these numbers, never in place of them.
+
 ### Phase 7's code was written before the unblinding — the order this required
 
 Before step 1, `src/verify_dr/calibration/` and `src/verify_dr/triage/` were empty.
@@ -1541,7 +1639,9 @@ labels joined in a single final step.
 ## Summary
 
 **26 experiments.** Selection happens only in B1–B5. External data is touched exactly
-once, in Phase 6b, after the freeze.
+once, in Phase 6b, after the freeze. It was, on 2026-09-28, and **every registered
+hypothesis (H1, H1′, H2, H3) was not supported**, in the registered analysis and in the
+amended one reported beside it. See "Step 5 of the plan: the unblinding".
 
 Phase 6a (the six training runs) touches no locked data and can therefore be split
 across as many sessions as the quota needs. The unblinding is a separate notebook for

@@ -256,12 +256,32 @@ elsewhere); Messidor-2's preprocessing is unrecorded (dataset card Q2 open, A0 a
 excluded it) -- a limitation, audited after the unblinding. `eyepacs_test` rows are
 grade-ordered (path sort); every statistic is order-invariant, checked in the code.
 
-**Next:** 10 (CPU; publish `verify-dr-results`). Between `1d9a764` and 10, commit **docs
-only**: the step-4 record was committed before 10 so an ephemeral container cannot lose
-it, and `git diff 1d9a764` must touch nothing under `src/`, `scripts/`, `notebooks/` or
-`preregistration/` -- 10 runs on the code 09 ran on. A bug found on the way is fixed as
-a dated deviation, never silently. Sections 6-7 of the 08 re-run are still unrecorded; by the
-one-round rule they decide nothing.
+**Step 5 DONE 2026-09-28 -- the unblinding: EVERY HYPOTHESIS NOT SUPPORTED, in both
+analyses and both variants.** Readout verbatim in `docs/unblinding/`; 380 cross-checks
+pass. H1/H1' are also falsified by the pre-registration's own criterion: confidence
+beats disagreement in every seed on every set, every interval below -0.09.
+- Registered: disagreement = no gate in-domain (0.746 vs 0.747) and on Messidor-2, and
+  *below* no gate on APTOS; confidence 0.917 / 0.860 / 0.841 (EyePACS test / APTOS /
+  Messidor-2). The val rehearsal predicted it to within 0.002.
+- Amended: D12 transfers (M3 QWK 0.444 / **0.755** / 0.505) and disagreement becomes a real
+  signal (+0.04-0.08 over no gate everywhere), but stays 0.10-0.24 below confidence. The
+  combined policy ties confidence on APTOS only -- descriptive, no registered claim.
+- H2: EM worsens external ECE in 23 of 24 cells; the oracle prior helps Messidor-2, hurts
+  APTOS. H3: DDR lowers Messidor-2 QWK in every seed, mixed on APTOS.
+
+**From here the pre-registration's §9 applies:** these numbers are retained; a later fix
+and re-run is a dated deviation beside them, never in place of them. Write it up as a
+pre-registered negative result with analysis (§8), not worked around.
+
+**Next:**
+1. Transcribe F3-F5, D4, E1-E3 from `verify-dr-results`: they are in `results.json` but
+   the readout does not print them. Needs the user to bring the JSONs into the repo.
+2. Messidor-2 preprocessing audit (dataset card Q2), unlocked now -- a limitation either way.
+3. Phase 8 error analysis (G1, G3), exploratory and labelled post hoc. Candidates: the
+   combined policy trails confidence despite ordering by it within levels, so the levels
+   rank errors worse, not merely coarsely; M3 stops at grade 2; 21% of referable
+   in-domain images get no evidence under D12.
+4. Sections 6-7 of the 08 re-run are still unrecorded; they decide nothing now.
 
 Three things it found that change the analysis, not just pin it:
 - **The six models were trained on a uniform class prior** (`stratified_exposure`
