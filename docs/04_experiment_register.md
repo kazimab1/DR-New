@@ -1699,7 +1699,7 @@ verbatim in `docs/phase8/2026-09-29_readout.txt`, with the audit's two images.
      on vessels, and D12's 256 px minimum removes both.
 
    **M3 counts detections outside the retina.** The evidence path never applies the
-   field-of-view mask; only the faithfulness test uses it. The aggregate share was not
+   field-of-view mask. The aggregate share was not
    measured.
 
    **Proposed figure 1** (the author confirms): `Messidor2::20051021_39482_0100_PP`.

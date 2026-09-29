@@ -294,7 +294,7 @@ passed on all three sets, and 76 cross-checks pass. Findings (register, "Phase 8
 - **56% of M1's APTOS errors are ŷ >= 3**, invisible to M3 (D1).
 - **Figure 1 candidates**: 24 / 0 / 4. On the sheets, most judgeable detections are
   artefacts: rim, debris, camera reflex, vessels. **M3 counts detections outside the
-  retina**, because only the faithfulness test applies the field-of-view mask.
+  retina**, because the evidence path never applies the field-of-view mask.
 - **Messidor-2 is not Ben-Graham processed**, but it is the least sharp source.
 - **Bug fixed**: the audit's raw check first measured the cache's copy.
 

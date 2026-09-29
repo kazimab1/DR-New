@@ -58,9 +58,8 @@ lesion.**
   resolution.
 
 The rim case also exposes a gap in the design. **M3 counts M2's detections wherever they
-fall, including outside the retina.** The code has a field-of-view mask, but the
-evidence path never applies it; only the faithfulness test uses it, to place its random
-controls. How much of M3's false evidence lies outside the retina was not measured.
+fall, including outside the retina.** The code has a field-of-view mask, used to
+place the faithfulness test's random controls, but the evidence path never applies it. How much of M3's false evidence lies outside the retina was not measured.
 
 **On Messidor-2, D12 removed the vessel-shaped detections.** In `IM003603` the one
 haemorrhage outline is a small vessel loop near the upper edge. In
