@@ -292,15 +292,20 @@ passed on all three sets, and 76 cross-checks pass. Findings (register, "Phase 8
 - **It defers more referral errors than confidence externally** (APTOS 38.7% vs 17.0% at
   80% coverage), but they are false referrals, not missed ones (F3).
 - **56% of M1's APTOS errors are ŷ >= 3**, invisible to M3 (D1).
-- **Figure 1 candidates**: 24 / 0 / 4.
+- **Figure 1 candidates**: 24 / 0 / 4. On the sheets, most judgeable detections are
+  artefacts: rim, debris, camera reflex, vessels. **M3 counts detections outside the
+  retina**, because only the faithfulness test applies the field-of-view mask.
 - **Messidor-2 is not Ben-Graham processed**, but it is the least sharp source.
 - **Bug fixed**: the audit's raw check first measured the cache's copy.
 
 Chapter 6 is complete and chapter 7 drafted (`docs/thesis/`).
 
-**Next:** the user sends the figure-1 sheets (`verify-dr-phase8/figures/eyepacs_test/`);
-optionally re-run section 6 of 11 with the Messidor-2 mirror attached. Then chapter 4
-(methods), from `PREREGISTRATION.md` and the report's as-built table.
+**Next:**
+- The author confirms figure 1. Proposed: `Messidor2::20051021_39482_0100_PP` (chapter 7,
+  §7.1.2). The publication panel needs that image's single PNG from
+  `verify-dr-phase8/figures/messidor2/`.
+- Optionally, re-run section 6 of 11 with the Messidor-2 mirror attached.
+- Then chapter 4 (methods), from `PREREGISTRATION.md` and the report's as-built table.
 
 The freeze tag `preregistration-freeze` exists only locally: this session's git proxy
 refuses tag pushes (403, policy), so the user pushes it. The pre-registration's

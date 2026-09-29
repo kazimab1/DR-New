@@ -1686,8 +1686,25 @@ verbatim in `docs/phase8/2026-09-29_readout.txt`, with the audit's two images.
 7. **The figure-1 case exists, but it is rare.** Category A (M1 confidently normal, truth ≥ 1,
    M3 finds microaneurysms) has 24 images in-domain (0.14%), none on APTOS and 4 on
    Messidor-2. The strongest candidate on paper is `EyePACS::219_left`: truth 2, M1 says
-   0 with confidence 0.982, and M2 finds 30 microaneurysms covering 425 px. The sheets
-   themselves have not been seen yet.
+   0 with confidence 0.982, and M2 finds 30 microaneurysms covering 425 px.
+
+   **The sheets, seen 2026-09-29** (`docs/phase8/2026-09-29_figure1_candidates_*.webp`).
+   This is a visual reading at 512 px by a non-clinician, not a measurement. Where a
+   detection can be judged, it is more often an artefact than a lesion:
+   - `769_right`: the largest haemorrhage outlines lie outside the field of view.
+   - `219_left`: its outlines sit on grey, rod-shaped specks that look like debris. Its
+     soft exudate sits on a pale spot at the frame centre, and the same spot recurs there
+     in two other patients' images, which points to a camera reflex.
+   - Messidor-2: the haemorrhage outlines of `IM003603` and `20060523_49449_0100_PP` sit
+     on vessels, and D12's 256 px minimum removes both.
+
+   **M3 counts detections outside the retina.** The evidence path never applies the
+   field-of-view mask; only the faithfulness test uses it. The aggregate share was not
+   measured.
+
+   **Proposed figure 1** (the author confirms): `Messidor2::20051021_39482_0100_PP`.
+   Adjudicated grade 1; M3 gives grade 1 by R2 in both analyses; two interior
+   microaneurysms, area 17 px against D12's 16. See chapter 7, §7.1.
 
 **P8.6: Messidor-2's preprocessing.** This answers dataset card Q2.
 - **Not Ben-Graham processed and not grey-normalised.** The cached images have black

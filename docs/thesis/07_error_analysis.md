@@ -23,7 +23,8 @@ gating accepts that grading; disagreement gating defers it.
 
 The selection rule was fixed in advance (P8.5): model `eyepacs_full_s42`, amended
 evidence, grade-0 calls in the model's most confident quarter, a true grade of at least
-1, and microaneurysms present. The candidates were ordered by confidence.
+1, and microaneurysms present. The candidates were ordered by confidence, and up to eight
+per set were drawn beside M2's lesion outlines.
 
 | Set | Images that qualify |
 |---|---|
@@ -31,14 +32,65 @@ evidence, grade-0 calls in the model's most confident quarter, a true grade of a
 | APTOS | 0 of 3,662 |
 | Messidor-2 | 4 of 1,744, every one adjudicated grade 1 |
 
-The strongest in-domain candidate is `EyePACS::219_left`. Its true grade is 2, M1 calls
-it grade 0 with confidence 0.982, and M2 finds 30 microaneurysms covering 425 px, so M3
-cites rule R3 and gives evidence grade 2. The strongest adjudicated candidate is
-`Messidor2::IM003146`: grade 1 on three specialists' consensus, called 0 at confidence
-0.977, with 6 microaneurysms (90 px).
+### 7.1.1 What the candidates look like
 
-⟨Figure 7.1: to be chosen from the drawn candidates in `verify-dr-phase8`. The caption
-must say it was selected from the 24 declared candidates.⟩
+The drawn sheets are kept in `docs/phase8/` as `2026-09-29_figure1_candidates_*.webp`.
+They hold the eight most confident in-domain candidates and all four on Messidor-2, and
+they were inspected by eye at the 512 px the models see. This is a visual reading by a
+non-clinician, not a measurement. It shows what individual detections look like, not how
+often detections are wrong.
+
+**In-domain, where a detection can be judged, it is more often an artefact than a
+lesion.**
+- **`EyePACS::769_right`** (true grade 3). The largest haemorrhage outlines lie in the
+  black margin, outside the field of view. Most of its hard exudates cluster on the
+  image's jagged, pixelated rim.
+- **`EyePACS::219_left`** (true grade 2) is the strongest candidate on paper. M1 says 0 at
+  confidence 0.982. M2 finds 30 microaneurysms and 23 haemorrhages, and M3 gives grade 2
+  in both analyses, matching the label. But most of its outlines sit on dark,
+  sharp-edged specks, often rod-shaped and grey rather than red, which look like debris
+  on the optics. Its one soft exudate sits on a pale spot at the centre of the frame.
+- **The same pale spot** appears in `23515_left` and `39369_right`, at the same position
+  to within a few pixels, and `18369_left` has a ring-shaped reflex in the same place. A
+  spot that keeps its place in the frame across patients points to a reflection in the
+  camera, not to anatomy.
+- The remaining candidates carry a few specks each, too small to judge at this
+  resolution.
+
+The rim case also exposes a gap in the design. **M3 counts M2's detections wherever they
+fall, including outside the retina.** The code has a field-of-view mask, but the
+evidence path never applies it; only the faithfulness test uses it, to place its random
+controls. How much of M3's false evidence lies outside the retina was not measured.
+
+**On Messidor-2, D12 removed the vessel-shaped detections.** In `IM003603` the one
+haemorrhage outline is a small vessel loop near the upper edge. In
+`20060523_49449_0100_PP` both haemorrhage outlines sit on a tortuous vessel where it
+meets the disc. Both images fall far below D12's 256 px haemorrhage minimum (21 px and
+42 px), which is why each is grade 2 registered and grade 1 amended.
+
+**This is what M3's lack of specificity predicts.** If the evidence pathway finds lesions
+in most eyes whatever their grade, some of the eyes it flags will be diseased eyes the
+grader missed. The evidence it cites there need not be the disease. The case the design
+was built for does occur, but on inspection its evidence is often not the disease.
+
+### 7.1.2 The proposed figure
+
+⟨Author to confirm.⟩ **Figure 7.1: `Messidor2::20051021_39482_0100_PP`.** It is the
+only candidate on either set that meets all four of these conditions:
+- its grade is adjudicated, grade 1 on three specialists' consensus;
+- M3's grade equals that grade in both analyses;
+- the rule M3 cites, microaneurysms only (R2), is the definition of grade 1;
+- no outline sits on the rim, the disc, a vessel or a reflex.
+
+M1 calls it grade 0 at confidence 0.978. The caption must also carry four limits:
+- its microaneurysm area is 17 px, one pixel above D12's 16 px minimum;
+- the fundus is tessellated, and its dark choroidal spots are of similar size;
+- Messidor-2 has no lesion annotations, so whether these two specks are the
+  microaneurysms the specialists graded cannot be checked;
+- the panel was chosen by eye from the four images that met the declared rule.
+
+A companion panel could show `EyePACS::219_left`: the right grade, apparently for the
+wrong reason.
 
 **The rarity is itself the result.** The case the thesis was built around is real. It
 is also 24 images in 17,615. However vivid the example, it cannot outweigh the

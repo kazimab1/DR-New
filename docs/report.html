@@ -333,6 +333,26 @@
     padding-top: 10px;
     max-width: 68ch;
   }
+  .crop-lab {
+    font-family: var(--sans);
+    font-size: 13.5px;
+    color: var(--ink-2);
+    margin: 18px 0 8px;
+    max-width: 68ch;
+  }
+  .crops .crop-lab:first-child { margin-top: 0; }
+  .crop-pair {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 300px));
+    gap: 8px;
+  }
+  .crop-pair img {
+    display: block;
+    width: 100%;
+    height: auto;
+    border: 1px solid var(--line);
+    border-radius: 4px;
+  }
 
   /* ---------- queue ---------- */
   .queue { list-style: none; padding: 0; margin: 18px 0; }
@@ -782,11 +802,54 @@
       The declared rule selects images the grader calls normal with high confidence, where
       the evidence pathway finds microaneurysms and the truth is diseased. It finds
       <span class="num">24</span> of 17,615 in-domain images, none on APTOS and
-      <span class="num">4</span> on Messidor-2. The strongest is <code>EyePACS::219_left</code>:
-      truth grade 2, called 0 at confidence <span class="num">0.982</span>, with 30
-      microaneurysms found. The case the design was built for is real, and far too rare to
-      carry the aggregate.
+      <span class="num">4</span> on Messidor-2. The case the design was built for is real,
+      and far too rare to carry the aggregate.
     </p>
+    <p>
+      On the drawn candidates, where a detection can be judged by eye, it is more often an
+      artefact than a lesion. There are haemorrhage outlines outside the retina, on
+      debris-like specks and on vessels, and a soft exudate on a camera reflex. M3 counts
+      them all, because the evidence path never applies the field-of-view mask. This is a
+      visual reading at 512&nbsp;px, not a measurement.
+    </p>
+    <figure class="crops">
+      <p class="crop-lab"><b>Proposed figure&nbsp;1.</b> Messidor-2
+        <code>20051021_39482_0100_PP</code>: adjudicated grade&nbsp;1, the grader says 0 at
+        <span class="num">0.978</span>, and M3 says grade&nbsp;1 from two microaneurysms.
+        Their area is <span class="num">17</span>&nbsp;px, against a
+        <span class="num">16</span>&nbsp;px minimum.</p>
+      <div class="crop-pair">
+        <img src="phase8/crops/2026-09-29_messidor2_20051021_39482_image.webp" width="300" height="300"
+             alt="Tessellated orange fundus with a thin vessel, no visible lesion">
+        <img src="phase8/crops/2026-09-29_messidor2_20051021_39482_outlines.webp" width="300" height="300"
+             alt="The same region with two tiny cyan microaneurysm outlines in the retina, away from the vessel">
+      </div>
+      <p class="crop-lab"><b>Outside the retina.</b> EyePACS <code>769_right</code>, true
+        grade&nbsp;3: the largest haemorrhage outlines lie in the black margin, beyond the
+        edge of the field of view.</p>
+      <div class="crop-pair">
+        <img src="phase8/crops/2026-09-29_eyepacs_769_right_image.webp" width="300" height="300"
+             alt="The upper-left rim of a fundus image, with black margin beyond it">
+        <img src="phase8/crops/2026-09-29_eyepacs_769_right_outlines.webp" width="300" height="300"
+             alt="The same rim with long green haemorrhage outlines running through the black margin">
+      </div>
+      <p class="crop-lab"><b>The right grade, apparently for the wrong reason.</b> EyePACS
+        <code>219_left</code>, true grade&nbsp;2. M3 says grade&nbsp;2 in both analyses, but
+        most of its outlines sit on grey, sharp, often rod-shaped specks that look like
+        debris on the optics.</p>
+      <div class="crop-pair">
+        <img src="phase8/crops/2026-09-29_eyepacs_219_left_image.webp" width="300" height="300"
+             alt="Grey-green retina with scattered dark grey specks, some rod-shaped">
+        <img src="phase8/crops/2026-09-29_eyepacs_219_left_outlines.webp" width="300" height="300"
+             alt="The same region with cyan and green outlines on most of the dark specks">
+      </div>
+      <figcaption>
+        In each pair, the left image is what the models saw, and the right one adds M2's
+        outlines: cyan for microaneurysms, green for haemorrhages, magenta for hard
+        exudates. The crops come from the candidate sheets, enlarged about twice. The
+        author chooses the figure.
+      </figcaption>
+    </figure>
     <h4>Messidor-2 was not Ben-Graham processed</h4>
     <p>
       The images have black padding, no near-grey pixels and APTOS-like saturation, so the
