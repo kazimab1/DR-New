@@ -10,10 +10,14 @@
 > is written into the *next* commit. It cannot be written into the freeze commit
 > itself: a commit hash covers the file contents, so writing the hash into the file
 > changes the hash. Amending would produce a file naming a commit that no longer
-> exists. The follow-up commit names the freeze commit truthfully, and
-> A local tag `preregistration-freeze` also points at it. That tag is not yet on
-> the remote — push it with `git push origin refs/tags/preregistration-freeze`.
-> The hash recorded above is the authoritative record regardless.
+> exists. The follow-up commit names the freeze commit truthfully.
+>
+> A tag, `preregistration-freeze`, was created on the freeze commit in the working
+> session, whose git relay accepts branch pushes only. Whether or not the tag is on the
+> remote, the record is the hash in the Administrative table below.
+>
+> *Header corrected 2026-09-29: the tag's status, and "below" for "above". No protocol
+> content changed.*
 >
 > After this is committed, the architecture, hyperparameters and decision thresholds
 > are frozen. Later changes are allowed but must be recorded as dated deviations at

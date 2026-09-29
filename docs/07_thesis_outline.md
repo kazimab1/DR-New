@@ -136,7 +136,7 @@ The outline above was written before the results existed. Four things have chang
 | Chapter | State |
 |---|---|
 | 6 Results | **Drafted, complete:** `docs/thesis/06_results.md`, about 2,900 words, every secondary outcome transcribed (2026-09-29) |
-| 7 Error analysis | **Drafted:** `docs/thesis/07_error_analysis.md`, about 1,900 words. Waiting only on figure 1, which the author picks from the drawn candidates |
+| 7 Error analysis | **Drafted, complete:** `docs/thesis/07_error_analysis.md`, about 2,500 words, with Figure 7.1 (`docs/thesis/figures/`, 2026-09-29) |
 | 4 Methods | Next: write from `PREREGISTRATION.md`, `ANALYSIS_PLAN.md` and the report's as-built table |
 | 3 Data | From `docs/05_dataset_card.md` and A0. Messidor-2's preprocessing comes from the P8.6 audit |
 | 2, 8, 1, 9 | Not started, in the writing order above |

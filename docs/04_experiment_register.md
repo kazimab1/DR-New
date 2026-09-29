@@ -1702,9 +1702,19 @@ verbatim in `docs/phase8/2026-09-29_readout.txt`, with the audit's two images.
    field-of-view mask. The aggregate share was not
    measured.
 
-   **Proposed figure 1** (the author confirms): `Messidor2::20051021_39482_0100_PP`.
-   Adjudicated grade 1; M3 gives grade 1 by R2 in both analyses; two interior
-   microaneurysms, area 17 px against D12's 16. See chapter 7, §7.1.
+   **Figure 7.1, decided 2026-09-29** (the author delegated the choice). It has three rows:
+   - (a) `Messidor2::20051021_39482_0100_PP`: adjudicated grade 1, and M3 gives grade 1
+     by R2 in both analyses; two interior microaneurysms, area 17 px against D12's 16;
+   - (b) `769_right`, outlines outside the retina;
+   - (c) `219_left`, outlines on debris-like specks.
+
+   Built from the sheets by `docs/thesis/figures/make_fig7_1.py`; chapter 7, §7.1.2.
+
+   **Not run, by decision:**
+   - measuring the share of M3's false evidence that lies outside the retina;
+   - re-running P8.6's raw check with the mirror attached.
+
+   Neither can change a verdict. Both are stated as limitations.
 
 **P8.6: Messidor-2's preprocessing.** This answers dataset card Q2.
 - **Not Ben-Graham processed and not grey-normalised.** The cached images have black

@@ -72,24 +72,43 @@ in most eyes whatever their grade, some of the eyes it flags will be diseased ey
 grader missed. The evidence it cites there need not be the disease. The case the design
 was built for does occur, but on inspection its evidence is often not the disease.
 
-### 7.1.2 The proposed figure
+### 7.1.2 The figure
 
-⟨Author to confirm.⟩ **Figure 7.1: `Messidor2::20051021_39482_0100_PP`.** It is the
-only candidate on either set that meets all four of these conditions:
+Figure 7.1 shows three of the candidates. Row (a) is the case the design was built for,
+in its cleanest available form: `Messidor2::20051021_39482_0100_PP`. It is the only
+candidate on either set that meets all four of these conditions:
 - its grade is adjudicated, grade 1 on three specialists' consensus;
 - M3's grade equals that grade in both analyses;
 - the rule M3 cites, microaneurysms only (R2), is the definition of grade 1;
 - no outline sits on the rim, the disc, a vessel or a reflex.
 
-M1 calls it grade 0 at confidence 0.978. The caption must also carry four limits:
-- its microaneurysm area is 17 px, one pixel above D12's 16 px minimum;
-- the fundus is tessellated, and its dark choroidal spots are of similar size;
-- Messidor-2 has no lesion annotations, so whether these two specks are the
-  microaneurysms the specialists graded cannot be checked;
-- the panel was chosen by eye from the four images that met the declared rule.
+Rows (b) and (c) show what the evidence looks like elsewhere among the candidates.
 
-A companion panel could show `EyePACS::219_left`: the right grade, apparently for the
-wrong reason.
+![Figure 7.1](figures/fig7_1.png)
+
+**Figure 7.1 — The case the design was built for, and what its evidence looks like.**
+Each row shows three views:
+- the image as the models saw it, at 512 px, with the enlarged region boxed;
+- that region, enlarged;
+- the same region with M2's outlines: cyan for microaneurysms, green for haemorrhages,
+  magenta for hard exudates.
+
+In every row, M1 calls the eye grade 0 with a confidence in the top quarter of its
+grade-0 calls, and the label says the eye is diseased.
+(a) `Messidor2::20051021_39482_0100_PP`: adjudicated grade 1, M1 at confidence 0.978,
+and M3 grade 1 from microaneurysms alone in both analyses. Its microaneurysm area is
+17 px, one pixel above D12's 16 px minimum. The fundus is tessellated, with dark
+choroidal spots of similar size. Messidor-2 has no lesion annotations, so whether these
+two detections are the microaneurysms the specialists graded cannot be checked.
+(b) `EyePACS::769_right`: true grade 3, M1 at 0.983. The largest haemorrhage outlines
+lie outside the field of view.
+(c) `EyePACS::219_left`: true grade 2, M1 at 0.982. M3's grade 2 matches the label, but
+most outlines sit on grey, sharp, often rod-shaped specks that look like debris on the
+optics.
+All three were chosen by eye from the images that met the rule declared in advance
+(P8.5): all 4 on Messidor-2, and the 8 most confident of the 24 on EyePACS. The crops
+are enlarged from the candidate sheets, which were rendered at 512 px and arrived scaled
+by 0.86–0.97 (`figures/make_fig7_1.py`).
 
 **The rarity is itself the result.** The case the thesis was built around is real. It
 is also 24 images in 17,615. However vivid the example, it cannot outweigh the
@@ -266,5 +285,5 @@ What would have to change for disagreement to win is now concrete. Each item is 
 hypothesis for a new pre-registered study:
 - an evidence reasoner that reaches grades 3 and 4 (a working C1, or annotated
   neovascularisation);
-- a segmenter specific at image level;
+- a segmenter specific at image level, with its evidence confined to the retina;
 - a policy that puts confidence first and uses disagreement within its strata.

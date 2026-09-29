@@ -301,14 +301,16 @@ passed on all three sets, and 76 cross-checks pass. Findings (register, "Phase 8
 Chapter 6 is complete and chapter 7 drafted (`docs/thesis/`).
 
 **Next:**
-- The author confirms figure 1. Proposed: `Messidor2::20051021_39482_0100_PP` (chapter 7,
-  §7.1.2). The publication panel needs that image's single PNG from
-  `verify-dr-phase8/figures/messidor2/`.
-- Optionally, re-run section 6 of 11 with the Messidor-2 mirror attached.
-- Then chapter 4 (methods), from `PREREGISTRATION.md` and the report's as-built table.
+- Chapter 4 (methods), from `PREREGISTRATION.md` and the report's as-built table.
+- Decided 2026-09-29 (the author delegated decisions):
+  - Figure 7.1 is built: (a) `Messidor2::20051021_39482_0100_PP`, (b) `769_right`,
+    (c) `219_left`.
+  - The FOV-share measurement and the section-6 re-run are not run; both are limitations.
 
-The freeze tag `preregistration-freeze` exists only locally: this session's git proxy
-refuses tag pushes (403, policy), so the user pushes it. The pre-registration's
+The freeze tag `preregistration-freeze` exists only locally: the git relay accepts branch
+pushes only, and it refused the tag at the freeze and again on 2026-09-29. Do not retry
+it. `PREREGISTRATION.md`'s header no longer depends on the tag, because the hash is the
+record. The pre-registration's
 author/supervisor/institution fields are still blank. Sections 6-7 of the 08 re-run are
 still unrecorded; they decide nothing now.
 

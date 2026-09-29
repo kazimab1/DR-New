@@ -94,7 +94,8 @@ microaneurysms in 73.2% of its images against 50.7–60.5% elsewhere. Both belon
 limitations. **Still unobserved:** the mirror's native resolution and compression. The
 first audit run measured the cache's copy of the mirror's `preprocess/` folder; that was
 fixed, and re-running section 6 of `11_phase8.ipynb` with the mirror attached would
-answer it.
+answer it. **Decided 2026-09-29 not to re-run:** the answer cannot change a verdict, so
+it stays a stated limitation.
 
 ### Q3b. Observed source layouts
 
