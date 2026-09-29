@@ -282,10 +282,25 @@ analyses P8.0-P8.6 are declared in the register ("Phase 8") before the first run
 Tested on the World fixture (11 tests, including a real `--unblind` run) and on the toy
 Kaggle tree, 07 -> 11. The results chapter is drafted in `docs/thesis/06_results.md`.
 
-**Next:** the user runs 11 and pastes sections 3, 4 and 6, plus figure-1 sheets. Then:
-- fill the chapter's ⟨P8.1⟩ placeholders;
-- record Phase 8 in the register;
-- draft chapter 7, then chapter 4 (methods).
+**Phase 8 RUN 2026-09-29 (exploratory).** Readout verbatim in `docs/phase8/`; the P8.0 gate
+passed on all three sets, and 76 cross-checks pass. Findings (register, "Phase 8 — results"):
+- **Faithfulness holds (E2, registered).** Lesion removal beats all 19 random controls in
+  67-78% of lesion images against ~5% by chance.
+- **Registered disagreement points at correct cases**: error AUROC 0.38-0.45.
+- **Amended, it is complementary only under shift**: within-confidence-quintile AUROC
+  0.52 in-domain, 0.62 APTOS, 0.56 Messidor-2.
+- **It defers more referral errors than confidence externally** (APTOS 38.7% vs 17.0% at
+  80% coverage), but they are false referrals, not missed ones (F3).
+- **56% of M1's APTOS errors are ŷ >= 3**, invisible to M3 (D1).
+- **Figure 1 candidates**: 24 / 0 / 4.
+- **Messidor-2 is not Ben-Graham processed**, but it is the least sharp source.
+- **Bug fixed**: the audit's raw check first measured the cache's copy.
+
+Chapter 6 is complete and chapter 7 drafted (`docs/thesis/`).
+
+**Next:** the user sends the figure-1 sheets (`verify-dr-phase8/figures/eyepacs_test/`);
+optionally re-run section 6 of 11 with the Messidor-2 mirror attached. Then chapter 4
+(methods), from `PREREGISTRATION.md` and the report's as-built table.
 
 The freeze tag `preregistration-freeze` exists only locally: this session's git proxy
 refuses tag pushes (403, policy), so the user pushes it. The pre-registration's

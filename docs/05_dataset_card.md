@@ -84,7 +84,17 @@ Check whether images are already contrast-normalised or Ben-Graham processed. If
 are, your measured "domain gap" is partly a preprocessing artefact — either match the
 processing across all sources, or report the confound explicitly.
 
-**Answer:** _(fill in)_
+**Answer (2026-09-29, the Phase 8 audit P8.6, label-free):** **not Ben-Graham processed,
+and not contrast- or grey-normalised.** After this project's own preprocessing, the
+Messidor-2 images have black padding (median 6.3), no near-grey pixels, and APTOS-like
+saturation (0.79 against 0.80). A Ben-Graham source would have survived the pipeline as
+grey padding and a near-grey image. Messidor-2 is, however, the least sharp source
+(median Laplacian variance 106 against 161–204 for the others), and M2 reports
+microaneurysms in 73.2% of its images against 50.7–60.5% elsewhere. Both belong in the
+limitations. **Still unobserved:** the mirror's native resolution and compression. The
+first audit run measured the cache's copy of the mirror's `preprocess/` folder; that was
+fixed, and re-running section 6 of `11_phase8.ipynb` with the mirror attached would
+answer it.
 
 ### Q3b. Observed source layouts
 
@@ -113,7 +123,10 @@ IDRiD's are `1. Microaneurysms` … `5. Optic Disc`. One keyword matcher covers 
 Images and adjudicated grades are **two separate Kaggle datasets**. Confirm the ID
 join covers every image and record how many fail to match.
 
-**Answer:** _(fill in)_
+**Answer:** yes, completely. A0 reconciled every grade before the freeze, and at the
+unblinding (2026-09-28) all 1,744 gradable images joined, with none failing to match.
+`labels_for` refuses a missing or duplicated ID, and the grade counts are exactly the
+published 1,017 / 270 / 347 / 75 / 35.
 
 ### Q4. Does IDRiD include the OD/fovea coordinate CSVs?
 

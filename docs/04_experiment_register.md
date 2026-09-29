@@ -894,7 +894,7 @@ says nothing about real lesions, and the fixture's numbers must never reach the 
 | D1 | Calibrated internally? | Uncalibrated vs temperature scaling | ECE, NLL, Brier | **DONE 2026-09-28** | Yes. In-domain ECE 0.24–0.27 raw → 0.039–0.062 with stages 0+1; 0.016–0.020 with BCTS (D13) |
 | D2 | Does internal temperature transfer? | Internal T applied to APTOS / Messidor-2 | External ECE — **expected to fail** | **DONE 2026-09-28** | Partly. Stages 0+1 externally: APTOS 0.04–0.11, Messidor-2 0.09–0.13, against 0.18–0.25 raw and 0.04–0.06 in-domain |
 | D3 | Does prior-shift correction fix it? | Saerens–Decock EM vs oracle prior | External ECE, oracle as upper bound | **DONE 2026-09-28** | **No — H2 not supported.** EM worsens ECE in all 12 model × set cells (by 0.04–0.25); amended, 11 of 12. The oracle prior helps Messidor-2 (0.04–0.07) but hurts APTOS (0.07–0.16) |
-| D4 | How much unlabelled target data does EM need? | 50 / 200 / 500 / all | ECE vs sample size | **RUN 2026-09-28** | Computed; in `results.json` (`verify-dr-results`), not yet transcribed |
+| D4 | How much unlabelled target data does EM need? | 50 / 200 / 500 / all | ECE vs sample size | **DONE 2026-09-29** | **More data does not help: the failure is bias, not noise.** Registered ECE after EM, n = 50 → all: APTOS 0.164 → 0.168, Messidor-2 0.183 → 0.184. Amended: APTOS 0.195 → 0.241 (worse); Messidor-2 0.266 → 0.118, still above BCTS alone (0.093) |
 
 > D2 failing is the *finding*, not a bug. Grade-0 prevalence moves ~73% → ~49%
 > between EyePACS and APTOS; a temperature fitted on one prior cannot transfer.
@@ -903,9 +903,9 @@ says nothing about real lesions, and the fixture's numbers must never reach the 
 
 | ID | Question | Varies | Decided by | Status | Result |
 |---|---|---|---|---|---|
-| E1 | Does removing cited lesions change the grade? | Inpaint predicted lesion regions | Δgrade distribution | **RUN 2026-09-28** | Computed; in `results.json`, not yet transcribed |
-| E2 | **Is that shift lesion-specific?** | Random / non-lesion regions, equal area | Δ(lesion) vs Δ(random) | **RUN 2026-09-28** | Computed; in `results.json`, not yet transcribed |
-| E3 | Does faithfulness hold at every severity? | Stratified by true grade | Δgrade by grade — grade 1 is the hard case | **RUN 2026-09-28** | Computed; in `results.json`, not yet transcribed |
+| E1 | Does removing cited lesions change the grade? | Inpaint predicted lesion regions | Δgrade distribution | **DONE 2026-09-29** | Yes. Median Δ expected grade 0.041 (EyePACS test), 0.206 (APTOS), 0.145 (Messidor-2) |
+| E2 | **Is that shift lesion-specific?** | Random / non-lesion regions, equal area | Δ(lesion) vs Δ(random) | **DONE 2026-09-29** | **Yes.** Lesion removal beats the mean of 19 equal-area random removals in 83% / 86% / 91% of lesion images, and beats **all 19** in 67% / 70% / 78%, against about 5% by chance |
+| E3 | Does faithfulness hold at every severity? | Stratified by true grade | Δgrade by grade — grade 1 is the hard case | **DONE 2026-09-29** | Strongest on grades 1–3 (faithful 75–96%). Weakest on grade 0 (47–67%: M3's lesions there are mostly false) and grade 4 (59–74%) |
 
 > **E2 is mandatory.** Without the control, E1 shows the model reacts to inpainting,
 > not that it uses the lesions. Every reviewer asks for this.
@@ -916,9 +916,9 @@ says nothing about real lesions, and the fixture's numbers must never reach the 
 |---|---|---|---|---|---|
 | F1 | Best gating signal, internally? | none / confidence / OOD-z / **disagreement** / combined | Coverage–accuracy AUC; accuracy @ 80% and 90% coverage | **DONE 2026-09-28** | **Confidence** (AUC 0.917). Disagreement 0.746 = no gate (0.747); amended 0.801. **H1 not supported** |
 | F2 | **Does the ranking survive shift?** | Same five arms on APTOS + Messidor-2 | Same metrics, externally | **DONE 2026-09-28** | Confidence best on both (0.860, 0.841); amended, the combined policy ties it on APTOS (0.860). Disagreement 0.549 and 0.659, at or below no gate; amended 0.672 and 0.716. **H1′ not supported** |
-| F3 | What does it mean clinically? | Same arms | rDR sensitivity/specificity at fixed coverage | **RUN 2026-09-28** | Computed; in `results.json`, not yet transcribed |
-| F4 | Which form of the signal works? | Binary / magnitude / magnitude + unobservable set | Coverage–accuracy AUC | **RUN 2026-09-28** | Computed; in `results.json`, not yet transcribed |
-| F5 | Where do cases actually land? | — | Fraction and accuracy per action bucket | **RUN 2026-09-28** | Computed; in `results.json`, not yet transcribed |
+| F3 | What does it mean clinically? | Same arms | rDR sensitivity/specificity at fixed coverage | **DONE 2026-09-29** | At 80% coverage, confidence raises the accepted set's rDR **sensitivity** (EyePACS 0.695 → 0.835, Messidor-2 0.834 → 0.917). Amended disagreement raises **specificity** instead (EyePACS 0.978 → 0.987, APTOS 0.827 → 0.867, Messidor-2 0.932 → 0.951), not sensitivity |
+| F4 | Which form of the signal works? | Binary / magnitude / magnitude + unobservable set | Coverage–accuracy AUC | **DONE 2026-09-29** | Registered: binary ≥ magnitude (EyePACS 0.773 vs 0.746); the frozen form was the weaker one. Reported, not selected (§6.3). Amended: identical to 0.001 |
+| F5 | Where do cases actually land? | — | Fraction and accuracy per action bucket | **DONE 2026-09-29** | Registered: DEFER takes 55% of EyePACS test images at 81% accuracy against ACCEPT's 85%, so deferral carries almost no information. Amended: DEFER 22% at 55% against ACCEPT 84% |
 
 > **F2 is the thesis.** A signal that only wins in-domain is a curiosity; one that
 > holds under shift is a contribution.
@@ -927,9 +927,9 @@ says nothing about real lesions, and the fixture's numbers must never reach the 
 
 | ID | Question | Status | Result |
 |---|---|---|---|
-| G1 | Which errors does disagreement catch that confidence misses? Set overlap + real examples | TODO | |
-| G2 | Does the quality head flag truly ungradable images? Held-out DDR grade-5 | TODO | |
-| G3 | Failure taxonomy: where does the reasoner contradict a *correct* grade? | TODO | |
+| G1 | Which errors does disagreement catch that confidence misses? Set overlap + real examples | **DONE 2026-09-29, exploratory** | Registered disagreement points at *correct* cases (error AUROC 0.38–0.45). Amended, it adds information beyond confidence only under shift (within-quintile AUROC: EyePACS 0.52, APTOS 0.62, Messidor-2 0.56), and it defers more **referral** errors than confidence on both external sets. Figure 1 candidates: 24 / 0 / 4 |
+| G2 | Does the quality head flag truly ungradable images? Held-out DDR grade-5 | **NOT RUN** (D10) | M0 was never built |
+| G3 | Failure taxonomy: where does the reasoner contradict a *correct* grade? | **DONE 2026-09-29, exploratory** | Registered: M3 contradicts 47–65% of M1's correct calls; amended 10–36%. **56% of M1's APTOS errors are ŷ ≥ 3 calls that disagreement cannot see (D1)**, against 7–8% elsewhere |
 
 > G1 produces **figure 1**: a case the grader calls confidently normal while the
 > evidence path finds microaneurysms. Go looking for it deliberately.
@@ -1641,6 +1641,71 @@ AUC, catches one changed by 1e-9, and refuses another pass's results and a locke
 with no unblinding on record. Notebook 11 ran end to end on the toy Kaggle tree
 (07 → 08 → step 3 → 09 → 10 → 11). One fix came from that run: a set where no image
 qualifies for a figure category is now reported as a finding, not a failure.
+
+
+### Phase 8 — results, 2026-09-29 (exploratory, labelled post hoc)
+
+`11_phase8.ipynb`, published as `verify-dr-phase8`. Sections 3, 4 and 6 are kept
+verbatim in `docs/phase8/2026-09-29_readout.txt`, with the audit's two images.
+
+- **The readout checks out:** 76 cross-checks and none fails. G1's four-way splits and
+  F5's shares each sum to one, and E3's per-grade counts sum exactly to the lesion images
+  09 found before any label was read.
+- **P8.0, the gate, passed on all three sets.** The recomputation reproduces every
+  published AUC (6 models × 2 analyses × 5 arms per set) to 1e-12.
+- **P8.1.** The registered secondary outcomes are transcribed into Stages D, E and F above.
+
+**What Phase 8 adds. All of it is post hoc; none of it changes a verdict.**
+
+1. **The registered disagreement points at correct cases.** Its error-detection AUROC is
+   0.44 on EyePACS test, 0.38 on APTOS and 0.45 on Messidor-2, below chance; confidence
+   scores 0.87, 0.92 and 0.79. At 80% coverage, only 10% of the in-domain cases it
+   deferred were errors, against 25% overall. It deferred M1's safest calls.
+2. **Amended, it adds information beyond confidence, and only under shift.** Within
+   quintiles of confidence, its AUROC for error is 0.52 in-domain, 0.62 on APTOS and 0.56
+   on Messidor-2.
+3. **On referral errors, the amended disagreement beats confidence on both external
+   sets.** At 80% coverage it defers 38.7% of APTOS's referral errors against
+   confidence's 17.0%, and 31.1% of Messidor-2's against 26.5%. At 90%: 8.0% against 5.4%,
+   and 10.7% against 8.7%. In-domain it is the other way round: 28.4% against 55.3%. F3 shows which errors these are.
+   The arm raises the accepted set's specificity, not its sensitivity, so it catches
+   false referrals, not missed ones.
+4. **APTOS has a structural blind spot.** 56% of M1's APTOS errors are grade-3 or grade-4
+   calls, which disagreement cannot see because M3 stops at grade 2 (D1). In-domain and
+   on Messidor-2 the share is 7–8%.
+5. **The registered failure, counted.** M3 contradicted 65% of M1's correct in-domain
+   calls that it could judge. By rule, 48% of those were R3* and 42% were R3. After D12
+   the rate falls to 31%, and 76% of the over-calls are microaneurysm-only (R2).
+   Messidor-2 has adjudicated grades, and its over-call rate is similar (20.1% against
+   22.5% in-domain). That argues against missed microaneurysms in EyePACS's single-grader
+   labels as the main cause.
+6. **Faithfulness holds (E1–E3).** Removing M2's lesion regions changes the grader more
+   than removing all 19 equal-area random regions in 67–78% of lesion images, against
+   about 5% by chance, and in 75–96% on grades 1–3. The grader does use the lesions the
+   evidence pathway finds.
+7. **The figure-1 case exists, but it is rare.** Category A (M1 confidently normal, truth ≥ 1,
+   M3 finds microaneurysms) has 24 images in-domain (0.14%), none on APTOS and 4 on
+   Messidor-2. The strongest candidate on paper is `EyePACS::219_left`: truth 2, M1 says
+   0 with confidence 0.982, and M2 finds 30 microaneurysms covering 425 px. The sheets
+   themselves have not been seen yet.
+
+**P8.6: Messidor-2's preprocessing.** This answers dataset card Q2.
+- **Not Ben-Graham processed and not grey-normalised.** The cached images have black
+  padding (median 6.3), no near-grey pixels, and saturation like APTOS's (0.79 against
+  0.80). Such processing would have survived this project's pipeline.
+- **The least sharp source.** Median Laplacian variance is 106, against 161–204 for the
+  other three.
+- **M2 reports microaneurysms in 73.2% of Messidor-2 images** (median 23 px), against
+  50.7% for EyePACS and 60.5% for APTOS. Whether soft, compressed images produce microaneurysm-like
+  specks is a hypothesis, not a finding.
+- **EyePACS is the least saturated source** (0.47, against 0.70–0.80). The training domain
+  differs in colour from every other source, which is a fact to set beside H2.
+- **A bug: the raw-file check measured the cache.** The cache keeps each source's folder
+  names, so a `preprocess` folder exists inside `verify-dr-cache-512`, and it sorted
+  first. The fix is a guard in `phase8.py audit`, which skips a raw root inside a cache
+  root and has a test, plus discovery that excludes the cache. Rehearsed on the toy
+  tree. The mirror's native resolution and compression are therefore still unobserved.
+  Re-running section 6 with the mirror attached would observe them.
 
 ### Phase 7's code was written before the unblinding — the order this required
 

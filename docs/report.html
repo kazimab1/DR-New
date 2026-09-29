@@ -490,8 +490,8 @@
       own confidence ranks its errors better on every test set.
     </p>
     <div class="stamp">
-      <span>Updated <b>28 Sep 2026</b></span>
-      <span>Unblinded <b>once</b> · 28 Sep</span>
+      <span>Updated <b>29 Sep 2026</b></span>
+      <span>Unblinded <b>once</b> · 28 Sep · error analysis run</span>
       <span>Verdict <b>every hypothesis not supported</b></span>
       <span>Fitted parameters <b>committed</b> · <code>0df6b029</code></span>
     </div>
@@ -692,6 +692,110 @@
         faithfulness experiments (E1–E3).
       </p>
     </div>
+  </section>
+
+  <section>
+    <h2>Phase 8 · the error analysis</h2>
+    <h3>Why disagreement lost, and the one place it wins</h3>
+    <p>
+      Every analysis here was declared before it ran and is labelled post hoc; none of it
+      can change a verdict. Before producing a single table, the analysis recomputed every
+      per-image signal and reproduced all published AUCs exactly: six models, two analyses,
+      five arms on each set, to one part in 10<sup>12</sup>.
+    </p>
+    <ol class="findings">
+      <li>
+        <div>
+          <h4>The grader uses the lesions the evidence pathway finds</h4>
+          <p>
+            This one is a registered secondary outcome (E2). Removing M2's lesion regions
+            changes the grader more than all 19 equal-area random removals in
+            <span class="num">67–78%</span> of lesion images, against about
+            <span class="num">5%</span> by chance, and in <span class="num">75–96%</span> of
+            truly diseased grades 1–3. The verification half of the design works.
+          </p>
+        </div>
+      </li>
+      <li>
+        <div>
+          <h4>The registered disagreement points at correct cases</h4>
+          <p>
+            Its error-detection AUROC is below 0.5 on every set
+            (<span class="num">0.38–0.45</span>). Deferring 20% of cases, it catches
+            <span class="num">8–14%</span> of the grader's errors, fewer than deferring at
+            random would. Its largest disagreements were healthy eyes that M1 had called
+            correctly.
+          </p>
+        </div>
+      </li>
+      <li>
+        <div>
+          <h4>Amended, it adds information only under shift</h4>
+          <p>
+            Within quintiles of confidence, its AUROC for the grader's errors is
+            <span class="num">0.52</span> in-domain, where it adds nothing to confidence, but
+            <span class="num">0.62</span> on APTOS and <span class="num">0.56</span> on
+            Messidor-2.
+          </p>
+        </div>
+      </li>
+      <li>
+        <div>
+          <h4>More than half of the APTOS errors are invisible to it</h4>
+          <p>
+            <span class="num">56%</span> of the grader's APTOS errors are grade-3 or grade-4
+            calls, above M3's ceiling of grade 2 (D1), which traces back to C1's failure.
+            Elsewhere the share is <span class="num">7–8%</span>.
+          </p>
+        </div>
+      </li>
+    </ol>
+    <div class="scroller">
+      <table>
+        <thead>
+          <tr><th>Referral errors deferred</th><th>confidence</th><th>disagreement, amended</th><th>chance</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>EyePACS test</td><td class="key">55.3%</td><td>28.4%</td><td>20%</td></tr>
+          <tr><td>APTOS</td><td>17.0%</td><td class="key">38.7%</td><td>20%</td></tr>
+          <tr><td>Messidor-2</td><td>26.5%</td><td class="key">31.1%</td><td>20%</td></tr>
+        </tbody>
+        <caption>
+          At 80% coverage: the share of the grader's refer-or-not errors that each arm sends
+          to a human. On both external sets, disagreement catches more than confidence, and
+          the same holds at 90% coverage. F3 shows what it catches: specificity rises and
+          sensitivity does not, so these are false referrals, not missed ones.
+        </caption>
+      </table>
+    </div>
+    <div class="note caution">
+      <span class="tag">The premise in its narrowest surviving form</span>
+      <p>
+        Under dataset shift, disagreement with independent lesion evidence flags false
+        referrals better than the grader's confidence does. It was found post hoc, in the
+        amended analysis only, and it concerns the less costly of the two referral errors.
+        It is a hypothesis for a new pre-registered study, not a finding of this one.
+      </p>
+    </div>
+    <h4>Figure 1 exists, and it is rare</h4>
+    <p>
+      The declared rule selects images the grader calls normal with high confidence, where
+      the evidence pathway finds microaneurysms and the truth is diseased. It finds
+      <span class="num">24</span> of 17,615 in-domain images, none on APTOS and
+      <span class="num">4</span> on Messidor-2. The strongest is <code>EyePACS::219_left</code>:
+      truth grade 2, called 0 at confidence <span class="num">0.982</span>, with 30
+      microaneurysms found. The case the design was built for is real, and far too rare to
+      carry the aggregate.
+    </p>
+    <h4>Messidor-2 was not Ben-Graham processed</h4>
+    <p>
+      The images have black padding, no near-grey pixels and APTOS-like saturation, so the
+      open question on the dataset card is answered. It is, however, the least sharp source
+      (median Laplacian variance <span class="num">106</span> against
+      <span class="num">161–204</span>), and M2 reports microaneurysms in
+      <span class="num">73%</span> of its images against 51–61% elsewhere. Both belong in the
+      limitations.
+    </p>
   </section>
 
   <section>
