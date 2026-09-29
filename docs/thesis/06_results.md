@@ -1,9 +1,10 @@
 # Chapter 6 — Results
 
-> **Draft, 2026-09-28.** Built from `docs/04_experiment_register.md` and the verbatim
-> unblinding readout, `docs/unblinding/2026-09-28_readout.txt`. Values marked ⟨P8.1⟩
-> are computed and stored in `results.json` but not yet transcribed (Phase 8, notebook
-> 11). Target length about 3,500 words; this draft is about 2,600 before those tables.
+> **Draft, 2026-09-29.** Built from `docs/04_experiment_register.md` and two verbatim
+> readouts: the unblinding (`docs/unblinding/2026-09-28_readout.txt`), and the secondary
+> outcomes that Phase 8 transcribed from `results.json` (`docs/phase8/2026-09-29_readout.txt`,
+> section 3). Every outcome here was registered and computed at the one label join;
+> the exploratory analyses are in Chapter 7. Target length about 3,500 words.
 
 **How to read this chapter.** The locked test sets were evaluated once, under an
 analysis plan fixed before any of their labels was read. Two analyses come from that
@@ -133,16 +134,36 @@ On Messidor-2 the true prior roughly halves ECE, so it is EM's estimate of the p
 that fails. On APTOS even the true prior makes calibration worse, so the shift there is
 not the label shift the method assumes. **H2 is not supported.**
 
-**D4: how much unlabelled target data EM needs.** ⟨P8.1: ECE after EM on 50, 200 and
-500 images, and on all of them⟩.
+**D4: how much unlabelled target data EM needs.** More data does not help. With
+`eyepacs_full`, EM's ECE on APTOS is 0.164 from 50 unlabelled images and 0.168 from all
+of them. On Messidor-2 it is 0.183 and 0.184. In the amended analysis, APTOS gets worse
+as the sample grows (0.195 → 0.241). Messidor-2 improves (0.266 → 0.118) but stays
+above BCTS alone (0.093). An estimate that does not improve with more data is biased,
+not noisy, which fits a shift that is not pure label shift.
 
 ## 6.5 Faithfulness (E1–E3)
 
 The randomisation test compares removing M2's lesion regions with removing 19
-equal-area random regions. It reached a decision on 99.6% of in-domain images with a
-detected lesion, 99.2% on Messidor-2 and 97.2% on APTOS. ⟨P8.1, E1: the distribution of
-Δ_lesion. E2: Δ_lesion minus the mean control Δ, and the faithful share. E3: both by
-true grade.⟩
+equal-area random regions. A lesion image counts as *faithful* when removing its lesions
+lowers M1's expected grade more than every one of the 19 controls. If the lesion regions
+were no different from random ones, that would happen about 5% of the time.
+
+**Table 6.4 — Faithfulness (E1–E3), `eyepacs_full`, mean of three seeds.**
+
+| Set | Lesion images decided | Beats the mean control (E2) | Faithful: beats all 19 | Faithful by true grade 0 / 1 / 2 / 3 / 4 (E3) |
+|---|---|---|---|---|
+| EyePACS test | 14,095 of 14,158 | 83.3% | 66.5% | 0.60 / 0.77 / 0.87 / 0.84 / 0.59 |
+| APTOS | 2,900 of 2,984 | 85.5% | 70.0% | 0.47 / 0.96 / 0.89 / 0.75 / 0.59 |
+| Messidor-2 | 1,561 of 1,574 | 90.8% | 77.8% | 0.67 / 0.85 / 0.96 / 0.95 / 0.74 |
+
+**The grader uses the lesions the evidence pathway finds.** Removing them changes M1's
+expected grade (E1: median 0.041 in-domain, 0.206 on APTOS, 0.145 on Messidor-2). More
+to the point, it changes the grade more than random removal of the same area, far above
+the rate chance allows (E2). Faithfulness is strongest where the lesions are real, in
+grades 1–3 (0.75–0.96). It is weakest in grade 0, where M3's lesions are mostly false
+positives, and in grade 4, perhaps because disease there is widespread, so a random
+region often lands on disease too. This answers the question every reviewer asks of an explanation: yes, it
+is lesion-specific.
 
 ## 6.6 Selective triage: H1 and H1′
 
@@ -188,9 +209,56 @@ ties confidence on APTOS (mean 0.860 against 0.860) and is ahead in four of six 
 there, by at most 0.016. It trails confidence by 0.02–0.05 on the other two sets. No
 registered claim concerns the combined arm, so this is description, not support.
 
-**Secondary triage outcomes.** ⟨P8.1: accuracy at 80% and 90% coverage per arm. F3:
-rDR sensitivity and specificity among accepted cases, and the share of referable cases
-deferred. F4: binary against magnitude disagreement. F5: share and accuracy per action.⟩
+**Accuracy at fixed coverage** tells the same story as the AUC.
+
+**Table 6.5 — Exact-grade accuracy among accepted cases, `eyepacs_full`.**
+
+| Set | Coverage | none | confidence | OOD | disagreement | combined |
+|---|---|---|---|---|---|---|
+| EyePACS test | 80% | 0.747 | **0.883** | 0.794 | 0.710 → 0.764 | 0.787 → 0.808 |
+| EyePACS test | 90% | 0.747 | **0.813** | 0.769 | 0.727 → 0.746 | 0.794 → 0.807 |
+| APTOS | 80% | 0.615 | **0.740** | 0.665 | 0.569 → 0.663 | 0.732 → 0.734 |
+| APTOS | 90% | 0.615 | 0.675 | 0.623 | 0.572 → 0.618 | 0.675 → **0.676** |
+| Messidor-2 | 80% | 0.669 | **0.766** | 0.682 | 0.643 → 0.680 | 0.683 → 0.708 |
+| Messidor-2 | 90% | 0.669 | **0.715** | 0.675 | 0.645 → 0.663 | 0.694 → 0.708 |
+
+Registered disagreement leaves the accepted set *less* accurate than no gating at both
+coverages on every set.
+
+**F3: the clinical view.** Among accepted cases at 80% coverage, the table gives
+sensitivity and specificity for referable DR (grade ≥ 2), and the share of truly
+referable cases the arm deferred.
+
+**Table 6.6 — F3 at 80% coverage, `eyepacs_full`.**
+
+| Set | none | confidence | disagreement, registered | disagreement, amended |
+|---|---|---|---|---|
+| EyePACS test | 0.695 / 0.978; 20% | **0.835** / 0.982; 31% | 0.717 / 0.971; 3% | 0.671 / **0.987**; 28% |
+| APTOS | 0.995 / 0.827; 20% | **1.000** / 0.825; 26% | 0.996 / 0.768; 9% | 0.997 / **0.867**; 21% |
+| Messidor-2 | 0.834 / 0.932; 20% | **0.917** / 0.911; 10% | 0.843 / 0.912; 5% | 0.834 / **0.951**; 17% |
+
+The two signals improve different things. Confidence raises the accepted set's
+**sensitivity**: it defers the referable cases M1 would have missed. Amended
+disagreement raises **specificity** instead: it defers false referrals, and leaves
+sensitivity close to the ungated level (0.671 against 0.695 in-domain, 0.997 against
+0.995 on APTOS, 0.834 against 0.834 on Messidor-2). For a screening programme, the missed
+referral is the costlier error, so confidence's gain is the more valuable one. The
+registered disagreement deferred almost no referable cases (3–9%, where chance is 20%),
+because its largest disagreements were healthy eyes.
+
+**F4: which form of the signal.** In the registered analysis the binary form, whether
+there is any disagreement at all, beats the frozen magnitude form on every set: 0.773
+against 0.746 in-domain, 0.554 against 0.549 on APTOS, 0.675 against 0.659 on
+Messidor-2. Magnitude's top level is where M3's false evidence concentrates. In the
+amended analysis the two forms agree to within 0.001. The plan reports F4 and does not
+select on it (§6.3).
+
+**F5: where the combined policy sends cases.** In the registered analysis the policy
+defers 56% of in-domain images, and those deferred cases are 81% correct against 85% for
+the accepted ones, so deferral carries almost no information. In the amended analysis
+it defers 22% at 55% accuracy against 84% accepted. On APTOS the amended policy defers
+39% of images, and those are 39% correct against 83.5% for the accepted ones. The
+adjacent-grade set holds the truth within one grade in 95–99% of cases everywhere.
 
 ## 6.7 The training source: H3 (B7)
 
@@ -199,8 +267,9 @@ minus EyePACS-only is −0.091, −0.092 and −0.020 on Messidor-2, and −0.01
 +0.031 on APTOS. **H3 is not supported:** the effect is negative on Messidor-2 in every
 seed, and inconsistent in sign on APTOS. In-domain the difference is within noise
 (validation QWK −0.0095 on average). The DDR seed-43 run stopped at epoch 1, which
-widens this variant's seed spread. B6, the balanced-training ablation, was not run.
-⟨Author: confirm, and record it with the other deviations or limitations.⟩
+widens this variant's seed spread. B6, the balanced-training ablation listed in the
+register, was not run. It tests no hypothesis, and the thesis should say so rather than
+leave it silently absent.
 
 ## 6.8 Summary of the verdicts
 
