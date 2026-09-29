@@ -848,7 +848,15 @@ def run_audit(args) -> int:
             print(f"    {k:<18} {s['median']:.3f} [{s['q25']:.3f}-{s['q75']:.3f}]")
 
     raw_files: List[Path] = []
+    cache = [Path(r).resolve() for r in (args.cache_root or [])]
     for root in args.raw_root or []:
+        resolved = Path(root).resolve()
+        if any(resolved == c or c in resolved.parents for c in cache):
+            # The cache keeps each source's folder names, so the mirror's "preprocess"
+            # folder exists inside it too. Measuring that copy re-measures this project's
+            # own preprocessing -- which the first run of notebook 11 did.
+            print(f"\nskipped raw root {root}: it is inside the cache, not the source mirror")
+            continue
         raw_files += sorted(p for p in Path(root).rglob("*") if p.suffix.lower() in RAW_SUFFIXES)
     if raw_files:
         rng = np.random.default_rng(args.seed)

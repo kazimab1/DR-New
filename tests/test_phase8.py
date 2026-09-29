@@ -305,6 +305,16 @@ class Phase8(unittest.TestCase):
         self.assertIn("eyepacs_test", audit["detection"])
         self.assertTrue((self.tmp / "audit" / "contact_sheet.png").exists())
 
+        # A raw root inside the cache is the cache's own copy, not the source mirror:
+        # the first real run measured exactly that. It must be skipped, not measured.
+        inside = SimpleNamespace(**{**vars(args), "cache_root": [root], "raw_root": [root / "Messidor2"],
+                                    "out": self.tmp / "audit_inside"})
+        code, text = quiet(phase8.run_audit, inside)
+        self.assertEqual(code, 0, text)
+        self.assertIn("inside the cache", text)
+        self.assertEqual(json.loads((self.tmp / "audit_inside" / "audit.json").read_text())
+                         ["raw_messidor2"], [])
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
