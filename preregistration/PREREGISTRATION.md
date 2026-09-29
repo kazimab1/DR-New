@@ -30,8 +30,8 @@
 | Field | Value |
 |---|---|
 | Project | VERIFY-DR |
-| Author | _(name)_ |
-| Supervisor | _(name)_ |
+| Author | Kazim Alikhan |
+| Supervisor | Kazim Alikhan, the author (see the completion note below) |
 | Institution | _(institution)_ |
 | Freeze date | **2026-09-16** |
 | Freeze commit hash | [`17472a2`](../../commit/17472a2497054158c20588e9b71505b40b44a590) — full: `17472a2497054158c20588e9b71505b40b44a590` |
@@ -45,6 +45,18 @@
 > If the author and the supervisor are the same person, say so here. A supervisor
 > acknowledgement is evidence that someone independent saw the protocol before the
 > locked data was touched, and a reader cannot assess that from two blank fields.
+>
+> **Completion note, 2026-09-29, after the unblinding.** This is administrative, as the
+> note above allows. The author and the supervisor are the same person, so the
+> acknowledgement in the table is the author's own. It is not evidence that someone
+> independent saw the protocol before the locked data was touched. The order of events
+> rests on the record instead:
+> - the freeze commit's hash, written into the next commit;
+> - the fitted parameters' digest, committed here before the locked pass, which refuses
+>   to run without it (Step 3);
+> - GitHub's record of when each commit was pushed, which the author cannot backdate.
+>
+> The institution is still to be added.
 
 ---
 
