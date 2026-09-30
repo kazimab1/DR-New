@@ -81,8 +81,8 @@ floors). **Focal weighting demonstrably does its stated job — a reportable fin
 grade-1 F1 0.0190, grade-1 recall 0.0220, MAE 0.0230. The earlier "+-0.02 QWK" was a
 conversational round number; use these.
 
-**B2's prediction is still open** — no head reached ResNet50's grade-1 F1 of 0.180.
-B4's `class_balanced` is the remaining test.
+**B2's prediction resolved against reopening** at B4 (register): no configuration but
+ResNet50 reached grade-1 F1 0.180, and its advantage was recall-led and costly.
 
 Stage B is closed: the designed default recipe survived every ablation.
 

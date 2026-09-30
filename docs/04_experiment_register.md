@@ -202,7 +202,7 @@ at the freeze, and that is a pre-registration decision, not a mid-run discovery.
 | B3 | Which head? | CE / ordinal / focal-ordinal | Val QWK + MAE | **DONE** | **focal-ordinal** — focal earns its place; CE ruled out |
 | B4 | Which sampler? | Natural / stratified exposure / class-balanced | Val QWK at natural prevalence | **DONE (2 arms)** | **weighted** — the third arm was a duplicate |
 | B5 | Does eye-pair fusion help? | Single vs left+right fusion | Val QWK, paired across seeds | **DONE** | **no fusion** — best grader, but confounds the thesis signal |
-| B6 | Does balancing the dataset help? *(ablation)* | `eyepacs_full` vs `eyepacs_balanced_1000` | QWK on natural-prevalence test | TODO | |
+| B6 | Does balancing the dataset help? *(ablation)* | `eyepacs_full` vs `eyepacs_balanced_1000` | QWK on natural-prevalence test | **NOT RUN** | Tests no hypothesis, and nothing after the freeze depended on it; chapter 6 (§6.7) says so rather than leave it silently absent |
 | B7 | Does DDR improve transfer? **(H3)** | `eyepacs_full` vs `eyepacs_ddr_full` | External QWK — single unblinding | **DONE 2026-09-28** | **H3 not supported.** QWK, DDR − EyePACS-only, per seed: Messidor-2 −0.091 / −0.092 / −0.020; APTOS −0.011 / +0.047 / +0.031 |
 
 > **B1 warning.** Judge on grade-1 **F1**, not overall QWK and not recall alone.
@@ -346,7 +346,7 @@ applied rather than overridden: it simply fails to discriminate here.
 **Decision: `ordinal_focal`.** No new baseline is needed — the B1 512 run remains the
 reference configuration for B4 and B5.
 
-**B2's recorded prediction is still open.** Neither head reached ResNet50's grade-1 F1
+**B2's recorded prediction is still open** *(resolved at B4, below: not reopened)*. Neither head reached ResNet50's grade-1 F1
 of 0.180: plain `ordinal` moved it *down* to 0.122, and `softmax_ce` reached 0.159 only
 by trading 0.053 QWK — and by a different mechanism (precision 0.141 / recall 0.182,
 against ResNet50's precision 0.115 / recall 0.413). B4's `class_balanced` is the
@@ -1635,7 +1635,7 @@ the tables are chosen before their numbers are seen. G2 cannot run (no M0, D10).
 | P8.5 | **Figure 1 candidates** | EyePACS test, then the externals; model `eyepacs_full_s42`; amended evidence | Three categories. **A** (figure 1): M1 predicts 0 among its most confident quarter of grade-0 calls, the truth is ≥ 1, and M3 finds microaneurysms. **B**: the same confident 0, a true 0, and M3 evidence 2 (false evidence). **C**: M1 correct at grade 2 and M3 evidence 0 (M3 misses). Up to 8 per category, ordered by confidence and then image ID, and drawn with M2's lesion outlines. The figure may use any candidate, and the caption says it was selected. |
 | P8.6 | **Messidor-2 preprocessing audit** | images only, label-free | 200 cached images per source (EyePACS test, APTOS, Messidor-2, DDR). Field-of-view fraction, background level, colour and saturation, near-grey share, sharpness and high-pass energy. Raw Messidor-2 files: size, mode and background. Lesion-detection rates per source from the locked passes. Contact sheets. |
 
-**Built and tested 2026-09-28, not yet run.** The World fixture's 11 tests cover a real
+**Built and tested 2026-09-28; run 2026-09-29** (results below). The World fixture's 11 tests cover a real
 `--unblind` run of `analyse.py` followed by Phase 8. There, the gate reproduces every
 AUC, catches one changed by 1e-9, and refuses another pass's results and a locked pass
 with no unblinding on record. Notebook 11 ran end to end on the toy Kaggle tree
