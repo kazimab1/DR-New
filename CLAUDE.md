@@ -303,6 +303,8 @@ Chapter 6 is complete and chapter 7 drafted (`docs/thesis/`).
 **Presentation figures built 2026-09-30:** `docs/presentation/figures/`, eight 16:9 PNGs
 drawn by `make_figures.py`. Every number cites its readout line and is checked against
 the published means (EyePACS confidence is 0.9165 exactly: round half up, 0.917).
+The new 5-minute deck built from them is https://claude.ai/artifact/EHeVPgAsfEXz6Gkf67g1Jj
+(9 slides, 4 hidden backups, notes with timings). It replaces `verify_dr_5min.pptx`.
 
 **Next:**
 - Chapter 4 (methods), from `PREREGISTRATION.md` and the report's as-built table.

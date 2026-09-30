@@ -99,3 +99,26 @@ parts no longer hold:
   result with its mechanism.
 - **Likely questions, the leaderboard answer.** No split is comparable with the
   leaderboard (D8), so the benchmark experiment H1 on the official split did not run.
+
+---
+
+## The new 5-minute deck · 2026-09-30
+
+This deck replaces `verify_dr_5min.pptx` for talks: https://claude.ai/artifact/EHeVPgAsfEXz6Gkf67g1Jj.
+
+It has nine slides and four hidden backup slides. Speaker notes with timings are on
+every slide.
+
+| # | Slide | Time | The one thing to land |
+|---|---|---|---|
+| 1 | Cover | 0:00–0:20 | The question is which gradings to trust, and the test was allowed to fail |
+| 2 | The problem | 0:20–0:55 | Confidence is the usual safeguard, and a network can be confidently wrong |
+| 3 | The idea (figure 1) | 0:55–1:35 | Two pathways that never share a weight |
+| 4 | The case | 1:35–2:05 | A real image: the confident grader is wrong, and the evidence is right |
+| 5 | The test (figure 2) | 2:05–2:30 | Fixed before any test label was read |
+| 6 | The result (figure 3) | 2:30–3:15 | Confidence beat disagreement on every test set |
+| 7 | Why (figure 6) | 3:15–3:55 | M3 is not specific, and it is blind above grade 2 |
+| 8 | What survives | 3:55–4:30 | Verification works; false referrals under shift, found after the unblinding |
+| 9 | Close | 4:30–5:00 | A pre-registered negative result with its mechanism |
+
+The backup slides, hidden in the run-through, are figures 4, 5, 7 and 8.
