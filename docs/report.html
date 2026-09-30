@@ -409,6 +409,10 @@
   .arch .hd     { font-family: var(--sans); font-size: 10.5px; font-weight: 700; letter-spacing: 0.12em; fill: var(--muted); }
   .arch .acc-t  { fill: var(--accent); }
   table.words { font-family: var(--sans); font-size: 13.5px; font-variant-numeric: normal; }
+  table.compare { font-family: var(--sans); font-size: 13.5px; font-variant-numeric: normal; min-width: 780px; }
+  table.compare th, table.compare td { text-align: left; vertical-align: top; }
+  table.compare td { color: var(--ink-2); line-height: 1.45; }
+  table.compare td:first-child { color: var(--ink); font-weight: 600; width: 17%; }
   table.words th, table.words td { text-align: left; vertical-align: top; }
   table.words td:last-child { font-family: var(--mono); font-size: 12px; color: var(--muted); white-space: nowrap; }
   /* ---------- epoch timeline ---------- */
@@ -510,7 +514,7 @@
       own confidence ranks its errors better on every test set.
     </p>
     <div class="stamp">
-      <span>Updated <b>29 Sep 2026</b></span>
+      <span>Updated <b>30 Sep 2026</b></span>
       <span>Unblinded <b>once</b> · 28 Sep · error analysis run</span>
       <span>Verdict <b>every hypothesis not supported</b></span>
       <span>Fitted parameters <b>committed</b> · <code>0df6b029</code></span>
@@ -526,8 +530,8 @@
     <li class="done">5 · freeze</li>
     <li class="done">6 · final + unblinding</li>
     <li class="done">7 · calibration</li>
-    <li class="live">8 · error analysis</li>
-    <li>9 · write-up</li>
+    <li class="done">8 · error analysis</li>
+    <li class="live">9 · write-up</li>
   </ul>
 
   <section>
@@ -858,6 +862,44 @@
       <span class="num">161–204</span>), and M2 reports microaneurysms in
       <span class="num">73%</span> of its images against 51–61% elsewhere. Both belong in the
       limitations.
+    </p>
+  </section>
+
+  <section>
+    <h2>In context · published results</h2>
+    <h3>The grader lands where public-data models do, the confidence baseline behaves as published, and the central comparison has no published counterpart</h3>
+    <p>
+      Few published numbers compare directly with these, because the images, labels,
+      metrics or training data differ. The last column says how far each comparison
+      holds. The in-domain test is a custom patient-regrouped split (D8), so no
+      in-domain number here sits beside a leaderboard figure. The published values were
+      gathered by search, and the full-text papers could not be opened from the build
+      environment, so each should be checked against its source before it is cited. The
+      sources are listed in <code>docs/thesis/02_literature_comparison.md</code>.
+    </p>
+    <div class="scroller">
+      <table class="compare">
+        <thead>
+          <tr><th>Question</th><th>This project</th><th>Published</th><th>How far it compares</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Grading on APTOS</td><td>QWK <span class="num">0.85</span>, with no APTOS images in training</td><td>APTOS 2019 winner: QWK <span class="num">0.936</span>, trained on APTOS and EyePACS, ensembled, on a hidden test set</td><td>Loosely. That result is in-domain; this one is transfer</td></tr>
+          <tr><td>Grading on Messidor-2, adjudicated</td><td>QWK <span class="num">0.78</span>, with no Messidor-2 images in training</td><td>Krause 2018, against an adjudicated reference: algorithm κ <span class="num">0.84</span>, ophthalmologists <span class="num">0.80–0.84</span></td><td>Loosely. The metric and the kind of reference match, but not the images</td></tr>
+          <tr><td>Referable DR on Messidor-2</td><td>not computed</td><td>Gulshan 2016: AUC <span class="num">0.99</span>, private data. Voets 2019, reproducing it with public data: <span class="num">0.853</span></td><td>Context only</td></tr>
+          <tr><td>Deferring the least confident 20%</td><td>Sensitivity / specificity: APTOS <span class="num">100% / 82.5%</span>, Messidor-2 <span class="num">91.7% / 91.1%</span>, in-domain <span class="num">83.5% / 98.2%</span></td><td>Leibig 2017 met the NHS targets of <span class="num">85% / 80%</span> by referring up to 20% of the most uncertain cases</td><td>Reasonably well. A single calibrated network meets the targets on both external sets</td></tr>
+          <tr><td>Trust signals under a change of country (EyePACS to APTOS)</td><td>Confidence is the best or joint-best arm on every set</td><td>Band 2021, the same shift: Bayesian methods beat the plain (MAP) network, and the ranking of methods depends on the task</td><td>This baseline is the plain one. Disagreement lost to the weakest version of confidence</td></tr>
+          <tr><td>Disagreement with independent lesion evidence</td><td>Below confidence on every set, every interval below <span class="num">−0.09</span></td><td>No published test of this comparison was found</td><td>New, and negative</td></tr>
+          <tr><td>Lesion segmentation</td><td>Dice <span class="num">0.505</span> on DDR (microaneurysms <span class="num">0.344</span>); <span class="num">0.425</span> on IDRiD, never seen in training</td><td>IDRiD 2018 challenge, best AUPR: microaneurysms <span class="num">0.50</span>, hard exudates <span class="num">0.885</span></td><td>Not numerically. The metrics differ, but in both, microaneurysms are the hardest lesion</td></tr>
+          <tr><td>Prior-shift correction (H2)</td><td>EM worsened external ECE in 23 of 24 cells</td><td>Alexandari 2020: EM with bias-corrected calibration is hard to beat when only the prior shifts</td><td>Consistent. Here cameras and populations shift too</td></tr>
+          <tr><td>Explanations (E2)</td><td>Removing the lesions beats all 19 random removals in <span class="num">67–78%</span> of lesion images, against 5% by chance</td><td>Ayhan 2022: saliency maps vary widely and often disagree with clinicians</td><td>Complementary: E2 changes the image rather than measuring overlap</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>
+      One parallel is worth keeping. Krause 2018 found that where ophthalmologists' majority
+      grades differed from the specialists' adjudicated ones, the commonest causes were missed
+      microaneurysms (<span class="num">36%</span>) and artefacts (<span class="num">20%</span>). The evidence pathway's false findings here are
+      the same two things. The weak points are shared by people and models.
     </p>
   </section>
 
