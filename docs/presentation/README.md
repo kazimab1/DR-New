@@ -48,3 +48,54 @@ the unblinding.
 Source: `build_pptx.js` (in the session scratchpad — copy into `scripts/` if you want
 it version-controlled). Requires `pptxgenjs`. Editing directly in PowerPoint is fine;
 the file is not generated as part of any build.
+
+---
+
+## Final figures · 2026-09-30
+
+`figures/` holds eight 16:9 figures, each 3200 × 1800 px. `make_figures.py` draws them from
+numbers copied out of the committed readouts. Every number names the readout line it came
+from, and the script checks the transcription against the published means before drawing.
+Rebuild with:
+
+    python docs/presentation/make_figures.py
+
+The file order is a suggested talk order.
+
+| # | File | What it shows | The point to make |
+|---|---|---|---|
+| 1 | `01_method.png` | The two pathways and the two gates | M1 and M2 never share weights, so their disagreement could carry information the grader's own confidence cannot |
+| 2 | `02_timeline.png` | Freeze to unblinding, 16–29 September | Both analyses were fixed before a test label was read, and the order is on the record |
+| 3 | `03_headline_auc.png` | Coverage–accuracy AUC: three rules, three test sets | The headline: confidence beat disagreement everywhere, in both analyses |
+| 4 | `04_errors_deferred.png` | Share of the grader's errors each rule defers | The pre-registered disagreement deferred the grader's safest calls, catching fewer errors than chance |
+| 5 | `05_referral_errors.png` | The same, for referral errors | The one place disagreement wins: false referrals under shift. It was found after the unblinding |
+| 6 | `06_why_disagreement_lost.png` | Correct calls M3 disputes; errors above grade 2 | Two causes: M3 is not specific, and it cannot see grades 3 and 4 |
+| 7 | `07_faithfulness.png` | Lesion removal against 19 random controls | Verification works: the grader does use the lesions M2 finds |
+| 8 | `08_examples.png` | Figure 7.1, laid out for a slide | The intended case exists, but its evidence is often not the disease |
+
+Colour means the same thing on every slide:
+- **blue** is confidence;
+- **orange** is disagreement and the evidence pathway;
+- **grey** is a reference (no gate, or chance).
+
+A hollow orange dot is the pre-registered analysis, and a filled one is the amended
+analysis. The two colours pass colour-blind separation and contrast checks on white.
+
+### What in the 5-minute deck predates the results
+
+The deck and the run sheet above were written at the scaffold, before any result. These
+parts no longer hold:
+- **Slide 5.** The evidence pathway trained on DDR only; IDRiD was held out (D2). REACQUIRE
+  was never built (D10).
+- **Slide 6.** Its example is illustrative: "p = 0.91", "14 microaneurysms, 9
+  haemorrhages" and "3 quadrants" were not measured, and quadrants never ran (D1). The real
+  case is figure 8, which is rare (24 of 17,615) and often artefactual.
+- **Slide 8.** The three deciding experiments now have outcomes:
+  - F2 not supported (figure 3);
+  - E2 holds (figure 7);
+  - C4 informative but weaker (QWK 0.375 against 0.679).
+- **Slide 9.** Of the three contributions, the calibration claim failed: EM worsened
+  external ECE in 23 of 24 cells (H2). The contribution is now a pre-registered negative
+  result with its mechanism.
+- **Likely questions, the leaderboard answer.** No split is comparable with the
+  leaderboard (D8), so the benchmark experiment H1 on the official split did not run.

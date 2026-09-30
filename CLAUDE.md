@@ -300,6 +300,10 @@ passed on all three sets, and 76 cross-checks pass. Findings (register, "Phase 8
 
 Chapter 6 is complete and chapter 7 drafted (`docs/thesis/`).
 
+**Presentation figures built 2026-09-30:** `docs/presentation/figures/`, eight 16:9 PNGs
+drawn by `make_figures.py`. Every number cites its readout line and is checked against
+the published means (EyePACS confidence is 0.9165 exactly: round half up, 0.917).
+
 **Next:**
 - Chapter 4 (methods), from `PREREGISTRATION.md` and the report's as-built table.
 - Decided 2026-09-29 (the author delegated decisions):
