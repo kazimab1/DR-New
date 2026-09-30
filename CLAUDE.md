@@ -312,7 +312,7 @@ pushes only, and it refused the tag at the freeze and again on 2026-09-29. Do no
 it. `PREREGISTRATION.md`'s header no longer depends on the tag, because the hash is the
 record. The pre-registration's author and supervisor are both Kazim Alikhan (filled
 2026-09-29), so its acknowledgement is not independent; its completion note says so. The
-institution field is still blank. Sections 6-7 of the 08 re-run are
+institution is California State University, Los Angeles (filled 2026-09-30). Sections 6-7 of the 08 re-run are
 still unrecorded; they decide nothing now.
 
 Three things it found that change the analysis, not just pin it:

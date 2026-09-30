@@ -32,7 +32,7 @@
 | Project | VERIFY-DR |
 | Author | Kazim Alikhan |
 | Supervisor | Kazim Alikhan, the author (see the completion note below) |
-| Institution | _(institution)_ |
+| Institution | California State University, Los Angeles (Cal State LA) |
 | Freeze date | **2026-09-16** |
 | Freeze commit hash | [`17472a2`](../../commit/17472a2497054158c20588e9b71505b40b44a590) — full: `17472a2497054158c20588e9b71505b40b44a590` |
 | Supervisor acknowledgement | **2026-09-16** — given directly by the supervisor in the project working session that produced this commit. |
@@ -56,7 +56,7 @@
 >   to run without it (Step 3);
 > - GitHub's record of when each commit was pushed, which the author cannot backdate.
 >
-> The institution is still to be added.
+> The institution was added on 2026-09-30.
 
 ---
 
