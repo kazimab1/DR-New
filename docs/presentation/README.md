@@ -102,23 +102,40 @@ parts no longer hold:
 
 ---
 
-## The new 5-minute deck · 2026-09-30
+## The new 5-minute deck · 2026-09-30, restyled 2026-10-01
 
 This deck replaces `verify_dr_5min.pptx` for talks: https://claude.ai/artifact/EHeVPgAsfEXz6Gkf67g1Jj.
 
-It has nine slides and four hidden backup slides. Speaker notes with timings are on
-every slide.
+On 2026-10-01 it was rebuilt in the **Cal State LA template**, following the department's
+example 5-minute deck: the title banner, the black and gold corner, the gold bar, the
+footer, Research Aim boxes, a staircase pipeline, two References slides and a campus
+"Thank you!" slide. It has 12 slides, each with timed speaker notes. The first version's
+nine slides and four hidden backups are in the artifact's version history. The backup
+figures are still in `figures/`.
+
+Slides 6–8 use only the plotting area of figures 1, 3 and 6. The slide title takes the
+place of each figure's own title.
 
 | # | Slide | Time | The one thing to land |
 |---|---|---|---|
-| 1 | Cover | 0:00–0:20 | The question is which gradings to trust, and the test was allowed to fail |
-| 2 | The problem | 0:20–0:55 | Confidence is the usual safeguard, and a network can be confidently wrong |
-| 3 | The idea (figure 1) | 0:55–1:35 | Two pathways that never share a weight |
-| 4 | The case | 1:35–2:05 | A real image: the confident grader is wrong, and the evidence is right |
-| 5 | The test (figure 2) | 2:05–2:30 | Fixed before any test label was read |
-| 6 | The result (figure 3) | 2:30–3:15 | Confidence beat disagreement on every test set |
-| 7 | Why (figure 6) | 3:15–3:55 | M3 is not specific, and it is blind above grade 2 |
-| 8 | What survives | 3:55–4:30 | Verification works; false referrals under shift, found after the unblinding |
-| 9 | Close | 4:30–5:00 | A pre-registered negative result with its mechanism |
+| 1 | Title | 0:00–0:20 | The question is which gradings to trust, and the test was allowed to fail |
+| 2 | What is Diabetic Retinopathy (DR)? | 0:20–0:50 | Grade 2 or above is referred, and the earliest signs are tiny lesions |
+| 3 | Background & Significance | 0:50–1:25 | Confidence is the usual safeguard, and a network can be confidently wrong |
+| 4 | Research Aim | 1:25–1:50 | Disagreement against confidence, pre-registered, on external data |
+| 5 | Project Pipeline | 1:50–2:15 | The analysis was fixed before any test label was read |
+| 6 | Two Independent Pathways (figure 1) | 2:15–2:50 | No shared weights, so the pathways should fail differently |
+| 7 | Results (figure 3) | 2:50–3:35 | Confidence beat disagreement on every test set, in both analyses |
+| 8 | Why Disagreement Lost (figure 6) | 3:35–4:15 | M3 disputed correct grades, and it cannot see grades 3 and 4 |
+| 9 | Conclusions & Next Steps | 4:15–4:50 | A pre-registered negative result, what survives, and what a follow-up needs |
+| 10–11 | References | 4:50–4:55 | Move past them |
+| 12 | Thank you! | 4:55–5:00 | Questions |
 
-The backup slides, hidden in the run-through, are figures 4, 5, 7 and 8.
+Before presenting:
+- **Slide 1:** "Advisor: [Advisor name], PhD" is a placeholder. Fill it in, or delete the
+  line.
+- **Footer:** "Department of Computer Science" comes from the example deck. Confirm it is
+  your department.
+- **References:** check them against the originals. Papers with many authors are cut to
+  "et al." to fit, and the DOIs were written without access to the publishers' sites.
+- **Narration:** the example has recorded audio on each slide. To do the same, download
+  the deck as PowerPoint and use Record Slide Show.
