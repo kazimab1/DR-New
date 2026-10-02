@@ -1,5 +1,8 @@
 # VERIFY-DR — Thesis Outline
 
+**Title, chosen 2026-10-02:** *Knowing When to Trust AI in Diabetic Retinopathy Screening*. VERIFY-DR stays the project
+name in the repository and the pre-registration.
+
 Target ~15,000–20,000 words. Each section names the experiments that feed it, so you
 never face a blank page — you are writing up results you already have.
 

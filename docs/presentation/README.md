@@ -109,7 +109,8 @@ This deck replaces `verify_dr_5min.pptx` for talks: https://claude.ai/artifact/E
 On 2026-10-01 it was rebuilt in the **Cal State LA template**, following the department's
 example 5-minute deck: the title banner, the black and gold corner, the gold bar, the
 footer, Research Aim boxes, a staircase pipeline, two References slides and a campus
-"Thank you!" slide. It has 12 slides, each with timed speaker notes. The first version's
+"Thank you!" slide. It has 12 slides, each with timed speaker notes. Slide 1 carries the
+thesis title, chosen on 2026-10-02: *Knowing When to Trust AI in Diabetic Retinopathy Screening*. The first version's
 nine slides and four hidden backups are in the artifact's version history. The backup
 figures are still in `figures/`.
 

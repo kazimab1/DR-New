@@ -307,6 +307,8 @@ The new 5-minute deck built from them is https://claude.ai/artifact/EHeVPgAsfEXz
 It replaces `verify_dr_5min.pptx`. On 2026-10-01 it was restyled in the Cal State LA
 template, following the department's example deck. It now has 12 slides with timed notes.
 Its "Advisor" line is a placeholder, and the department name is taken from the example.
+**Thesis title, chosen 2026-10-02: Knowing When to Trust AI in Diabetic Retinopathy Screening.** The deck's title slide and the
+report carry it; VERIFY-DR stays the project name.
 
 **Next:**
 - Chapter 4 (methods), from `PREREGISTRATION.md` and the report's as-built table.
